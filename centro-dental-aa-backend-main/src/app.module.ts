@@ -132,12 +132,15 @@ import { EstudioComplementario } from './estudios-complementarios/entities/estud
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url: process.env.DATABASE_URL,
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5433', 10),
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgrespg',
-      database: process.env.DB_DATABASE || 'clinica_dental',
+      ...(process.env.DATABASE_URL 
+        ? { url: process.env.DATABASE_URL }
+        : {
+            host: process.env.DB_HOST || 'localhost',
+            port: parseInt(process.env.DB_PORT || '5433', 10),
+            username: process.env.DB_USERNAME || 'postgres',
+            password: process.env.DB_PASSWORD || 'postgrespg',
+            database: process.env.DB_DATABASE || 'clinica_dental',
+          }),
       logging: process.env.NODE_ENV !== 'production',
       synchronize: process.env.DB_SYNCHRONIZE === 'true' || process.env.NODE_ENV !== 'production',
       ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
