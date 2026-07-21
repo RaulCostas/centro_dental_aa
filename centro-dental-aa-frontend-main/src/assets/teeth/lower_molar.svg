@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 200">
+  <!-- Roots (2 thick, long, sharply curved roots) -->
+  <path d="M20,95 C10,50 15,20 30,5 C35,25 35,50 50,75 C65,50 65,25 70,5 C85,20 90,50 80,95 C65,105 60,95 50,95 C40,95 35,105 20,95 Z" fill="#ffffff" stroke="#333333" stroke-width="3" stroke-linejoin="round"/>
+  <!-- Crown -->
+  <path d="M20,95 C10,100 5,120 5,140 C5,165 15,185 25,185 C35,185 45,175 50,175 C55,175 65,185 75,185 C85,185 95,165 95,140 C95,120 90,100 80,95 C65,105 60,95 50,95 C40,95 35,105 20,95 Z" fill="#ffffff" stroke="#333333" stroke-width="3" stroke-linejoin="round"/>
+</svg>

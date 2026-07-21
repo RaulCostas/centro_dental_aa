@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 200">
+  <!-- Root (Thick base, single root, curved apex) -->
+  <path d="M25,95 C15,40 30,5 50,5 C70,5 85,40 75,95 C65,105 60,95 50,95 C40,95 35,105 25,95 Z" fill="#ffffff" stroke="#333333" stroke-width="3" stroke-linejoin="round"/>
+  <!-- Crown -->
+  <path d="M25,95 C25,115 20,135 20,155 C20,175 35,190 50,190 C65,190 80,175 80,155 C80,135 75,115 75,95 C65,105 60,95 50,95 C40,95 35,105 25,95 Z" fill="#ffffff" stroke="#333333" stroke-width="3" stroke-linejoin="round"/>
+</svg>

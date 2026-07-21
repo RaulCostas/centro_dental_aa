@@ -1,0 +1,37 @@
+services:
+  # Backend Service
+  - type: web
+    name: clinica-dental-backend
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    rootDir: clinica-dental-backend-main
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false # Set this in Render Dashboard
+      - key: SUPABASE_URL
+        sync: false # Set this in Render Dashboard
+      - key: SUPABASE_KEY
+        sync: false # Set this in Render Dashboard
+      - key: JWT_SECRET
+        sync: false # Set this in Render Dashboard
+      - key: DB_SYNCHRONIZE
+        sync: false # Escribe "true" para crear las tablas en el primer despliegue
+
+  # Frontend Service
+  - type: web
+    name: clinica-dental-frontend
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    rootDir: clinica-dental-frontend-main
+    envVars:
+      - key: VITE_API_URL
+        sync: false # Ingresa la URL de tu backend de Render (ej: https://clinica-dental-backend.onrender.com)
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 200">
+  <!-- Root -->
+  <path d="M32,100 C25,40 38,10 50,10 C62,10 75,40 68,100" fill="#ffffff" stroke="#333333" stroke-width="3" stroke-linejoin="round"/>
+  <!-- Crown -->
+  <path d="M32,100 C20,110 15,130 15,160 C15,185 25,190 50,190 C75,190 85,185 85,160 C85,130 80,110 68,100 C55,105 45,105 32,100 Z" fill="#ffffff" stroke="#333333" stroke-width="3" stroke-linejoin="round"/>
+</svg>

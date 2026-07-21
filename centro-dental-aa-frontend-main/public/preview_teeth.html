@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Preview Dientes SVG</title>
+<style>
+  body { background: #f0f4f8; font-family: sans-serif; padding: 20px; }
+  .section { background: white; border-radius: 12px; padding: 20px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+  .tooth { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .tooth span { font-size: 11px; color: #555; font-weight: 600; }
+  img { border: 1px dashed #ddd; background: white; border-radius: 4px; }
+  h3 { color: #333; margin: 0 0 16px; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+
+<div class="section">
+  <h3>Superiores (raíces arriba, corona abajo)</h3>
+  <div class="row">
+    <div class="tooth">
+      <img src="/src/assets/teeth/upper_molar.svg" width="70" height="140" alt="Molar Superior"/>
+      <span>Molar Sup.</span>
+    </div>
+    <div class="tooth">
+      <img src="/src/assets/teeth/upper_premolar.svg" width="70" height="140" alt="Premolar Superior"/>
+      <span>Premolar Sup.</span>
+    </div>
+    <div class="tooth">
+      <img src="/src/assets/teeth/canine.svg" width="70" height="140" alt="Canino"/>
+      <span>Canino</span>
+    </div>
+    <div class="tooth">
+      <img src="/src/assets/teeth/incisor.svg" width="70" height="140" alt="Incisivo"/>
+      <span>Incisivo</span>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Inferiores (raíces abajo, corona arriba)</h3>
+  <div class="row">
+    <div class="tooth">
+      <img src="/src/assets/teeth/lower_molar.svg" width="70" height="140" alt="Molar Inferior"
+           style="transform: rotate(180deg); transform-origin: center;"/>
+      <span>Molar Inf.</span>
+    </div>
+    <div class="tooth">
+      <img src="/src/assets/teeth/lower_premolar.svg" width="70" height="140" alt="Premolar Inferior"
+           style="transform: rotate(180deg); transform-origin: center;"/>
+      <span>Premolar Inf.</span>
+    </div>
+    <div class="tooth">
+      <img src="/src/assets/teeth/canine.svg" width="70" height="140" alt="Canino Inferior"
+           style="transform: rotate(180deg); transform-origin: center;"/>
+      <span>Canino Inf.</span>
+    </div>
+    <div class="tooth">
+      <img src="/src/assets/teeth/incisor.svg" width="70" height="140" alt="Incisivo Inferior"
+           style="transform: rotate(180deg); transform-origin: center;"/>
+      <span>Incisivo Inf.</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
