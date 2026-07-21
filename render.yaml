@@ -6,7 +6,7 @@ services:
     plan: free
     buildCommand: npm install && npm run build
     startCommand: npm run start:prod
-    rootDir: clinica-dental-backend-main
+    rootDir: centro-dental-aa-backend-main
     envVars:
       - key: NODE_ENV
         value: production
@@ -27,7 +27,7 @@ services:
     env: static
     buildCommand: npm install && npm run build
     staticPublishPath: dist
-    rootDir: clinica-dental-frontend-main
+    rootDir: centro-dental-aa-frontend-main
     envVars:
       - key: VITE_API_URL
         sync: false # Ingresa la URL de tu backend de Render (ej: https://clinica-dental-backend.onrender.com)
