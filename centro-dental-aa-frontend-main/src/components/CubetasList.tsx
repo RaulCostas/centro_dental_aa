@@ -183,7 +183,7 @@ const CubetasList: React.FC = () => {
     const exportToExcel = async () => {
         try {
             const params = new URLSearchParams({ page: '1', limit: '9999' });
-            if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
+            if (searchTerm) params.append('search', searchTerm);
             const response = await api.get<{ data: Cubeta[], total: number }>(`/cubetas?${params}`);
             const allCubetas = response.data.data;
 

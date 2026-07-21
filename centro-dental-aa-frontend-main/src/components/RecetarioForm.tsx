@@ -15,6 +15,7 @@ interface FormData {
     fecha: string;
     medicamentos: string; // Legacy/Notes
     indicaciones: string; // Legacy/General Notes
+    diagnostico?: string;
     detalles: RecetaDetalle[];
 }
 

@@ -425,6 +425,7 @@ export interface Agenda {
     consultorio: number;
     pacienteId?: number;
     paciente?: Paciente;
+    pacienteSeguro?: any;
     doctorId: number;
     doctor?: Doctor;
     proformaId?: number;

@@ -196,7 +196,7 @@ const UserList: React.FC = () => {
     const exportToExcel = async () => {
         try {
             const params = new URLSearchParams({ page: '1', limit: '9999' });
-            if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
+            if (searchTerm) params.append('search', searchTerm);
             const response = await api.get<PaginatedResponse | User[]>(`/users?${params}`);
             
             let allUsers: User[] = [];
@@ -227,7 +227,7 @@ const UserList: React.FC = () => {
     const exportToPDF = async () => {
         try {
             const params = new URLSearchParams({ page: '1', limit: '9999' });
-            if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
+            if (searchTerm) params.append('search', searchTerm);
             const response = await api.get<PaginatedResponse | User[]>(`/users?${params}`);
             
             let allUsers: User[] = [];

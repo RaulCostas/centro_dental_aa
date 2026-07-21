@@ -413,6 +413,7 @@ const ConsentimientosPlantillasList: React.FC = () => {
                 <ManualModal
                     isOpen={showManual}
                     onClose={() => setShowManual(false)}
+                    title="Manual de Consentimientos"
                     sections={manualSections}
                 />
             )}

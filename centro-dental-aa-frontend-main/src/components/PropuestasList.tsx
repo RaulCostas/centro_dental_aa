@@ -223,7 +223,7 @@ const PropuestasList: React.FC = () => {
                     }
                 });
 
-                const doc = generatePDF(propuesta, 'blob', letra);
+                const doc = await generatePDF(propuesta, 'blob', letra);
                 const base64Data = doc.output('datauristring').split(',')[1];
 
                 let celular = paciente.telefono_celular.replace(/\D/g, '');

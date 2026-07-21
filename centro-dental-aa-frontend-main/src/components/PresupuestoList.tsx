@@ -27,6 +27,7 @@ interface Proforma {
     usuario: { name: string };
     aprobado: boolean;
     detalles: any[];
+    plan_pagos?: any;
     usuarioAprobado?: { name: string };
     fecha_aprobado?: string;
     pacienteId: number;
@@ -121,8 +122,8 @@ const PresupuestoList: React.FC = () => {
         proforma.detalles.forEach(detail => {
             if (!detail.piezas) return;
             const cleanedPiezas = detail.piezas.replace(/\s*\(\s*([^)]+)\s*\)/g, '($1)');
-            const parts = cleanedPiezas.split(/[\s,\/-]+/).filter(p => p.trim() !== '');
-            parts.forEach(part => {
+            const parts = cleanedPiezas.split(/[\s,\/-]+/).filter((p: string) => p.trim() !== '');
+            parts.forEach((part: string) => {
                 const match = part.match(/^(\d+)(?:\(([^)]+)\))?$/);
                 if (match) {
                     const tooth = Number(match[1]);
