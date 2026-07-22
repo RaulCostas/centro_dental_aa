@@ -5,6 +5,7 @@ import Swal from 'sweetalert2';
 import ManualModal, { type ManualSection } from './ManualModal';
 import SignatureModal from './SignatureModal';
 import { getLocalDateString } from '../utils/dateUtils';
+import { getImageUrl } from '../utils/formatters';
 import { ArrowLeft, User, Users, Activity, Wind, Info, Edit, Mail, Calendar, MapPin, Phone, Briefcase, HelpCircle, Save, X, Fingerprint, Search, Plus, Shield, Camera } from 'lucide-react';
 
 const CameraModal: React.FC<{ isOpen: boolean; onClose: () => void; onCapture: (base64: string) => void }> = ({ isOpen, onClose, onCapture }) => {
@@ -414,7 +415,7 @@ const PacienteForm: React.FC = () => {
                                 <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center border border-gray-300 dark:border-gray-600 shadow-inner relative group flex-shrink-0">
                                     {formData.foto ? (
                                         <>
-                                            <img src={formData.foto} alt="Foto paciente" className="w-full h-full object-cover" />
+                                            <img src={getImageUrl(formData.foto)} alt="Foto paciente" className="w-full h-full object-cover" />
                                             <button 
                                                 type="button" 
                                                 onClick={() => setFormData(prev => ({ ...prev, foto: '' }))}

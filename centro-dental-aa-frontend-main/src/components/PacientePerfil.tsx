@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, Outlet, Link } from 'react-router-dom';
 import api from '../services/api';
 import type { Paciente, Pago, Proforma, Agenda } from '../types';
-import { formatFullName } from '../utils/formatters';
+import { formatFullName, getImageUrl } from '../utils/formatters';
 import {
     User, Calendar, FileText, CreditCard, Image as ImageIcon, ClipboardList,
     ArrowLeft, Edit, Activity, Heart, CheckCircle, Shield
@@ -212,7 +212,7 @@ const PacientePerfil: React.FC = () => {
                     <div className="flex items-center gap-4">
                         <div className="w-14 h-14 rounded-2xl overflow-hidden bg-white/20 flex items-center justify-center shadow-inner flex-shrink-0">
                             {paciente.foto ? (
-                                <img src={paciente.foto} alt="Foto paciente" className="w-full h-full object-cover" />
+                                <img src={getImageUrl(paciente.foto)} alt="Foto paciente" className="w-full h-full object-cover" />
                             ) : (
                                 <User size={28} className="text-white" />
                             )}

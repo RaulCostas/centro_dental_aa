@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { HistoriaClinica } from '../types';
-import { formatFullName } from '../utils/formatters';
+import { formatFullName, getImageUrl } from '../utils/formatters';
 
 interface HistoriaClinicaListProps {
     historia: HistoriaClinica[];
@@ -190,7 +190,7 @@ const HistoriaClinicaList: React.FC<HistoriaClinicaListProps> = ({ historia, onD
                                         {item.firmaPaciente && (
                                             <button
                                                 onClick={() => {
-                                                    setSelectedSignature(item.firmaPaciente!);
+                                                    setSelectedSignature(getImageUrl(item.firmaPaciente!));
                                                     setShowSignatureModal(true);
                                                 }}
                                                 className="text-xs flex items-center justify-center gap-1 text-blue-600 hover:text-white dark:text-blue-400 dark:hover:text-white font-semibold bg-blue-50 hover:bg-blue-600 dark:bg-blue-900/30 dark:hover:bg-blue-600 px-2 py-1 rounded shadow-sm transition-all transform hover:-translate-y-0.5"

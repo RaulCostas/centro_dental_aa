@@ -1,4 +1,6 @@
 
+import api from '../services/api';
+
 export const formatDateSpanish = (dateString: string): string => {
     // const date = new Date(dateString);
     // Adjust for timezone if necessary, but assuming dateString is YYYY-MM-DD or ISO
@@ -122,4 +124,26 @@ export const formatNumber = (amount: number | string | undefined | null): string
 export const formatCurrency = (amount: number | string | undefined | null, currency: string = 'Bs'): string => {
     const formattedNumber = formatNumber(amount);
     return `${currency} ${formattedNumber}`;
+};
+
+export const getImageUrl = (url?: string): string => {
+    if (!url) return '';
+    if (url.startsWith('data:image')) return url; // Base64 image data
+
+    const backendUrl = import.meta.env.VITE_API_URL || api.defaults.baseURL || '';
+    const origin = backendUrl.replace(/\/api\/?$/, '');
+
+    if (url.startsWith('http://localhost') || url.startsWith('https://localhost')) {
+        if (origin && !origin.includes('localhost')) {
+            return url.replace(/^https?:\/\/localhost:\d+/, origin);
+        }
+        return url;
+    }
+
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url;
+    }
+
+    const cleanPath = url.startsWith('/') ? url : `/${url}`;
+    return origin ? `${origin}${cleanPath}` : url;
 };

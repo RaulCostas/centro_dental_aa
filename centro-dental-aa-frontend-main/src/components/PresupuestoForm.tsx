@@ -8,7 +8,7 @@ import ArancelForm from './ArancelForm';
 import Odontogram from './Odontogram';
 import SearchableSelect from './SearchableSelect';
 import { formatDate } from '../utils/dateUtils';
-import { formatFullName, formatNumber, formatCurrency } from '../utils/formatters';
+import { formatFullName, formatNumber, formatCurrency, getImageUrl } from '../utils/formatters';
 
 
 interface DetalleItem {
@@ -1073,7 +1073,7 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
                                                             </span>
                                                             <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-2 w-full flex justify-center border border-gray-100 dark:border-gray-700/50">
                                                                 <img 
-                                                                    src={historiaWithSignature.firmaPaciente} 
+                                                                    src={getImageUrl(historiaWithSignature.firmaPaciente)} 
                                                                     alt="Firma del Paciente" 
                                                                     className="max-h-24 w-auto object-contain signature-image invert dark:invert-0" 
                                                                     style={{ filter: 'var(--signature-filter, none)' }}

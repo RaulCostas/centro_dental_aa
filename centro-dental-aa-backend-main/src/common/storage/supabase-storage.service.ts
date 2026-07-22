@@ -50,8 +50,8 @@ export class SupabaseStorageService {
       
       // Return a local URL (the frontend needs to be able to serve this)
       // We assume /uploads is served statically
-      const apiUrl = process.env.VITE_API_URL || 'http://localhost:3000';
-      return `${apiUrl}/uploads/${bucket}/${cleanPath}`;
+      const backendBase = (process.env.API_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:3000').replace(/\/api\/?$/, '');
+      return `${backendBase}/uploads/${bucket}/${cleanPath}`;
     }
 
     this.logger.log(`[SupabaseStorageService] Uploading to Supabase ${bucket}/${cleanPath}...`);

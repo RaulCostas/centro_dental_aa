@@ -3,7 +3,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
-import { formatFullName, formatNumber } from '../utils/formatters';
+import { formatFullName, formatNumber, getImageUrl } from '../utils/formatters';
 import Swal from 'sweetalert2';
 import type { Paciente, HistoriaClinica as HistoriaClinicaType, Proforma, Pago } from '../types';
 import Odontogram from './Odontogram';
@@ -386,7 +386,7 @@ const HistoriaClinica: React.FC = () => {
                 doc.setTextColor(44, 62, 80);
                 doc.text('CONFORMIDAD DEL PACIENTE', 105, signatureY, { align: 'center' });
                 
-                const sigImg = await loadImage(historiaWithFirma.firmaPaciente);
+                const sigImg = await loadImage(getImageUrl(historiaWithFirma.firmaPaciente));
                 doc.addImage(sigImg, 'PNG', 105 - 40, signatureY + 5, 80, 40);
                 
                 doc.setDrawColor(150);

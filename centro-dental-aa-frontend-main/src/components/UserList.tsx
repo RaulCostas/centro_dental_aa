@@ -10,6 +10,7 @@ import autoTable from 'jspdf-autotable';
 import Pagination from './Pagination';
 import ManualModal, { type ManualSection } from './ManualModal';
 import { formatDate, getLocalDateString } from '../utils/dateUtils';
+import { getImageUrl } from '../utils/formatters';
 import UserForm from './UserForm';
 import { FileText, Download, Printer, Users } from 'lucide-react';
 
@@ -584,7 +585,7 @@ const UserList: React.FC = () => {
                                 <td className="p-3 text-gray-800 dark:text-gray-300">{(currentPage - 1) * limit + index + 1}</td>
                                 <td className="p-3">
                                     {user.foto ? (
-                                        <img src={user.foto} alt={user.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                                        <img src={getImageUrl(user.foto)} alt={user.name} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
                                     ) : (
                                         <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-white font-bold">
                                             {user.name.charAt(0)}
