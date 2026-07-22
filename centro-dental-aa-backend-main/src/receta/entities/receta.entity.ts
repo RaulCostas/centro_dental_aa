@@ -18,10 +18,7 @@ export class Receta {
     @Column({ type: 'date' })
     fecha: string;
 
-    @Column({ type: 'text' })
-    medicamentos: string;
-
-    @Column({ type: 'text' })
+    @Column({ type: 'text', nullable: true })
     indicaciones: string;
 
     @Column({ type: 'text', nullable: true })
@@ -40,7 +37,4 @@ export class Receta {
         eager: false
     })
     detalles: RecetaDetalle[];
-
-    @Column({ type: 'boolean', default: false })
-    esta_firmado: boolean;
 }

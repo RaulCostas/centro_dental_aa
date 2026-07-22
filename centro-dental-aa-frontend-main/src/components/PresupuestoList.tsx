@@ -12,8 +12,15 @@ import ManualModal, { type ManualSection } from './ManualModal';
 import SignatureModal from './SignatureModal';
 import PresupuestoViewModal from './PresupuestoViewModal';
 import Odontogram from './Odontogram';
+import { getColorForSurfaceCode, getFigureForConditionCode } from '../utils/odontogramMappings';
+import { getFigureUrlByKey } from '../utils/figureRegistry';
 
-import { Printer, DollarSign, CreditCard } from 'lucide-react';
+import implanteImg from '../assets/teeth/implante.png';
+import coronaImg from '../assets/teeth/corona.png';
+import pernoImg from '../assets/teeth/perno.png';
+
+import { Printer, DollarSign, CreditCard, ClipboardList } from 'lucide-react';
+import PropuestasList from './PropuestasList';
 
 
 interface Proforma {
@@ -63,12 +70,12 @@ const PresupuestoList: React.FC = () => {
 
     const manualSections: ManualSection[] = [
         {
-            title: 'Planes de Tratamiento',
-            content: 'Gestión de proformas y planes de tratamiento para el paciente. Los planes de tratamiento permiten planificar tratamientos, hacer seguimiento de piezas completadas y controlar el estado de finalización.'
+            title: 'Presupuestos',
+            content: 'Gestión de proformas y presupuestos para el paciente. Los presupuestos permiten planificar tratamientos, hacer seguimiento de piezas completadas y controlar el estado de finalización.'
         },
         {
-            title: 'Nuevo Plan de Tratamiento',
-            content: 'Cree un nuevo plan de tratamiento seleccionando tratamientos del arancel. Puede especificar las piezas dentales a tratar, agregar notas y generar PDF para entregar al paciente.'
+            title: 'Nuevo Presupuesto',
+            content: 'Cree un nuevo presupuesto seleccionando tratamientos del arancel. Puede especificar las piezas dentales a tratar, agregar notas y generar PDF para entregar al paciente.'
         },
         {
             title: 'Indicadores Visuales',
@@ -645,8 +652,8 @@ const PresupuestoList: React.FC = () => {
                     head: [['Detalle', 'Monto', 'Fecha Vencimiento']],
                     body: tableBody,
                     theme: 'grid',
-                    styles: { fontSize: 9, cellPadding: 2, halign: 'center' },
-                    headStyles: { fillColor: [52, 152, 219], textColor: 255 },
+                    styles: { fontSize: 9, cellPadding: 2, halign: 'center', textColor: [0, 0, 0], lineColor: [200, 200, 200], lineWidth: 0.1 },
+                    headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', lineWidth: 0.1, lineColor: [200, 200, 200] },
                     margin: { left: 14, right: 14 }
                 });
 
@@ -759,6 +766,488 @@ const PresupuestoList: React.FC = () => {
                 doc.setDrawColor(221, 221, 221);
                 doc.line(14, pageHeight - 16, 196, pageHeight - 16);
                 
+                doc.setTextColor('#555555');
+                doc.text(footerString, 105, pageHeight - 11, { align: 'center', maxWidth: 180 });
+            }
+        }
+
+        // --- PAGINA 2: ODONTOGRAMA ---
+        doc.addPage();
+
+        const paths: Record<string, { type: string, commands: any[] }[]> = {
+            upper_molar: [
+                {
+                    type: 'path',
+                    commands: [
+                        { type: 'M', x: 20, y: 95 },
+                        { type: 'C', x1: 5, y1: 70, x2: 5, y2: 30, x: 15, y: 5 },
+                        { type: 'C', x1: 25, y1: 20, x2: 35, y2: 50, x: 40, y: 75 },
+                        { type: 'C', x1: 45, y1: 40, x2: 45, y2: 15, x: 50, y: 5 },
+                        { type: 'C', x1: 55, y1: 15, x2: 55, y2: 40, x: 60, y: 75 },
+                        { type: 'C', x1: 65, y1: 50, x2: 75, y2: 20, x: 85, y: 5 },
+                        { type: 'C', x1: 95, y1: 30, x2: 95, y2: 70, x: 80, y: 95 },
+                        { type: 'C', x1: 65, y1: 105, x2: 60, y2: 95, x: 50, y: 95 },
+                        { type: 'C', x1: 40, y1: 95, x2: 35, y2: 105, x: 20, y: 95 },
+                        { type: 'Z' }
+                    ]
+                },
+                {
+                    type: 'path',
+                    commands: [
+                        { type: 'M', x: 20, y: 95 },
+                        { type: 'C', x1: 10, y1: 100, x2: 5, y2: 120, x: 5, y: 140 },
+                        { type: 'C', x1: 5, y1: 165, x2: 15, y2: 185, x: 25, y: 185 },
+                        { type: 'C', x1: 35, y1: 185, x2: 45, y2: 175, x: 50, y: 175 },
+                        { type: 'C', x1: 55, y1: 175, x2: 65, y2: 185, x: 75, y: 185 },
+                        { type: 'C', x1: 85, y1: 185, x2: 95, y2: 165, x: 95, y: 140 },
+                        { type: 'C', x1: 95, y1: 120, x2: 90, y2: 100, x: 80, y: 95 },
+                        { type: 'C', x1: 65, y1: 105, x2: 60, y2: 95, x: 50, y: 95 },
+                        { type: 'C', x1: 40, y1: 95, x2: 35, y2: 105, x: 20, y: 95 },
+                        { type: 'Z' }
+                    ]
+                }
+            ],
+            lower_molar: [
+                {
+                    type: 'path',
+                    commands: [
+                        { type: 'M', x: 20, y: 95 },
+                        { type: 'C', x1: 10, y1: 50, x2: 15, y2: 20, x: 30, y: 5 },
+                        { type: 'C', x1: 35, y1: 25, x2: 35, y2: 50, x: 50, y: 75 },
+                        { type: 'C', x1: 65, y1: 50, x2: 65, y2: 25, x: 70, y: 5 },
+                        { type: 'C', x1: 85, y1: 20, x2: 90, y2: 50, x: 80, y: 95 },
+                        { type: 'C', x1: 65, y1: 105, x2: 60, y2: 95, x: 50, y: 95 },
+                        { type: 'C', x1: 40, y1: 95, x2: 35, y2: 105, x: 20, y: 95 },
+                        { type: 'Z' }
+                    ]
+                },
+                {
+                    type: 'path',
+                    commands: [
+                        { type: 'M', x: 20, y: 95 },
+                        { type: 'C', x1: 10, y1: 100, x2: 5, y2: 120, x: 5, y: 140 },
+                        { type: 'C', x1: 5, y1: 165, x2: 15, y2: 185, x: 25, y: 185 },
+                        { type: 'C', x1: 35, y1: 185, x2: 45, y2: 175, x: 50, y: 175 },
+                        { type: 'C', x1: 55, y1: 175, x2: 65, y2: 185, x: 75, y: 185 },
+                        { type: 'C', x1: 85, y1: 185, x2: 95, y2: 165, x: 95, y: 140 },
+                        { type: 'C', x1: 95, y1: 120, x2: 90, y2: 100, x: 80, y: 95 },
+                        { type: 'C', x1: 65, y1: 105, x2: 60, y2: 95, x: 50, y: 95 },
+                        { type: 'C', x1: 40, y1: 95, x2: 35, y2: 105, x: 20, y: 95 },
+                        { type: 'Z' }
+                    ]
+                }
+            ],
+            upper_premolar: [
+                {
+                    type: 'path',
+                    commands: [
+                        { type: 'M', x: 25, y: 95 },
+                        { type: 'C', x1: 20, y1: 50, x2: 30, y2: 20, x: 40, y: 5 },
+                        { type: 'C', x1: 45, y1: 20, x2: 50, y2: 50, x: 50, y: 75 },
+                        { type: 'C', x1: 55, y1: 50, x2: 60, y2: 20, x: 60, y: 5 },
+                        { type: 'C', x1: 70, y1: 20, x2: 80, y2: 50, x: 75, y: 95 },
+                        { type: 'C', x1: 65, y1: 105, x2: 60, y2: 95, x: 50, y: 95 },
+                        { type: 'C', x1: 40, y1: 95, x2: 35, y2: 105, x: 25, y: 95 },
+                        { type: 'Z' }
+                    ]
+                },
+                {
+                    type: 'path',
+                    commands: [
+                        { type: 'M', x: 25, y: 95 },
+                        { type: 'C', x1: 20, y1: 115, x2: 15, y2: 135, x: 15, y: 155 },
+                        { type: 'C', x1: 15, y1: 175, x2: 30, y2: 190, x: 50, y: 190 },
+                        { type: 'C', x1: 70, y1: 190, x2: 85, y2: 175, x: 85, y: 155 },
+                        { type: 'C', x1: 85, y1: 135, x2: 80, y2: 115, x: 75, y: 95 },
+                        { type: 'C', x1: 65, y1: 105, x2: 60, y2: 95, x: 50, y: 95 },
+                        { type: 'C', x1: 40, y1: 95, x2: 35, y2: 105, x: 25, y: 95 },
+                        { type: 'Z' }
+                    ]
+                }
+            ],
+            lower_premolar: [
+                {
+                    type: 'path',
+                    commands: [
+                        { type: 'M', x: 25, y: 95 },
+                        { type: 'C', x1: 15, y1: 40, x2: 30, y2: 5, x: 50, y: 5 },
+                        { type: 'C', x1: 70, y1: 5, x2: 85, y2: 40, x: 75, y: 95 },
+                        { type: 'C', x1: 65, y1: 105, x2: 60, y2: 95, x: 50, y: 95 },
+                        { type: 'C', x1: 40, y1: 95, x2: 35, y2: 105, x: 25, y: 95 },
+                        { type: 'Z' }
+                    ]
+                },
+                {
+                    type: 'path',
+                    commands: [
+                        { type: 'M', x: 25, y: 95 },
+                        { type: 'C', x1: 25, y1: 115, x2: 20, y2: 135, x: 20, y: 155 },
+                        { type: 'C', x1: 20, y1: 175, x2: 35, y2: 190, x: 50, y: 190 },
+                        { type: 'C', x1: 65, y1: 190, x2: 80, y2: 175, x: 80, y: 155 },
+                        { type: 'C', x1: 80, y1: 135, x2: 75, y2: 115, x: 75, y: 95 },
+                        { type: 'C', x1: 65, y1: 105, x2: 60, y2: 95, x: 50, y: 95 },
+                        { type: 'C', x1: 40, y1: 95, x2: 35, y2: 105, x: 25, y: 95 },
+                        { type: 'Z' }
+                    ]
+                }
+            ],
+            canine: [
+                {
+                    type: 'path',
+                    commands: [
+                        { type: 'M', x: 32, y: 100 },
+                        { type: 'C', x1: 25, y1: 30, x2: 35, y2: 5, x: 50, y: 5 },
+                        { type: 'C', x1: 65, y1: 5, x2: 75, y2: 30, x: 68, y: 100 }
+                    ]
+                },
+                {
+                    type: 'path',
+                    commands: [
+                        { type: 'M', x: 32, y: 100 },
+                        { type: 'C', x1: 20, y1: 110, x2: 15, y2: 130, x: 15, y: 150 },
+                        { type: 'C', x1: 15, y1: 170, x2: 40, y2: 195, x: 50, y: 195 },
+                        { type: 'C', x1: 60, y1: 195, x2: 85, y2: 170, x: 85, y: 150 },
+                        { type: 'C', x1: 85, y1: 130, x2: 80, y2: 110, x: 68, y: 100 },
+                        { type: 'C', x1: 55, y1: 105, x2: 45, y2: 105, x: 32, y: 100 },
+                        { type: 'Z' }
+                    ]
+                }
+            ],
+            incisor: [
+                {
+                    type: 'path',
+                    commands: [
+                        { type: 'M', x: 32, y: 100 },
+                        { type: 'C', x1: 25, y1: 40, x2: 38, y2: 10, x: 50, y: 10 },
+                        { type: 'C', x1: 62, y1: 10, x2: 75, y2: 40, x: 68, y: 100 }
+                    ]
+                },
+                {
+                    type: 'path',
+                    commands: [
+                        { type: 'M', x: 32, y: 100 },
+                        { type: 'C', x1: 20, y1: 110, x2: 15, y2: 130, x: 15, y: 160 },
+                        { type: 'C', x1: 15, y1: 185, x2: 25, y2: 190, x: 50, y: 190 },
+                        { type: 'C', x1: 75, y1: 190, x2: 85, y2: 185, x: 85, y: 160 },
+                        { type: 'C', x1: 85, y1: 130, x2: 80, y2: 110, x: 68, y: 100 },
+                        { type: 'C', x1: 55, y1: 105, x2: 45, y2: 105, x: 32, y: 100 },
+                        { type: 'Z' }
+                    ]
+                }
+            ]
+        };
+
+        const drawPolygon = (points: number[][], style: 'F' | 'S' | 'FD' = 'FD') => {
+            if (points.length < 3) return;
+            doc.moveTo(points[0][0], points[0][1]);
+            for (let i = 1; i < points.length; i++) {
+                doc.lineTo(points[i][0], points[i][1]);
+            }
+            doc.close();
+            if (style === 'FD') {
+                doc.fillStroke();
+            } else if (style === 'F') {
+                doc.fill();
+            } else {
+                doc.stroke();
+            }
+        };
+
+        const drawAnatomicalTooth = (x: number, toothY: number, num: number, isAbsentOrExtraction: boolean) => {
+            const isUpper = num < 30 || (num >= 51 && num <= 65);
+            const lastDigit = num % 10;
+            const isChild = num >= 51 && num <= 85;
+            let type: 'upper_molar' | 'lower_molar' | 'upper_premolar' | 'lower_premolar' | 'canine' | 'incisor' = 'incisor';
+            
+            if (isChild) {
+                if ([5, 4].includes(lastDigit)) type = isUpper ? 'upper_molar' : 'lower_molar';
+                else if (lastDigit === 3) type = 'canine';
+            } else {
+                if ([8, 7, 6].includes(lastDigit)) type = isUpper ? 'upper_molar' : 'lower_molar';
+                else if ([5, 4].includes(lastDigit)) type = isUpper ? 'upper_premolar' : 'lower_premolar';
+                else if (lastDigit === 3) type = 'canine';
+            }
+            
+            const toothPaths = paths[type];
+            if (!toothPaths) return;
+            
+            doc.setLineWidth(0.12);
+            
+            toothPaths.forEach(p => {
+                p.commands.forEach((cmd: any) => {
+                    let svgX = cmd.x ?? 0;
+                    let svgY = cmd.y ?? 0;
+                    if (!isUpper) {
+                        svgX = 100 - svgX;
+                        svgY = 200 - svgY;
+                    }
+                    
+                    const pdfX = x + svgX * 0.08;
+                    const pdfY = toothY + svgY * 0.08;
+                    
+                    if (cmd.type === 'M') {
+                        doc.moveTo(pdfX, pdfY);
+                    } else if (cmd.type === 'C') {
+                        let svgX1 = cmd.x1 ?? 0;
+                        let svgY1 = cmd.y1 ?? 0;
+                        let svgX2 = cmd.x2 ?? 0;
+                        let svgY2 = cmd.y2 ?? 0;
+                        
+                        if (!isUpper) {
+                            svgX1 = 100 - svgX1;
+                            svgY1 = 200 - svgY1;
+                            svgX2 = 100 - svgX2;
+                            svgY2 = 200 - svgY2;
+                        }
+                        
+                        const pdfX1 = x + svgX1 * 0.08;
+                        const pdfY1 = toothY + svgY1 * 0.08;
+                        const pdfX2 = x + svgX2 * 0.08;
+                        const pdfY2 = toothY + svgY2 * 0.08;
+                        
+                        doc.curveTo(pdfX1, pdfY1, pdfX2, pdfY2, pdfX, pdfY);
+                    } else if (cmd.type === 'L') {
+                        doc.lineTo(pdfX, pdfY);
+                    } else if (cmd.type === 'Z') {
+                        doc.close();
+                    }
+                });
+                
+                if (isAbsentOrExtraction) {
+                    doc.setDrawColor(200, 200, 200);
+                    doc.setFillColor(250, 250, 250);
+                } else {
+                    doc.setDrawColor(60, 60, 60);
+                    doc.setFillColor(255, 255, 255);
+                }
+                doc.fillStroke();
+            });
+        };
+
+        const getArancelConfig = (arancelId: number) => {
+            return aranceles.find(a => a.id === arancelId);
+        };
+
+        const getActiveFiguresForTooth = (num: number, data: any) => {
+            const figures: { type: string; color: string }[] = [];
+
+            if (data) {
+                const stateCode = data.state;
+                if (stateCode) {
+                    const fig = getFigureForConditionCode(stateCode);
+                    if (fig) figures.push(fig);
+                }
+                const connCode = data.connectionType;
+                if (connCode) {
+                    const fig = getFigureForConditionCode(connCode);
+                    if (fig) figures.push(fig);
+                }
+            }
+
+            if (proforma.detalles) {
+                proforma.detalles.forEach(item => {
+                    if (item.piezas) {
+                        const toothList = item.piezas.split(',').map((p: string) => Number(p.trim()));
+                        if (toothList.includes(num)) {
+                            const config = getArancelConfig(item.arancelId || item.arancel?.id);
+                            if (config?.odontogramaFigura && config.odontogramaFigura !== 'none') {
+                                figures.push({
+                                    type: config.odontogramaFigura,
+                                    color: config.odontogramaColor || '#3b82f6'
+                                });
+                            }
+                        }
+                    }
+                });
+            }
+
+            return figures;
+        };
+
+        const drawSingleTooth = async (x: number, y: number, num: number, data: any) => {
+            const isUpper = num < 30 || (num >= 51 && num <= 65);
+
+            // Label
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(80, 80, 80);
+            const labelY = isUpper ? y - 2 : y + 28;
+            doc.text(num.toString(), x + 4, labelY, { align: 'center' });
+            
+            // State
+            const state = data?.state;
+            const isAbsent = state === 10;
+            const isExtraction = state === 11;
+            const isCorona = state === 12 || state === 13;
+            const isImplante = state === 30;
+
+            const toothY = isUpper ? y : y + 10;
+            const surfaceYOffset = isUpper ? y + 18 : y;
+
+            // Draw anatomical tooth base using our vector path drawer
+            drawAnatomicalTooth(x, toothY, num, isAbsent || isExtraction);
+
+            // Draw overlays / active figures
+            const activeFigures = getActiveFiguresForTooth(num, data);
+            for (const fig of activeFigures) {
+                let imgToDraw: any = null;
+                if (fig.type === 'implante') {
+                    imgToDraw = await loadImage(implanteImg);
+                } else if (fig.type === 'perno') {
+                    imgToDraw = await loadImage(pernoImg);
+                } else if (fig.type === 'circulo_corona') {
+                    imgToDraw = await loadImage(coronaImg);
+                } else if (fig.type.startsWith('dynamic:')) {
+                    const pathKey = fig.type.replace('dynamic:', '');
+                    const url = getFigureUrlByKey(pathKey);
+                    if (url) {
+                        try {
+                            imgToDraw = await loadImage(url);
+                        } catch (err) {
+                            console.warn(`Failed to load dynamic figure: ${url}`, err);
+                        }
+                    }
+                }
+                
+                if (imgToDraw) {
+                    if (isUpper) {
+                        doc.addImage(imgToDraw, 'PNG', x, toothY, 8, 16);
+                    } else {
+                        // Rotated 180 degrees
+                        doc.addImage(imgToDraw, 'PNG', x + 8, toothY + 16, 8, 16, undefined, undefined, 180);
+                    }
+                }
+            }
+            
+            // Draw surfaces if not absent, extracted, or implant
+            if (!isAbsent && !isExtraction && !isImplante) {
+                const parseHexColor = (hex: string) => {
+                    if (!hex || hex === 'transparent') return null;
+                    const clean = hex.replace('#', '');
+                    if (clean.length !== 6) return null;
+                    const r = parseInt(clean.substring(0, 2), 16);
+                    const g = parseInt(clean.substring(2, 4), 16);
+                    const b = parseInt(clean.substring(4, 6), 16);
+                    return [r, g, b];
+                };
+                
+                const surfaces = data?.surfaces || {};
+                
+                const drawSurface = (surfaceName: string, points: number[][]) => {
+                    const surfaceCode = surfaces[surfaceName];
+                    let hexColor = 'transparent';
+                    if (surfaceCode) {
+                        hexColor = getColorForSurfaceCode(surfaceCode);
+                    }
+                    
+                    const rgb = parseHexColor(hexColor);
+                    const absPoints = points.map(p => [x + p[0], surfaceYOffset + p[1]]);
+                    if (rgb) {
+                        doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+                        drawPolygon(absPoints, 'FD');
+                    } else {
+                        doc.setLineWidth(0.15);
+                        doc.setDrawColor(120, 120, 120);
+                        drawPolygon(absPoints, 'S');
+                    }
+                };
+                
+                doc.setLineWidth(0.15);
+                doc.setDrawColor(120, 120, 120);
+                
+                drawSurface('V', [[0, 0], [8, 0], [6, 2], [2, 2]]);
+                drawSurface('L', [[0, 8], [8, 8], [6, 6], [2, 6]]);
+                drawSurface('M', [[0, 0], [0, 8], [2, 6], [2, 2]]);
+                drawSurface('D', [[8, 0], [8, 8], [6, 6], [6, 2]]);
+                drawSurface('O', [[2, 2], [6, 2], [6, 6], [2, 6]]);
+            }
+
+            // Draw cross X if absent or extracted
+            if (isAbsent || isExtraction) {
+                doc.setLineWidth(0.6);
+                doc.setDrawColor(isAbsent ? 59 : 239, isAbsent ? 130 : 68, isAbsent ? 246 : 68);
+                doc.line(x, toothY, x + 8, toothY + 16);
+                doc.line(x + 8, toothY, x, toothY + 16);
+            }
+        };
+
+        // Draw Header Page 2
+        try {
+            const logoSrc = '/logo-clinica-dental.jpg';
+            if (logoSrc) {
+                const logo = await loadImage(logoSrc);
+                const targetHeight = 15;
+                const targetWidth = (logo.width / logo.height) * targetHeight;
+                doc.addImage(logo, 'JPEG', 14, 10, targetWidth, targetHeight);
+            }
+        } catch (error) {
+            console.warn('Could not load logo for PDF Page 2', error);
+        }
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.setTextColor(30, 64, 175);
+        doc.text('REGISTRO DE ODONTOGRAMA CLÍNICO', 105, 20, { align: 'center' });
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(80, 80, 80);
+        doc.text(`Plan de Tratamiento # ${proforma.numero.toString().padStart(2, '0')}`, 105, 25, { align: 'center' });
+        
+        // Line
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.5);
+        doc.line(14, 30, 196, 30);
+        
+        const mapDientes = proforma.odontograma_mapa || {};
+        
+        // Upper Adult (18 - 28)
+        const upperAdult = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
+        for (let idx = 0; idx < upperAdult.length; idx++) {
+            const num = upperAdult[idx];
+            const x = idx < 8 ? (25 + idx * 10) : (107 + (idx - 8) * 10);
+            await drawSingleTooth(x, 40, num, mapDientes[num]);
+        }
+        
+        // Upper Child (55 - 65)
+        const upperChild = [55, 54, 53, 52, 51, 61, 62, 63, 64, 65];
+        for (let idx = 0; idx < upperChild.length; idx++) {
+            const num = upperChild[idx];
+            const x = idx < 5 ? (55 + idx * 10) : (107 + (idx - 5) * 10);
+            await drawSingleTooth(x, 78, num, mapDientes[num]);
+        }
+        
+        // Lower Child (85 - 75)
+        const lowerChild = [85, 84, 83, 82, 81, 71, 72, 73, 74, 75];
+        for (let idx = 0; idx < lowerChild.length; idx++) {
+            const num = lowerChild[idx];
+            const x = idx < 5 ? (55 + idx * 10) : (107 + (idx - 5) * 10);
+            await drawSingleTooth(x, 120, num, mapDientes[num]);
+        }
+        
+        // Lower Adult (48 - 38)
+        const lowerAdult = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
+        for (let idx = 0; idx < lowerAdult.length; idx++) {
+            const num = lowerAdult[idx];
+            const x = idx < 8 ? (25 + idx * 10) : (107 + (idx - 8) * 10);
+            await drawSingleTooth(x, 162, num, mapDientes[num]);
+        }
+        
+        // Dividing lines removed
+        
+        if (centroDental) {
+            const footerParts: string[] = [];
+            if (centroDental.direccion) footerParts.push(`Dirección: ${centroDental.direccion}`);
+            if (centroDental.telefono) footerParts.push(`Teléfono: ${centroDental.telefono}`);
+            if (centroDental.celular) footerParts.push(`Celular: ${centroDental.celular}`);
+            if (centroDental.emergencias) footerParts.push(`Emergencias: ${centroDental.emergencias}`);
+            if (centroDental.email) footerParts.push(`Email: ${centroDental.email}`);
+            
+            const footerString = footerParts.join(' | ');
+            if (footerString) {
+                const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
+                doc.setDrawColor(221, 221, 221);
+                doc.line(14, pageHeight - 16, 196, pageHeight - 16);
                 doc.setFontSize(8);
                 doc.setTextColor('#555555');
                 doc.text(footerString, 105, pageHeight - 11, { align: 'center', maxWidth: 180 });
@@ -783,7 +1272,7 @@ const PresupuestoList: React.FC = () => {
                 <div className="flex flex-col">
                     <h2 className="text-xl font-black text-gray-800 dark:text-white flex items-center gap-2">
                         <CreditCard className="text-blue-500" size={28} />
-                        Planes de Tratamiento
+                        Presupuestos
                     </h2>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">Gestión de presupuestos y tratamientos</p>
                 </div>
@@ -795,6 +1284,13 @@ const PresupuestoList: React.FC = () => {
                     >
                         ?
                     </button>
+                    <button
+                        onClick={() => navigate(`/pacientes/${id}/propuestas?returnTo=presupuestos`)}
+                        className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 px-8 text-lg rounded-lg flex items-center gap-2 shadow-md transition-all transform hover:-translate-y-0.5"
+                    >
+                        <ClipboardList size={20} />
+                        Propuestas
+                    </button>
                     <Link
                         to={`/pacientes/${id}/presupuestos/create`}
                         className="bg-[#3498db] hover:bg-blue-600 text-white hover:text-white font-bold py-2.5 px-8 text-lg rounded-lg flex items-center gap-2 shadow-md transition-all transform hover:-translate-y-0.5"
@@ -802,7 +1298,7 @@ const PresupuestoList: React.FC = () => {
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
-                        Nuevo Plan de Tratamiento
+                        Nuevo Presupuesto
                     </Link>
                 </div>
             </div>
@@ -836,7 +1332,7 @@ const PresupuestoList: React.FC = () => {
             {/* Record Count */}
             {filteredProformas.length > 0 && (
                 <div className="mb-4 px-4 text-sm text-gray-600 dark:text-gray-400">
-                    Mostrando {indexOfFirstItem + 1} a {Math.min(indexOfLastItem, filteredProformas.length)} de {filteredProformas.length} planes de tratamiento
+                    Mostrando {indexOfFirstItem + 1} a {Math.min(indexOfLastItem, filteredProformas.length)} de {filteredProformas.length} presupuestos
                 </div>
             )}
 
@@ -1006,7 +1502,7 @@ const PresupuestoList: React.FC = () => {
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-2 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                         </svg>
-                                        <p>No hay planes de tratamiento registrados para este paciente.</p>
+                                        <p>No hay presupuestos registrados para este paciente.</p>
                                     </div>
                                 </td>
                             </tr>
@@ -1027,7 +1523,7 @@ const PresupuestoList: React.FC = () => {
             <ManualModal
                 isOpen={showManual}
                 onClose={() => setShowManual(false)}
-                title="Manual de Usuario - Planes de Tratamiento"
+                title="Manual de Usuario - Presupuestos"
                 sections={manualSections}
             />
 

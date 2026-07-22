@@ -42,7 +42,7 @@ const HistoriaClinica: React.FC = () => {
 
     const manualSections: ManualSection[] = [
         {
-            title: 'Seguimiento Clínico',
+            title: 'Descripción del Tratamiento',
             content: 'Registro detallado de todos los tratamientos realizados al paciente.'
         },
         {
@@ -439,7 +439,7 @@ const HistoriaClinica: React.FC = () => {
                 <div className="flex flex-col">
                     <h2 className="text-xl font-black text-gray-800 dark:text-white flex items-center gap-2">
                         <Activity className="text-blue-500" size={28} />
-                        Seguimiento Clínico
+                        Descripción del Tratamiento
                     </h2>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">Evolución y registro de tratamientos realizados</p>
                 </div>
@@ -456,13 +456,13 @@ const HistoriaClinica: React.FC = () => {
 
             {/* Proforma Selection Global */}
             <div className="mb-6 flex flex-wrap items-center gap-3 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
-                <label className="font-bold text-gray-700 dark:text-gray-300">Seleccione el Plan de Tratamiento:</label>
+                <label className="font-bold text-gray-700 dark:text-gray-300">Seleccione el Presupuesto:</label>
                 <select
                     value={selectedProformaId}
                     onChange={(e) => setSelectedProformaId(Number(e.target.value))}
                     className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                 >
-                    <option value={0}>-- Todos / Sin Plan --</option>
+                    <option value={0}>-- Todos / Sin Presupuesto --</option>
                     {proformas.map(p => {
                         // Check if this proforma is marked as terminado in Historia Clinica
                         const isCompleted = historia.some(h =>
@@ -479,7 +479,7 @@ const HistoriaClinica: React.FC = () => {
                                     fontWeight: 'bold'
                                 } : undefined}
                             >
-                                Plan #{p.numero || p.id} - {formatDate(p.fecha)}
+                                Presupuesto #{p.numero || p.id} - {formatDate(p.fecha)}
                             </option>
                         );
                     })}
@@ -537,7 +537,7 @@ const HistoriaClinica: React.FC = () => {
                                         return (
                                             <div className="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl border border-gray-200 dark:border-gray-600 flex gap-8">
                                                 <div className="text-right">
-                                                    <div className="text-sm text-gray-500 dark:text-gray-400">Total Plan de Tratamiento</div>
+                                                    <div className="text-sm text-gray-500 dark:text-gray-400">Total Presupuesto</div>
                                                     <div className="text-xl font-bold text-gray-800 dark:text-white">{formatNumber(totalPresupuesto)}</div>
                                                 </div>
                                                 <div className="text-right">
@@ -572,9 +572,9 @@ const HistoriaClinica: React.FC = () => {
                                 <div className="w-16 h-16 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 mb-4">
                                     <Info size={32} />
                                 </div>
-                                <h3 className="text-xl font-bold text-blue-800 dark:text-blue-300 mb-2">Seleccione un Plan de Tratamiento</h3>
+                                <h3 className="text-xl font-bold text-blue-800 dark:text-blue-300 mb-2">Seleccione un Presupuesto</h3>
                                 <p className="text-blue-600 dark:text-blue-400 max-w-md">
-                                    Para registrar tratamientos y seguimiento clínico, primero debe seleccionar un Plan de Tratamiento (Proforma) de la lista superior.
+                                    Para registrar tratamientos y seguimiento clínico, primero debe seleccionar un Presupuesto de la lista superior.
                                 </p>
                             </div>
                         )}
@@ -704,7 +704,7 @@ const HistoriaClinica: React.FC = () => {
             <ManualModal
                 isOpen={showManual}
                 onClose={() => setShowManual(false)}
-                title="Manual de Usuario - Seguimiento Clínico"
+                title="Manual de Usuario - Descripción del Tratamiento"
                 sections={manualSections}
             />
         </div >

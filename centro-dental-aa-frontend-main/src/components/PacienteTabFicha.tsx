@@ -16,7 +16,7 @@ const PacienteTabFicha: React.FC = () => {
 
     const manualSections: ManualSection[] = [
         {
-            title: 'Ficha Clínica del Paciente',
+            title: 'Historia Clínica del Paciente',
             content: 'Aquí se muestran los datos personales, de contacto y los antecedentes médicos del paciente registrados durante su inscripción.'
         },
         {
@@ -101,8 +101,8 @@ const PacienteTabFicha: React.FC = () => {
                             margin: 0; 
                             padding: 0; 
                             color: #333; 
-                            line-height: 1.25; 
-                            font-size: 9px; 
+                            line-height: 1.35; 
+                            font-size: 10pt; 
                         }
                         .page-container { 
                             width: 100%; 
@@ -114,9 +114,9 @@ const PacienteTabFicha: React.FC = () => {
                             display: flex; 
                             align-items: center; 
                             justify-content: space-between; 
-                            margin-bottom: 10px; 
+                            margin-bottom: 12px; 
                             border-bottom: 2px solid #3b82f6; 
-                            padding-bottom: 6px; 
+                            padding-bottom: 8px; 
                         }
                         .header-left {
                             display: flex;
@@ -124,7 +124,7 @@ const PacienteTabFicha: React.FC = () => {
                             gap: 12px;
                         }
                         .header-logo {
-                            height: 48px;
+                            height: 56px;
                             width: auto;
                             object-fit: contain;
                         }
@@ -147,39 +147,39 @@ const PacienteTabFicha: React.FC = () => {
                             -webkit-print-color-adjust: exact;
                             print-color-adjust: exact;
                         }
-                        h1 { color: #1e3a8a; margin: 0; font-size: 15px; text-transform: uppercase; }
+                        h1 { color: #1e3a8a; margin: 0; font-size: 16pt; text-transform: uppercase; }
                         h2 { 
                             background: #eff6ff; 
                             color: #1e40af; 
-                            padding: 3px 8px; 
-                            margin-top: 10px; 
-                            margin-bottom: 6px;
-                            font-size: 10px; 
+                            padding: 4px 8px; 
+                            margin-top: 12px; 
+                            margin-bottom: 8px;
+                            font-size: 11pt; 
                             text-transform: uppercase; 
                             border-left: 4px solid #3b82f6; 
                         }
                         .info-grid { 
                             display: grid; 
                             grid-template-columns: repeat(4, 1fr); 
-                            gap: 6px; 
-                            margin-top: 3px; 
+                            gap: 8px; 
+                            margin-top: 4px; 
                         }
-                        .field { border-bottom: 1px solid #f3f4f6; padding: 2px 0; }
-                        .label { font-weight: bold; color: #6b7280; font-size: 7.5px; text-transform: uppercase; display: block; }
-                        .value { font-size: 9px; color: #111827; min-height: 10px; font-weight: 500; }
+                        .field { border-bottom: 1px solid #f3f4f6; padding: 3px 0; }
+                        .label { font-weight: bold; color: #6b7280; font-size: 8.5pt; text-transform: uppercase; display: block; }
+                        .value { font-size: 10pt; color: #111827; min-height: 12px; font-weight: 500; }
                         
                         .section-grid { 
                             display: grid; 
                             grid-template-columns: 1fr 1fr; 
-                            gap: 12px; 
-                            margin-top: 4px; 
+                            gap: 16px; 
+                            margin-top: 6px; 
                         }
                         .checkbox-table { width: 100%; border-collapse: collapse; }
-                        .checkbox-table td { padding: 2px; border-bottom: 1px solid #f9fafb; font-size: 9px; }
-                        .checkbox-icon { font-size: 11px; margin-right: 5px; color: #3b82f6; font-weight: bold; }
+                        .checkbox-table td { padding: 3px 2px; border-bottom: 1px solid #f9fafb; font-size: 10pt; }
+                        .checkbox-icon { font-size: 12pt; margin-right: 5px; color: #3b82f6; font-weight: bold; }
                         
                         .signature-section {
-                            margin-top: 20px;
+                            margin-top: 25px;
                             padding-top: 15px;
                             display: flex;
                             justify-content: center;
@@ -187,28 +187,29 @@ const PacienteTabFicha: React.FC = () => {
                         }
                         .signature-box { 
                             text-align: center; 
-                            width: 220px; 
+                            width: 250px; 
                         }
                         .sig-line { border-top: 1px solid #374151; margin-top: 0px; }
                         
                         .footer { 
-                            margin-top: 15px;
-                            font-size: 7.5px; 
+                            margin-top: 20px;
+                            font-size: 8.5pt; 
                             color: #9ca3af; 
                             border-top: 1px solid #e5e7eb; 
-                            padding-top: 4px; 
+                            padding-top: 6px; 
                             display: flex; 
                             justify-content: space-between; 
                         }
                         .detail-text {
-                            font-size: 8.5px;
+                            font-size: 9.5pt;
                             color: #4b5563;
-                            margin-top: 1px;
+                            margin-top: 2px;
                             font-style: italic;
                         }
                         @media print {
                             .page-container { min-height: auto; }
                             h2 { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                            .page-break { page-break-before: always; break-before: page; }
                         }
                     </style>
                 </head>
@@ -219,8 +220,8 @@ const PacienteTabFicha: React.FC = () => {
                                 <img src="/logo-clinica-dental.png" class="header-logo" alt="Logo" />
                                 <div class="header-titles">
                                     <h1>CENTRO DENTAL A&A</h1>
-                                    <div style="font-size: 10px; font-weight: bold; color: #1e40af; text-transform: uppercase; margin-top: 1px;">Historia Clínica Odontológica</div>
-                                    <div style="font-size: 8px; color: #666; margin-top: 1px;">Fecha de Registro: ${formatDate(fullPaciente.fecha_ingreso)}</div>
+                                    <div style="font-size: 11pt; font-weight: bold; color: #1e40af; text-transform: uppercase; margin-top: 1px;">Historia Clínica Odontológica</div>
+                                    <div style="font-size: 9pt; color: #666; margin-top: 1px;">Fecha de Registro: ${formatDate(fullPaciente.fecha_ingreso)}</div>
                                 </div>
                             </div>
                             <div class="paternal-box">
@@ -237,7 +238,7 @@ const PacienteTabFicha: React.FC = () => {
                             <div class="field"><span class="label">Nacimiento</span><div class="value">${formatDate(fullPaciente.fecha_nacimiento)}</div></div>
                             <div class="field"><span class="label">Edad</span><div class="value">${calcEdad(fullPaciente.fecha_nacimiento)}</div></div>
                             <div class="field"><span class="label">Género</span><div class="value">${fullPaciente.genero === 'M' ? 'Masculino' : 'Femenino'}</div></div>
-                            <div class="field"><span class="label">C.I.</span><div class="value">${fullPaciente.ci || '-'}</div></div>
+                            <div class="field"><span class="label">C.I. / Extensión</span><div class="value">${fullPaciente.ci || '-'}${fullPaciente.ci_extension ? ` - ${fullPaciente.ci_extension}` : ''}</div></div>
                             
                             <div class="field"><span class="label">Celular</span><div class="value">${fullPaciente.telefono_celular || '-'}</div></div>
                             <div class="field"><span class="label">Correo</span><div class="value">${fullPaciente.email || '-'}</div></div>
@@ -338,7 +339,7 @@ const PacienteTabFicha: React.FC = () => {
                             </div>
                         </div>
 
-                        <h2>Antecedentes Bucodentales e Higiene Oral</h2>
+                        <h2 class="page-break">Antecedentes Bucodentales e Higiene Oral</h2>
                         <div class="section-grid">
                             <div>
                                 <span class="label" style="font-weight: bold; color: #1e40af; margin-bottom: 4px;">Bucodentales y Hábitos</span>
@@ -381,7 +382,7 @@ const PacienteTabFicha: React.FC = () => {
                                  ` : '<div style="height: 45px;"></div>'}
                                 <div class="sig-line"></div>
                                 <div style="font-weight: bold; margin-top: 3px;">${formatFullName(fullPaciente)}</div>
-                                <div style="font-size: 8px; color: #666;">Firma del Paciente</div>
+                                <div style="font-size: 9pt; color: #666;">Firma del Paciente</div>
                             </div>
                         </div>
 
@@ -477,7 +478,7 @@ const PacienteTabFicha: React.FC = () => {
                 <div className="flex flex-col">
                     <h2 className="text-xl font-black text-gray-800 dark:text-white flex items-center gap-2">
                         <User className="text-blue-500" size={28} />
-                        Ficha Clínica
+                        Historia Clínica
                     </h2>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">Datos personales y antecedentes médicos</p>
                 </div>
@@ -516,7 +517,7 @@ const PacienteTabFicha: React.FC = () => {
                             <Field label="Nombres" value={paciente.nombre} />
                             <Field label="Fecha Nacimiento" value={paciente.fecha_nacimiento ? `${formatDate(paciente.fecha_nacimiento)} (${calcEdad(paciente.fecha_nacimiento)})` : undefined} />
                             <Field label="Género" value={paciente.genero === 'M' ? 'Masculino' : 'Femenino'} />
-                            <Field label="C.I. / Documento" value={paciente.ci} />
+                            <Field label="C.I. / Documento" value={paciente.ci ? `${paciente.ci}${paciente.ci_extension ? ` - ${paciente.ci_extension}` : ''}` : undefined} />
                             <Field label="Estado Civil" value={paciente.estado_civil} />
                             <Field label="Grado de Instrucción" value={paciente.grado_instruccion} />
                             <Field label="Seguro / Convenio" value={paciente.seguro?.nombre || 'Particular'} />

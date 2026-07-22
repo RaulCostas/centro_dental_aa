@@ -30,5 +30,6 @@ Thumbs.db
 *.vbs
 *.sql
 *.txt
+*.backup
 !render.yaml
 !README.md

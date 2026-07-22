@@ -277,6 +277,8 @@ export interface Paciente {
     fecha_nacimiento: string;
     genero: string;
     ci: string;
+    ci_extension?: string;
+    foto?: string;
     direccion: string;
     ocupacion: string;
     telefono_celular: string;
@@ -650,11 +652,10 @@ export interface Receta {
     userId: number;
     user?: { id: number; name: string };
     fecha: string;
-    medicamentos: string;
-    indicaciones: string;
+    medicamentos?: string;
+    indicaciones?: string;
     diagnostico?: string;
     detalles?: RecetaDetalle[];
-    esta_firmado?: boolean;
 }
 
 export interface RecetaDetalle {
@@ -663,6 +664,27 @@ export interface RecetaDetalle {
     medicamento: string;
     cantidad: string;
     indicacion: string;
+}
+
+export interface RecetaPredisenadaDetalle {
+    id?: number;
+    recetaPredisenadaId?: number;
+    medicamento: string;
+    cantidad: string;
+    indicacion: string;
+}
+
+export interface RecetaPredisenada {
+    id: number;
+    nombre: string;
+    especialidadId: number;
+    especialidad?: Especialidad;
+    diagnostico?: string;
+    indicaciones?: string;
+    estado: 'activo' | 'inactivo';
+    detalles: RecetaPredisenadaDetalle[];
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 

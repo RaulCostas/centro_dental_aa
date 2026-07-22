@@ -119,22 +119,31 @@ const AgendaForm: React.FC<AgendaFormProps> = ({
 
     useEffect(() => {
         if (isOpen && !initialData) {
+            const pId = defaultPacienteId || 0;
+            const pSeguroId = defaultPacienteSeguroId || 0;
             setFormData(prev => ({
                 ...prev,
                 fecha: defaultDate,
                 hora: defaultTime || '08:30',
                 consultorio: defaultConsultorio || 1,
-                // Reset other fields for new app
-                pacienteId: 0,
-                pacienteSeguroId: 0,
+                pacienteId: pId,
+                pacienteSeguroId: pSeguroId,
                 doctorId: 0,
                 proformaId: 0,
                 tratamiento: '',
                 motivoCancelacion: ''
             }));
             setIsNonPatientEvent(false);
+            if (pId > 0) {
+                fetchProformasByPaciente(pId);
+                fetchHistoriaClinica(pId);
+            } else {
+                setProformas([]);
+                setHistoriaClinica([]);
+                setTratamientos([]);
+            }
         }
-    }, [isOpen, initialData, defaultDate, defaultTime, defaultConsultorio]);
+    }, [isOpen, initialData, defaultDate, defaultTime, defaultConsultorio, defaultPacienteId, defaultPacienteSeguroId]);
 
     useEffect(() => {
         fetchCatalogs();
@@ -158,8 +167,10 @@ const AgendaForm: React.FC<AgendaFormProps> = ({
                 setIsNonPatientEvent(true);
             } else {
                 setIsNonPatientEvent(false);
-                if (initialData.pacienteId) {
-                    fetchProformasByPaciente(initialData.pacienteId);
+                const patId = initialData.pacienteId || (initialData as any).pacienteSeguroId;
+                if (patId) {
+                    fetchProformasByPaciente(patId);
+                    fetchHistoriaClinica(patId);
                 }
             }
         }
@@ -182,10 +193,14 @@ const AgendaForm: React.FC<AgendaFormProps> = ({
     };
 
     const selectedValue = React.useMemo(() => {
-        if (formData.pacienteId > 0) return `particular-${formData.pacienteId}`;
-        if (formData.pacienteSeguroId > 0) return `seguro-${formData.pacienteSeguroId}`;
+        const idToUse = formData.pacienteId > 0 ? formData.pacienteId : formData.pacienteSeguroId;
+        if (idToUse > 0) {
+            const pat = pacientes.find(p => p.id === idToUse);
+            const isSeguro = pat?.seguroId && pat.seguroId > 0;
+            return isSeguro ? `seguro-${idToUse}` : `particular-${idToUse}`;
+        }
         return '';
-    }, [formData.pacienteId, formData.pacienteSeguroId]);
+    }, [formData.pacienteId, formData.pacienteSeguroId, pacientes]);
 
     const patientOptions = React.useMemo(() => {
         return pacientes.map(p => {
@@ -261,34 +276,18 @@ const AgendaForm: React.FC<AgendaFormProps> = ({
             const [type, idStr] = value.split('-');
             const id = Number(idStr);
             
-            if (type === 'particular') {
+            if (id > 0) {
+                const selectedPat = pacientes.find(p => p.id === id);
+                const seguroId = selectedPat?.seguroId || (type === 'seguro' ? id : 0);
                 setFormData(prev => ({
                     ...prev,
                     pacienteId: id,
-                    pacienteSeguroId: 0,
+                    pacienteSeguroId: seguroId,
                     proformaId: 0,
                     tratamiento: ''
                 }));
-                if (id > 0) {
-                    fetchProformasByPaciente(id);
-                    fetchHistoriaClinica(id);
-                } else {
-                    setProformas([]);
-                    setHistoriaClinica([]);
-                    setTratamientos([]);
-                }
-            } else if (type === 'seguro') {
-                setFormData(prev => ({
-                    ...prev,
-                    pacienteId: 0,
-                    pacienteSeguroId: id,
-                    proformaId: 0,
-                    tratamiento: ''
-                }));
-                // For now insurance patients don't have proformas/history in this context
-                setProformas([]);
-                setHistoriaClinica([]);
-                setTratamientos([]);
+                fetchProformasByPaciente(id);
+                fetchHistoriaClinica(id);
             } else {
                 setFormData(prev => ({
                     ...prev,
@@ -603,27 +602,23 @@ const AgendaForm: React.FC<AgendaFormProps> = ({
                                             const [type, idStr] = String(val).split('-');
                                             const id = Number(idStr);
                                             
-                                            if (type === 'particular') {
+                                            if (id > 0) {
+                                                const selectedPat = pacientes.find(p => p.id === id);
+                                                const seguroId = selectedPat?.seguroId || (type === 'seguro' ? id : 0);
                                                 setFormData(prev => ({
                                                     ...prev,
                                                     pacienteId: id,
-                                                    pacienteSeguroId: 0,
+                                                    pacienteSeguroId: seguroId,
                                                     proformaId: 0,
                                                     tratamiento: ''
                                                 }));
-                                                if (id > 0) {
-                                                    fetchProformasByPaciente(id);
-                                                    fetchHistoriaClinica(id);
-                                                } else {
-                                                    setProformas([]);
-                                                    setHistoriaClinica([]);
-                                                    setTratamientos([]);
-                                                }
-                                            } else if (type === 'seguro') {
+                                                fetchProformasByPaciente(id);
+                                                fetchHistoriaClinica(id);
+                                            } else {
                                                 setFormData(prev => ({
                                                     ...prev,
                                                     pacienteId: 0,
-                                                    pacienteSeguroId: id,
+                                                    pacienteSeguroId: 0,
                                                     proformaId: 0,
                                                     tratamiento: ''
                                                 }));
@@ -681,7 +676,7 @@ const AgendaForm: React.FC<AgendaFormProps> = ({
                         {!isNonPatientEvent && (
                             /* Proforma (Dependiente de Paciente) */
                             <div className="col-span-1 md:col-span-2">
-                                <label className="block mb-1 font-bold text-sm">Plan Tratamiento (Opcional):</label>
+                                <label className="block mb-1 font-bold text-sm">Presupuesto (Opcional):</label>
                                 <div className="relative">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>

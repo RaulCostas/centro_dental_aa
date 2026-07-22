@@ -18,17 +18,16 @@ interface TabDef {
 }
 
 const TABS_PARTICULAR: TabDef[] = [
-    { id: 'ficha',       label: 'Ficha Médica',         icon: <Heart size={15} />,           path: 'ficha' },
-    { id: 'citas',       label: 'Citas',                icon: <Calendar size={15} />,       path: 'citas' },
-    { id: 'planes',      label: 'Planes de Tratamiento',icon: <CreditCard size={15} />,      path: 'presupuestos' },
-    { id: 'seguimiento', label: 'Seguimiento Clínico',  icon: <Activity size={15} />,        path: 'historia-clinica' },
-    { id: 'pagos',       label: 'Pagos',                icon: <FileText size={15} />,        path: 'pagos' },
-    { id: 'imagenes',    label: 'Imágenes',             icon: <ImageIcon size={15} />,       path: 'imagenes' },
-    { id: 'recetario',   label: 'Recetario',            icon: <FileText size={15} />,        path: 'recetario' },
-    { id: 'propuestas',  label: 'Propuestas',           icon: <ClipboardList size={15} />,   path: 'propuestas' },
-    { id: 'consentimientos', label: 'Consentimientos',  icon: <FileText size={15} />,        path: 'consentimientos' },
-    { id: 'informes',    label: 'Informes Odontológicos',     icon: <FileText size={15} />,        path: 'informes' },
-    { id: 'estudios',    label: 'Estudios Comp.',       icon: <FileText size={15} />,        path: 'estudios' },
+    { id: 'ficha',           label: '1 HISTORIA CLÍNICA',            icon: <Heart size={14} />,         path: 'ficha' },
+    { id: 'imagenes',        label: '2 IMÁGENES Y RBG',              icon: <ImageIcon size={14} />,     path: 'imagenes' },
+    { id: 'estudios',        label: '3 ESTUDIOS COMP.',              icon: <FileText size={14} />,      path: 'estudios' },
+    { id: 'planes',          label: '4 PRESUPUESTOS',                icon: <CreditCard size={14} />,    path: 'presupuestos' },
+    { id: 'seguimiento',     label: '5 DESCRIPCIÓN DEL TRATAMIENTO', icon: <Activity size={14} />,      path: 'historia-clinica' },
+    { id: 'citas',           label: '6 PRÓXIMA CITA',                icon: <Calendar size={14} />,      path: 'citas' },
+    { id: 'recetario',       label: '7 RECETARIO',                   icon: <FileText size={14} />,      path: 'recetario' },
+    { id: 'pagos',           label: '8 PAGOS',                       icon: <FileText size={14} />,      path: 'pagos' },
+    { id: 'consentimientos', label: '9 CONSENTIMIENTOS',             icon: <Shield size={14} />,        path: 'consentimientos' },
+    { id: 'informes',        label: '10 INFORMES ODONTOLÓGICOS',     icon: <ClipboardList size={14} />, path: 'informes' },
 ];
 
 // --- Helpers ------------------------------------------------------------------
@@ -87,7 +86,6 @@ const PacientePerfil: React.FC = () => {
                     'pagos': 'pagos',
                     'imagenes': 'pacientes',
                     'recetario': 'recetario',
-                    'propuestas': 'presupuestos',
                     'consentimientos': 'pacientes',
                     'informes': 'pacientes',
                     'estudios': 'pacientes'
@@ -212,8 +210,12 @@ const PacientePerfil: React.FC = () => {
             <div className="bg-gradient-to-r from-blue-600 to-blue-800 dark:from-slate-800 dark:to-slate-900 rounded-2xl p-5 mb-4 text-white shadow-lg">
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
                     <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center shadow-inner flex-shrink-0">
-                            <User size={28} className="text-white" />
+                        <div className="w-14 h-14 rounded-2xl overflow-hidden bg-white/20 flex items-center justify-center shadow-inner flex-shrink-0">
+                            {paciente.foto ? (
+                                <img src={paciente.foto} alt="Foto paciente" className="w-full h-full object-cover" />
+                            ) : (
+                                <User size={28} className="text-white" />
+                            )}
                         </div>
                         <div>
                             <div className="flex items-center gap-3">
@@ -260,7 +262,7 @@ const PacientePerfil: React.FC = () => {
             </div>
 
             {/* ── Tab Bar ─────────────────────────────────────────────────────── */}
-            <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-700 rounded-2xl border border-gray-200 dark:border-gray-600 mb-4 overflow-x-auto no-scrollbar">
+            <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-700 rounded-2xl border border-gray-200 dark:border-gray-600 mb-4 overflow-x-auto">
                 {allowedTabs.map(tab => {
                     const isActive = activeTab?.id === tab.id;
                     return (

@@ -350,7 +350,7 @@ const PacienteTabImagenes: React.FC<PacienteTabImagenesProps> = ({ tipo = 'parti
                         <div className="flex flex-col">
                             <h2 className="text-xl font-black text-gray-800 dark:text-white flex items-center gap-2">
                                 <ImageIcon className="text-blue-500" size={28} />
-                                Gestión de Imágenes
+                                Imágenes y RBG
                             </h2>
                             <p className="text-gray-500 dark:text-gray-400 mt-1">Archivo fotográfico y radiográfico del paciente</p>
                         </div>
@@ -384,7 +384,7 @@ const PacienteTabImagenes: React.FC<PacienteTabImagenesProps> = ({ tipo = 'parti
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead className="bg-gray-50 dark:bg-gray-700">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Plan Trat.</th>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Presupuesto</th>
                                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fecha</th>
                                     <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
                                 </tr>
@@ -392,7 +392,7 @@ const PacienteTabImagenes: React.FC<PacienteTabImagenesProps> = ({ tipo = 'parti
                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                 {paginatedProformas.map(p => (
                                     <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                        <td className="px-5 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">Plan de Tratamiento #{p.numero}</td>
+                                        <td className="px-5 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">Presupuesto #{p.numero}</td>
                                         <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{formatDate(p.fecha)}</td>
                                         <td className="px-5 py-4 whitespace-nowrap text-center">
                                             <div className="flex justify-center gap-2">
@@ -501,7 +501,7 @@ const PacienteTabImagenes: React.FC<PacienteTabImagenesProps> = ({ tipo = 'parti
             <ManualModal 
                 isOpen={showManual}
                 onClose={() => setShowManual(false)}
-                title="Manual de Usuario - Gestión de Imágenes"
+                title="Manual de Usuario - Imágenes y RBG"
                 sections={manualSections}
             />
         </div>

@@ -3,18 +3,103 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import Swal from 'sweetalert2';
 import SignatureCanvas from './SignatureCanvas';
-import { CheckCircle } from 'lucide-react';
-
-
+import { CheckCircle, Camera, User, X } from 'lucide-react';
 
 import { getLocalDateString } from '../utils/dateUtils';
 
+const CameraModal: React.FC<{ isOpen: boolean; onClose: () => void; onCapture: (base64: string) => void }> = ({ isOpen, onClose, onCapture }) => {
+    const videoRef = React.useRef<HTMLVideoElement>(null);
+    const [stream, setStream] = useState<MediaStream | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
+    useEffect(() => {
+        if (isOpen) {
+            navigator.mediaDevices.getUserMedia({ video: { width: 480, height: 480, facingMode: 'user' } })
+                .then(s => {
+                    setStream(s);
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = s;
+                    }
+                })
+                .catch(err => {
+                    console.error("Camera access error:", err);
+                    setError("No se pudo acceder a la cámara. Asegúrese de dar los permisos correspondientes.");
+                });
+        } else {
+            stopCamera();
+        }
+
+        return () => {
+            stopCamera();
+        };
+    }, [isOpen]);
+
+    const stopCamera = () => {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            setStream(null);
+        }
+        setError(null);
+    };
+
+    const handleCapture = () => {
+        if (videoRef.current) {
+            const canvas = document.createElement('canvas');
+            canvas.width = videoRef.current.videoWidth || 480;
+            canvas.height = videoRef.current.videoHeight || 480;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+                const base64 = canvas.toDataURL('image/jpeg', 0.85);
+                onCapture(base64);
+                onClose();
+            }
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full shadow-2xl border border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Capturar Foto del Paciente</h3>
+                {error ? (
+                    <div className="p-4 bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 rounded-xl text-sm mb-4">
+                        {error}
+                    </div>
+                ) : (
+                    <div className="relative aspect-square w-full max-w-xs mx-auto rounded-xl overflow-hidden bg-black mb-4 border border-gray-200 dark:border-gray-700">
+                        <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover scale-x-[-1]" />
+                    </div>
+                )}
+                <div className="flex justify-end gap-2">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200"
+                    >
+                        Cancelar
+                    </button>
+                    {!error && (
+                        <button
+                            type="button"
+                            onClick={handleCapture}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
+                        >
+                            Capturar
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const PublicPacienteForm: React.FC = () => {
     const isEditing = false;
     const [currentStep, setCurrentStep] = useState<'form' | 'signature' | 'success'>('form');
     const [newPatientId, setNewPatientId] = useState<number | null>(null);
+    const [showCameraModal, setShowCameraModal] = useState(false);
 
     // Los formularios públicos son agnóticos a la sesión, no deben limpiarla preventivamente
 
@@ -33,6 +118,8 @@ const PublicPacienteForm: React.FC = () => {
         parentesco: '',
         telefono_responsable: '',
         ci: '',
+        ci_extension: '',
+        foto: '',
         estado: 'activo',
         grado_instruccion: 'Ninguna',
         seguroId: '' as string | number,
@@ -177,6 +264,13 @@ const PublicPacienteForm: React.FC = () => {
                 payload.tutor_celular = `${responsableCountryCode}${localTelefonoResponsable}`;
             }
 
+            // Convert seguroId to number or null explicitly so backend validates and updates correctly
+            if (formData.seguroId && formData.seguroId !== '') {
+                payload.seguroId = Number(formData.seguroId);
+            } else {
+                payload.seguroId = null;
+            }
+
             const response = await api.post('/pacientes', payload);
             const createdId = response.data.id;
 
@@ -304,6 +398,61 @@ const PublicPacienteForm: React.FC = () => {
                  <fieldset className="border border-gray-300 p-4 rounded-lg">
                     <legend className="font-bold px-2 text-gray-600">Datos Personales</legend>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div></div> {/* Espacio vacío */}
+                        <div></div> {/* Espacio vacío */}
+
+                        {/* Foto del Paciente colocada al extremo superior derecho (Columna 3) */}
+                        <div className="flex flex-col mb-2">
+                            <label className="block mb-1 font-medium text-gray-700">Foto del Paciente:</label>
+                            <div className="flex items-center gap-3">
+                                <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center border border-gray-300 dark:border-gray-600 shadow-inner relative group flex-shrink-0">
+                                    {formData.foto ? (
+                                        <>
+                                            <img src={formData.foto} alt="Foto paciente" className="w-full h-full object-cover" />
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setFormData(prev => ({ ...prev, foto: '' }))}
+                                                className="absolute top-0.5 right-0.5 bg-red-600 hover:bg-red-700 text-white rounded-full p-0.5 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                                title="Eliminar foto"
+                                            >
+                                                <X size={10} />
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <User size={24} className="text-gray-400" />
+                                    )}
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCameraModal(true)}
+                                        className="py-1 px-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm flex items-center gap-1"
+                                    >
+                                        <Camera size={12} />
+                                        Tomar
+                                    </button>
+                                    <label className="py-1 px-2.5 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100 text-xs font-semibold rounded-lg shadow-sm flex items-center gap-1 cursor-pointer text-center font-sans">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                        Subir
+                                        <input 
+                                            type="file" 
+                                            accept="image/*" 
+                                            className="hidden" 
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    const reader = new FileReader();
+                                                    reader.onloadend = () => {
+                                                        setFormData(prev => ({ ...prev, foto: reader.result as string }));
+                                                    };
+                                                    reader.readAsDataURL(file);
+                                                }
+                                            }}
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                         <div>
                             <label className="block mb-1 font-medium text-gray-700 dark:text-gray-300">Paterno:</label>
                              <div className="relative">
@@ -385,16 +534,26 @@ const PublicPacienteForm: React.FC = () => {
                             </div>
                         </div>
                         <div>
-                            <label className="block mb-1 font-medium text-gray-700 dark:text-gray-300">Carnet de Identidad (CI):</label>
-                            <div className="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                                </svg>
-                                <input type="text" name="ci" value={formData.ci} onChange={handleChange} placeholder="Ej: 1234567"
-                                    className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 block"
-                                />
+                            <label className="block mb-1 font-medium text-gray-700 dark:text-gray-300">Carnet de Identidad (CI) / Extensión:</label>
+                            <div className="flex gap-2">
+                                <div className="relative flex-grow">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    </svg>
+                                    <input type="text" name="ci" value={formData.ci} onChange={handleChange} placeholder="Ej: 1234567"
+                                        className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 block"
+                                    />
+                                </div>
+                                <div className="w-24">
+                                    <input type="text" name="ci_extension" value={formData.ci_extension || ''} onChange={(e) => {
+                                        e.target.value = e.target.value.toUpperCase();
+                                        handleChange(e);
+                                    }} maxLength={4} placeholder="Ext"
+                                        className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 block"
+                                    />
+                                </div>
                             </div>
                         </div>
                         <div>
@@ -1039,6 +1198,11 @@ const PublicPacienteForm: React.FC = () => {
             
 
 
+            <CameraModal
+                isOpen={showCameraModal}
+                onClose={() => setShowCameraModal(false)}
+                onCapture={(base64) => setFormData(prev => ({ ...prev, foto: base64 }))}
+            />
         </div>
 </div>
     );

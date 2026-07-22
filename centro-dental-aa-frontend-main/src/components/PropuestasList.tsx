@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import Swal from 'sweetalert2';
 import type { Paciente, Propuesta } from '../types';
@@ -13,9 +13,17 @@ import { Printer, MessageCircle, ClipboardList } from 'lucide-react';
 
 
 
-const PropuestasList: React.FC = () => {
+interface PropuestasListProps {
+    isModal?: boolean;
+    onClose?: () => void;
+    onConverted?: () => void;
+}
+
+const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClose, onConverted }) => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const returnTo = searchParams.get('returnTo');
     const [paciente, setPaciente] = useState<Paciente | null>(null);
     const [propuestas, setPropuestas] = useState<Propuesta[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -159,7 +167,12 @@ const PropuestasList: React.FC = () => {
                     color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
                 });
 
-                navigate(`/pacientes/${id}/presupuestos`);
+                if (isModal) {
+                    fetchPropuestas(Number(id));
+                    onConverted?.();
+                } else {
+                    navigate(`/pacientes/${id}/presupuestos`);
+                }
 
             } catch (error: any) {
                 console.error('Error converting to budget:', error);
@@ -262,6 +275,15 @@ const PropuestasList: React.FC = () => {
         }
     };
 
+    const loadImage = (src: string): Promise<HTMLImageElement> => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.src = src;
+            img.onload = () => resolve(img);
+            img.onerror = (e) => reject(e);
+        });
+    };
+
     const generatePDF = async (propuesta: Propuesta, action: 'print' | 'download' | 'blob', letra?: string) => {
         const doc = new jsPDF();
 
@@ -273,6 +295,19 @@ const PropuestasList: React.FC = () => {
             }
         } catch (error) {
             console.error('Error fetching centro dental data:', error);
+        }
+
+        // Header (Logo)
+        try {
+            const logoSrc = '/logo-clinica-dental.jpg';
+            if (logoSrc) {
+                const logo = await loadImage(logoSrc);
+                const targetHeight = 20;
+                const targetWidth = (logo.width / logo.height) * targetHeight;
+                doc.addImage(logo, 'JPEG', 14, 10, targetWidth, targetHeight);
+            }
+        } catch (error) {
+            console.warn('Could not load logo for PDF', error);
         }
 
         // 1. Date (Right aligned)
@@ -497,35 +532,21 @@ const PropuestasList: React.FC = () => {
         }
 
         if (action === 'print') {
-            const blobUrl = doc.output('bloburl');
-
-            const iframe = document.createElement('iframe');
-            iframe.style.position = 'fixed';
-            iframe.style.right = '0';
-            iframe.style.bottom = '0';
-            iframe.style.width = '0';
-            iframe.style.height = '0';
-            iframe.style.border = '0';
-            iframe.src = String(blobUrl);
-            document.body.appendChild(iframe);
-
-            iframe.onload = () => {
-                setTimeout(() => {
+            const blobUrl = doc.output('bloburl') as string;
+            const printWindow = window.open(blobUrl, '_blank');
+            if (printWindow) {
+                printWindow.addEventListener('load', () => {
                     try {
-                        iframe.contentWindow?.focus();
-                        iframe.contentWindow?.print();
+                        printWindow.focus();
+                        printWindow.print();
                     } catch (e) {
                         console.error('Print error:', e);
-                    } finally {
-                        setTimeout(() => {
-                            if (document.body.contains(iframe)) {
-                                document.body.removeChild(iframe);
-                                URL.revokeObjectURL(String(blobUrl));
-                            }
-                        }, 2000);
                     }
-                }, 100);
-            };
+                });
+            } else {
+                // Fallback: download if popup was blocked
+                doc.save(`propuesta_${propuesta.numero}.pdf`);
+            }
         } else if (action === 'download') {
             const fileName = letra
                 ? `propuesta_${propuesta.numero}_${letra}_${paciente?.paterno}.pdf`
@@ -537,7 +558,7 @@ const PropuestasList: React.FC = () => {
     };
 
     return (
-        <div className="content-card bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-8 transition-colors duration-300">
+        <div className={isModal ? "p-1" : "content-card bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-8 transition-colors duration-300"}>
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 no-print gap-4">
                 <div className="flex flex-col">
@@ -556,15 +577,35 @@ const PropuestasList: React.FC = () => {
                         ?
                     </button>
 
-                    <Link
-                        to={`/pacientes/${id}/propuestas/create`}
-                        className="bg-purple-600 hover:bg-purple-700 text-white hover:text-white font-semibold py-2 px-6 rounded-lg flex items-center gap-2 shadow-md transition-all transform hover:-translate-y-0.5"
+                    <button
+                        onClick={() => navigate(`/pacientes/${id}/propuestas/create?returnTo=presupuestos`)}
+                        className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 rounded-lg flex items-center gap-2 shadow-md transition-all transform hover:-translate-y-0.5"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
                         Nueva Propuesta
-                    </Link>
+                    </button>
+
+                    {returnTo && (
+                        <button
+                            onClick={() => navigate(`/pacientes/${id}/${returnTo}`)}
+                            className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-all transform hover:-translate-y-0.5 flex items-center gap-2"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                            </svg>
+                            Volver a Presupuestos
+                        </button>
+                    )}
+                    {isModal && onClose && !returnTo && (
+                        <button
+                            onClick={onClose}
+                            className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-all transform hover:-translate-y-0.5"
+                        >
+                            Cerrar
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -673,7 +714,7 @@ const PropuestasList: React.FC = () => {
                                     <td className="px-5 py-4 whitespace-nowrap text-center no-print">
                                         <div className="flex gap-2 justify-center">
                                             <button
-                                                onClick={() => navigate(`/pacientes/${id}/propuestas/view/${propuesta.id}`)}
+                                                onClick={() => navigate(`/pacientes/${id}/propuestas/view/${propuesta.id}${returnTo ? `?returnTo=${returnTo}` : ''}`)}
                                                 className="p-2 bg-orange-400 text-white rounded-lg hover:bg-orange-500 shadow-md transition-all transform hover:-translate-y-0.5"
                                                 title="Ver"
                                             >
@@ -683,7 +724,7 @@ const PropuestasList: React.FC = () => {
                                                 </svg>
                                             </button>
                                             <Link
-                                                to={`/pacientes/${id}/propuestas/edit/${propuesta.id}`}
+                                                to={`/pacientes/${id}/propuestas/edit/${propuesta.id}${returnTo ? `?returnTo=${returnTo}` : ''}`}
                                                 className="p-2 bg-yellow-400 text-white rounded-lg hover:bg-yellow-500 shadow-md transition-all transform hover:-translate-y-0.5 inline-flex items-center justify-center"
                                                 title="Editar"
                                             >

@@ -87,6 +87,24 @@ const Configuration: React.FC = () => {
                 </div>
                 )}
 
+                {/* Recetas Pre-Diseñadas */}
+                {hasAccess('config-recetas-predisenadas') && (
+                <div
+                    onClick={() => window.location.href = '/recetas-predisenadas'}
+                    className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-teal-500"
+                >
+                    <div className="flex items-center gap-4 mb-3">
+                        <div className="p-3 bg-teal-100 dark:bg-teal-900 rounded-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-teal-600 dark:text-teal-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                            </svg>
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-800 dark:text-white">Recetas Pre-Diseñadas</h3>
+                    </div>
+                    <p className="text-gray-600 dark:text-gray-400">Configurar plantillas de recetas médicas pre-diseñadas por especialidad</p>
+                </div>
+                )}
+
                 {/* 3. Cambiar Contraseña */}
                 {hasAccess('cambiar-password') && (
                 <div

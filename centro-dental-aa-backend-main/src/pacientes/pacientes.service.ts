@@ -1,20 +1,24 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Paciente } from './entities/paciente.entity';
 import { FichaClinica } from './entities/ficha_clinica.entity';
+import { SupabaseStorageService } from '../common/storage/supabase-storage.service';
 
 import { CreatePacienteDto } from './dto/create-paciente.dto';
 import { UpdatePacienteDto } from './dto/update-paciente.dto';
 
 @Injectable()
 export class PacientesService {
+    private readonly logger = new Logger(PacientesService.name);
+
     constructor(
         @InjectRepository(Paciente)
         private pacientesRepository: Repository<Paciente>,
         @InjectRepository(FichaClinica)
         private fichaRepository: Repository<FichaClinica>,
         private dataSource: DataSource,
+        private readonly storageService: SupabaseStorageService,
     ) { }
 
     private readonly pacienteWhitelistedFields = [
@@ -22,7 +26,8 @@ export class PacientesService {
         'genero', 'ci', 'direccion', 'ocupacion', 'telefono_celular', 
         'email', 'tutor_nombre', 'tutor_ci', 'estado',
         'estado_civil', 'grado_instruccion', 'tutor_celular',
-        'persona_brinda_informacion', 'usuarioId', 'seguroId'
+        'persona_brinda_informacion', 'usuarioId', 'seguroId',
+        'ci_extension', 'foto'
     ];
 
     // Whitelist de campos permitidos para la entidad FichaClinica
@@ -97,6 +102,13 @@ export class PacientesService {
         // -----------------------
 
         return await this.dataSource.transaction(async (manager) => {
+            if (pacienteData.foto && pacienteData.foto.startsWith('data:image')) {
+                pacienteData.foto = await this.storageService.uploadBase64(
+                    'clinica-media',
+                    `patient-photo-${Date.now()}`,
+                    pacienteData.foto
+                );
+            }
             const paciente = manager.create(Paciente, pacienteData);
             if (pacienteData.usuarioId) {
                 paciente.usuario = { id: Number(pacienteData.usuarioId) } as any;
@@ -174,6 +186,21 @@ export class PacientesService {
             const paciente = await manager.findOne(Paciente, { where: { id } });
             if (!paciente) throw new NotFoundException(`Paciente #${id} not found`);
 
+            if (pacienteData.foto && pacienteData.foto.startsWith('data:image')) {
+                if (paciente.foto) {
+                    try {
+                        await this.storageService.deleteFile('clinica-media', paciente.foto);
+                    } catch (e: any) {
+                        this.logger.error(`Error deleting old patient photo: ${e.message}`);
+                    }
+                }
+                pacienteData.foto = await this.storageService.uploadBase64(
+                    'clinica-media',
+                    `patient-photo-${id}`,
+                    pacienteData.foto
+                );
+            }
+
             manager.merge(Paciente, paciente, pacienteData);
             if (pacienteData.usuarioId) {
                 paciente.usuario = { id: Number(pacienteData.usuarioId) } as any;
@@ -205,6 +232,14 @@ export class PacientesService {
     }
 
     async remove(id: number): Promise<void> {
+        const paciente = await this.pacientesRepository.findOne({ where: { id } });
+        if (paciente && paciente.foto) {
+            try {
+                await this.storageService.deleteFile('clinica-media', paciente.foto);
+            } catch (e: any) {
+                this.logger.error(`Error deleting patient photo on remove: ${e.message}`);
+            }
+        }
         await this.pacientesRepository.delete(id);
     }
 

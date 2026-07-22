@@ -32,6 +32,9 @@ export class Paciente {
     ci: string;
 
     @Column({ type: 'text', nullable: true })
+    ci_extension: string;
+
+    @Column({ type: 'text', nullable: true })
     direccion: string;
 
     @Column({ type: 'text', nullable: true })
@@ -69,6 +72,9 @@ export class Paciente {
 
     @Column({ type: 'boolean', default: false })
     esta_firmado: boolean;
+
+    @Column({ type: 'text', nullable: true })
+    foto: string;
 
     @OneToOne(() => FichaClinica, (ficha) => ficha.paciente, { cascade: true, eager: false })
     fichaClinica: FichaClinica;

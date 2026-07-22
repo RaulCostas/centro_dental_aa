@@ -30,7 +30,13 @@ const getStatusColor = (estado: string) => {
     }
 };
 
-const AgendaView: React.FC = () => {
+interface AgendaViewProps {
+    defaultPacienteId?: number;
+    isEmbedded?: boolean;
+    onAppointmentChange?: () => void;
+}
+
+const AgendaView: React.FC<AgendaViewProps> = ({ defaultPacienteId, isEmbedded = false, onAppointmentChange }) => {
     const navigate = useNavigate();
     
 
@@ -353,8 +359,13 @@ const AgendaView: React.FC = () => {
     };
 
     const handleFormSave = () => {
-        fetchAppointments();
+        if (viewMode === 'day') {
+            fetchAppointments();
+        } else {
+            fetchMonthAppointments();
+        }
         handleFormClose();
+        onAppointmentChange?.();
     };
 
     // Removed handleClinicTabClick as it is no longer used
@@ -618,20 +629,24 @@ const AgendaView: React.FC = () => {
                             >
                                 Quien Agendó
                             </button>
-                            <button
-                                onClick={() => navigate('/recordatorio')}
-                                className="flex-shrink-0 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded font-bold transition-all text-xs sm:text-sm shadow-md"
-                                title="Gestionar recordatorios"
-                            >
-                                Recordatorio
-                            </button>
-                            <button
-                                onClick={() => navigate('/contactos')}
-                                className="flex-shrink-0 px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-white rounded font-bold transition-all text-xs sm:text-sm shadow-md"
-                                title="Ver Contactos"
-                            >
-                                Contactos
-                            </button>
+                            {!isEmbedded && (
+                                <>
+                                    <button
+                                        onClick={() => navigate('/recordatorio')}
+                                        className="flex-shrink-0 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded font-bold transition-all text-xs sm:text-sm shadow-md"
+                                        title="Gestionar recordatorios"
+                                    >
+                                        Recordatorio
+                                    </button>
+                                    <button
+                                        onClick={() => navigate('/contactos')}
+                                        className="flex-shrink-0 px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-white rounded font-bold transition-all text-xs sm:text-sm shadow-md"
+                                        title="Ver Contactos"
+                                    >
+                                        Contactos
+                                    </button>
+                                </>
+                            )}
                         </div>
                         <div className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto justify-between sm:justify-end mt-1 sm:mt-0">
                             <button
@@ -794,6 +809,7 @@ const AgendaView: React.FC = () => {
                         defaultDate={currentDate}
                         defaultTime={selectedSlot?.time}
                         defaultConsultorio={selectedSlot?.consultorio}
+                        defaultPacienteId={defaultPacienteId}
                         existingAppointments={appointments}
                     />
                 )}

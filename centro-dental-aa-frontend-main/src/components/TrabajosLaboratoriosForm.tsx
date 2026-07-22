@@ -5,7 +5,7 @@ import type { TrabajoLaboratorio, Paciente, Laboratorio, PrecioLaboratorio, Cube
 import Swal from 'sweetalert2';
 import ManualModal, { type ManualSection } from './ManualModal';
 import { formatFullName, formatNumber } from '../utils/formatters';
-import SearchablePatientSelect from './SearchablePatientSelect';
+import SearchableSelect from './SearchableSelect';
 
 import { Plus } from 'lucide-react';
 
@@ -43,6 +43,7 @@ const TrabajosLaboratoriosForm: React.FC = () => {
         idHistoriaClinica: 0,
     });
 
+    const [pacientes, setPacientes] = useState<Paciente[]>([]);
     const [historiasClinica, setHistoriasClinica] = useState<any[]>([]);
     const [laboratorios, setLaboratorios] = useState<Laboratorio[]>([]);
     const [preciosLaboratorio, setPreciosLaboratorio] = useState<PrecioLaboratorio[]>([]);
@@ -71,8 +72,6 @@ const TrabajosLaboratoriosForm: React.FC = () => {
         }
     }, [id]);
 
-            // No-op: previously used to update clinicaId when global selection changed
-
     useEffect(() => {
         const total = (Number(formData.cantidad) || 0) * (Number(formData.precio_unitario) || 0);
         setFormData(prev => ({ ...prev, total }));
@@ -86,6 +85,32 @@ const TrabajosLaboratoriosForm: React.FC = () => {
         }
     }, [formData.idPaciente]);
 
+    const fetchPacientes = async () => {
+        try {
+            const res = await api.get('/pacientes?limit=1000');
+            setPacientes(res.data.data || res.data || []);
+        } catch (error) {
+            console.error('Error fetching pacientes:', error);
+        }
+    };
+
+    const patientOptions = React.useMemo(() => {
+        return pacientes.map(p => {
+            const cel = p.telefono_celular || '';
+            const match = cel.match(/^(\+\d{1,3})(\d+)$/);
+            const formattedCel = match ? `(${match[1]})${match[2]}` : cel;
+            
+            const isSeguro = p.seguroId && p.seguroId > 0;
+            const typeLabel = isSeguro ? `SEGURO: ${p.seguro?.nombre || 'Sí'}` : 'PARTICULAR';
+            
+            return {
+                id: p.id,
+                label: `${p.nombre} ${p.paterno} ${p.materno || ''}`.trim(),
+                subLabel: `CI: ${p.ci || 'N/A'} | Cel: ${formattedCel} | ${typeLabel}`
+            };
+        });
+    }, [pacientes]);
+
     const fetchDropdowns = async () => {
         try {
             const clinicaParam = '';
@@ -96,6 +121,7 @@ const TrabajosLaboratoriosForm: React.FC = () => {
                 api.get('/doctors?limit=100')
             ]);
 
+            fetchPacientes();
             const activeLabs = (labRes.data.data || []).filter((lab: any) => lab.estado === 'activo');
             setLaboratorios(activeLabs);
             setPreciosLaboratorio(Array.isArray(preciosRes.data.data) ? preciosRes.data.data : preciosRes.data);
@@ -264,14 +290,20 @@ const TrabajosLaboratoriosForm: React.FC = () => {
 
                 <div className="form-group">
                     <label className="block text-gray-700 dark:text-gray-300 font-medium text-sm mb-2">Paciente</label>
-                    <SearchablePatientSelect
-                        onSelect={(type, id) => {
-                            setFormData(prev => ({ ...prev, idPaciente: id }));
+                    <SearchableSelect
+                        options={patientOptions}
+                        value={formData.idPaciente || ''}
+                        onChange={(val) => {
+                            setFormData(prev => ({ ...prev, idPaciente: Number(val) }));
                         }}
-                        selectedId={formData.idPaciente}
-                        selectedType="particular"
-                        allowType="particular"
+                        placeholder="-- Seleccione Paciente --"
                         required
+                        icon={
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        }
                     />
                 </div>
 

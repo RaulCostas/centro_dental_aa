@@ -11,7 +11,7 @@ import ManualModal, { type ManualSection } from './ManualModal';
 import SignatureModal from './SignatureModal';
 import RecetarioForm from './RecetarioForm';
 
-import { ClipboardList, Printer } from 'lucide-react';
+import { ClipboardList, Printer, Stethoscope } from 'lucide-react';
 
 
 const RecetarioList: React.FC = () => {
@@ -176,17 +176,17 @@ const RecetarioList: React.FC = () => {
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Receta Médica - ${formatFullName(receta.paciente)}</title>
+                <title>Receta Odontológica - ${formatFullName(receta.paciente)}</title>
                 <style>
                     @page {
                         size: A4;
-                        margin: 2cm 1.5cm 3cm 1.5cm;
+                        margin: 0;
                     }
                     
                     body {
                         font-family: Arial, sans-serif;
                         margin: 0;
-                        padding: 0;
+                        padding: 2cm 1.5cm 3cm 1.5cm;
                         color: #333;
                     }
                     
@@ -249,12 +249,12 @@ const RecetarioList: React.FC = () => {
                     }
                     
                     th {
-                        background-color: #3498db;
-                        color: white;
+                        background-color: #f0f0f0;
+                        color: #000000;
                         padding: 12px 8px;
                         text-align: left;
                         font-weight: bold;
-                        border: 1px solid #2980b9;
+                        border: 1px solid #cccccc;
                         font-size: 11px;
                     }
                     
@@ -296,9 +296,9 @@ const RecetarioList: React.FC = () => {
                     
                     .info-box {
                         background-color: #f8f9fa;
-                        border-left: 4px solid #3498db;
-                        padding: 15px;
-                        margin-bottom: 20px;
+                        border-left: 1.5px solid #3498db;
+                        padding: 8px 12px;
+                        margin-bottom: 15px;
                     }
 
                     .info-row {
@@ -331,11 +331,12 @@ const RecetarioList: React.FC = () => {
                     @media print {
                         @page {
                             size: landscape;
-                            margin: 10mm;
+                            margin: 0 !important;
                         }
 
                         body {
                             margin: 0;
+                            padding: 10mm !important;
                             column-count: 2;
                             column-gap: 20mm;
                             column-fill: auto;
@@ -354,7 +355,8 @@ const RecetarioList: React.FC = () => {
                         }
                         
                         th {
-                            background-color: #3498db !important;
+                            background-color: #f0f0f0 !important;
+                            color: #000000 !important;
                             -webkit-print-color-adjust: exact;
                             print-color-adjust: exact;
                         }
@@ -372,7 +374,7 @@ const RecetarioList: React.FC = () => {
                 <div class="content-wrapper">
                     <div class="header">
                         <img src="/logo-clinica-dental.jpg" alt="Logo Clínica" />
-                        <h1>RECETA MÉDICA</h1>
+                        <h1>RECETA ODONTOLÓGICA</h1>
                     </div>
                 
                 <div class="info-box">
@@ -387,19 +389,19 @@ const RecetarioList: React.FC = () => {
                 </div>
 
                 ${receta.diagnostico ? `
-                    <div style="margin-bottom: 15px; background-color: #f0f7fb; padding: 10px; border-radius: 5px; border-left: 3px solid #3498db; position: relative; z-index: 2;">
+                    <div style="margin-bottom: 12px; background-color: #f0f7fb; padding: 6px 10px; border-radius: 5px; border-left: 1.5px solid #3498db; position: relative; z-index: 2;">
                         <strong style="color: #2c3e50; font-size: 12px;">Diagnóstico:</strong>
                         <span style="color: #333; font-size: 12px; margin-left: 5px;">${receta.diagnostico}</span>
                     </div>
                 ` : ''}
 
-                <div style="margin-top: 20px; margin-bottom: 10px; font-weight: bold; font-size: 16px; color: #2c3e50; position: relative; z-index: 2;">Rp.:</div>
+                <div style="margin-top: 20px; margin-bottom: 10px; font-weight: bold; font-size: 16px; color: #2c3e50; position: relative; z-index: 2;">Rp./</div>
                 <table style="position: relative; z-index: 2;">
                     <thead>
                         <tr>
-                            <th style="width: 35%;">Medicamento</th>
-                            <th class="text-center" style="width: 80px;">Cantidad</th>
-                            <th>Indicaciones</th>
+                            <th style="width: 35%; color: #000000;">Medicamento</th>
+                            <th class="text-center" style="width: 80px; color: #000000;">Cantidad</th>
+                            <th style="color: #000000;">Indicaciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -637,7 +639,9 @@ const RecetarioList: React.FC = () => {
                             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">#</th>
                             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fecha</th>
                             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Registrado por</th>
+                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Diagnóstico</th>
                             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Medicamentos</th>
+                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Indicaciones Generales</th>
                             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
                         </tr>
                     </thead>
@@ -649,10 +653,36 @@ const RecetarioList: React.FC = () => {
                                 <td className="p-3 text-gray-700 dark:text-gray-300">
                                     {receta.user ? receta.user.name : 'N/A'}
                                 </td>
-                                <td className="p-3 text-gray-700 dark:text-gray-300 max-w-xs truncate">
-                                    {receta.detalles && receta.detalles.length > 0
-                                        ? `${receta.detalles.length} medicamento${receta.detalles.length !== 1 ? 's' : ''} (${receta.detalles[0].medicamento}...)`
-                                        : receta.medicamentos}
+                                <td className="p-3 text-gray-800 dark:text-gray-200 text-xs font-medium whitespace-nowrap">
+                                    {receta.diagnostico ? (
+                                        <span>{receta.diagnostico}</span>
+                                    ) : (
+                                        <span className="text-gray-400 font-normal">—</span>
+                                    )}
+                                </td>
+                                <td className="p-3 text-gray-700 dark:text-gray-300 max-w-xs">
+                                    {receta.detalles && receta.detalles.length > 0 ? (
+                                        <ul className="space-y-1 text-xs">
+                                            {receta.detalles.map((d, i) => (
+                                                <li key={i} className="font-medium">
+                                                    • <strong>{d.medicamento}</strong> {d.cantidad ? <span className="text-gray-500 dark:text-gray-400 font-normal">({d.cantidad})</span> : ''}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : receta.medicamentos ? (
+                                        <span className="text-xs">{receta.medicamentos}</span>
+                                    ) : (
+                                        <span className="text-gray-400 italic text-xs">Sin medicamentos</span>
+                                    )}
+                                </td>
+                                <td className="p-3 text-gray-700 dark:text-gray-300 max-w-xs text-xs">
+                                    {receta.indicaciones ? (
+                                        <span className="line-clamp-2 text-gray-600 dark:text-gray-300" title={receta.indicaciones}>
+                                            {receta.indicaciones}
+                                        </span>
+                                    ) : (
+                                        <span className="text-gray-400 font-normal">—</span>
+                                    )}
                                 </td>
 
                                 <td className="p-3 flex gap-2">

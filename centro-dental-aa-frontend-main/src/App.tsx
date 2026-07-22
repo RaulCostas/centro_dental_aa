@@ -11,6 +11,7 @@ import PersonalList from './components/PersonalList';
 import EspecialidadList from './components/EspecialidadList';
 import DatosCentroDentalList from './components/DatosCentroDentalList';
 import ConsentimientosPlantillasList from './components/ConsentimientosPlantillasList';
+import RecetasPredisenadasList from './components/RecetasPredisenadasList';
 import SeguroList from './components/SeguroList';
 import ArancelList from './components/ArancelList';
 import EgresoList from './components/EgresoList';
@@ -115,6 +116,7 @@ function App() {
                                     <Route path="/configuration" element={<Configuration />} />
                                     <Route path="/configuration/chatbot" element={<ChatbotConfig />} />
                                     <Route path="/consentimientos-plantillas" element={<ConsentimientosPlantillasList />} />
+                                    <Route path="/recetas-predisenadas" element={<RecetasPredisenadasList />} />
                                     <Route path="/seguro" element={<SeguroList />} />
                                     <Route element={<ProtectedRoute moduleId="config-backup" />}>
                                         <Route path="/backup" element={<BackupManager />} />

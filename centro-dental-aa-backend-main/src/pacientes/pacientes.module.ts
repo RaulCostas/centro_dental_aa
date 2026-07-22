@@ -5,9 +5,13 @@ import { PacientesController } from './pacientes.controller';
 import { Paciente } from './entities/paciente.entity';
 import { Odontograma } from './entities/odontograma.entity';
 import { FichaClinica } from './entities/ficha_clinica.entity';
+import { StorageModule } from '../common/storage/storage.module';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Paciente, Odontograma, FichaClinica])],
+    imports: [
+        TypeOrmModule.forFeature([Paciente, Odontograma, FichaClinica]),
+        StorageModule
+    ],
     controllers: [PacientesController],
     providers: [PacientesService],
     exports: [PacientesService],

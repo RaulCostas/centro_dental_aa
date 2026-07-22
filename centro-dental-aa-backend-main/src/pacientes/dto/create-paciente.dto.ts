@@ -294,4 +294,12 @@ export class CreatePacienteDto {
     @IsNumber()
     @IsOptional()
     seguroId?: number;
+
+    @IsString()
+    @IsOptional()
+    ci_extension?: string;
+
+    @IsString()
+    @IsOptional()
+    foto?: string;
 }

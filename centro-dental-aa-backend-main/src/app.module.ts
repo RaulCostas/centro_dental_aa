@@ -95,6 +95,9 @@ import { UtilidadesModule } from './utilidades/utilidades.module';
 import { RecetaModule } from './receta/receta.module';
 import { Receta } from './receta/entities/receta.entity';
 import { RecetaDetalle } from './receta/entities/receta-detalle.entity';
+import { RecetaPredisenada } from './recetas_predisenadas/entities/receta_predisenada.entity';
+import { RecetaPredisenadaDetalle } from './recetas_predisenadas/entities/receta_predisenada_detalle.entity';
+import { RecetasPredisenadasModule } from './recetas_predisenadas/recetas_predisenadas.module';
 
 import { RecordatorioModule } from './recordatorio/recordatorio.module';
 import { Recordatorio } from './recordatorio/entities/recordatorio.entity';
@@ -195,6 +198,8 @@ import { EstudioComplementario } from './estudios-complementarios/entities/estud
         PagosDetalleDoctores,
         PagosDoctores,
         Receta,
+        RecetaPredisenada,
+        RecetaPredisenadaDetalle,
 
         Recordatorio,
         RecordatorioTratamiento,
@@ -258,6 +263,7 @@ import { EstudioComplementario } from './estudios-complementarios/entities/estud
     CalificacionModule,
     UtilidadesModule,
     RecetaModule,
+    RecetasPredisenadasModule,
 
     RecordatorioModule,
     RecordatorioTratamientoModule,

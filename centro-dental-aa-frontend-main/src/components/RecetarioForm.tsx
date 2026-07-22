@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import type { Paciente, RecetaDetalle } from '../types';
+import type { Paciente, RecetaDetalle, RecetaPredisenada, Especialidad } from '../types';
 import Swal from 'sweetalert2';
 import ManualModal, { type ManualSection } from './ManualModal';
 import { getLocalDateString } from '../utils/dateUtils';
 import { formatFullName } from '../utils/formatters';
 import SearchablePatientSelect from './SearchablePatientSelect';
-import { Stethoscope } from 'lucide-react';
+import { Stethoscope, Sparkles, FileText, Pill, Plus } from 'lucide-react';
+import { recetasPredisenadasService } from '../services/recetasPredisenadasService';
 
 
 interface FormData {
@@ -48,6 +49,9 @@ const RecetarioForm: React.FC<RecetarioFormProps> = ({ isOpen, onClose, id, onSa
     });
 
     const [showManual, setShowManual] = useState(false);
+    const [predisenadas, setPredisenadas] = useState<RecetaPredisenada[]>([]);
+    const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
+    const [selectedPredisenadaId, setSelectedPredisenadaId] = useState<number | ''>('');
 
     const manualSections: ManualSection[] = [
         {
@@ -107,7 +111,63 @@ const RecetarioForm: React.FC<RecetarioFormProps> = ({ isOpen, onClose, id, onSa
                 }]
             });
         }
+        fetchPredisenadasData();
     }, [isOpen, isEditing, id, defaultPacienteId]);
+
+    const fetchPredisenadasData = async () => {
+        try {
+            const [tmplList, specRes] = await Promise.all([
+                recetasPredisenadasService.getAll({ estado: 'activo' }),
+                api.get('/especialidad?limit=1000')
+            ]);
+            setPredisenadas(tmplList);
+            const specs = specRes.data.data || specRes.data || [];
+            setEspecialidades(specs);
+        } catch (e) {
+            console.error("Error fetching predesigned recipes", e);
+        }
+    };
+
+    const handleClearPredisenada = () => {
+        setSelectedPredisenadaId('');
+        setFormData(prev => ({
+            ...prev,
+            diagnostico: '',
+            indicaciones: '',
+            detalles: [{
+                id: 0,
+                recetaId: 0,
+                medicamento: '',
+                cantidad: '',
+                indicacion: ''
+            }]
+        }));
+    };
+
+    const handleApplyPredisenada = (tmplId: number) => {
+        if (!tmplId) {
+            handleClearPredisenada();
+            return;
+        }
+        const found = predisenadas.find(p => p.id === tmplId);
+        if (!found) return;
+
+        setSelectedPredisenadaId(tmplId);
+        setFormData(prev => ({
+            ...prev,
+            diagnostico: found.diagnostico || prev.diagnostico || '',
+            indicaciones: found.indicaciones || prev.indicaciones || '',
+            detalles: found.detalles && found.detalles.length > 0
+                ? found.detalles.map(d => ({
+                    id: 0,
+                    recetaId: 0,
+                    medicamento: d.medicamento,
+                    cantidad: d.cantidad,
+                    indicacion: d.indicacion
+                }))
+                : prev.detalles
+        }));
+    };
 
 
 
@@ -285,6 +345,46 @@ const RecetarioForm: React.FC<RecetarioFormProps> = ({ isOpen, onClose, id, onSa
                             </div>
                         )}
 
+                        {/* Cargar Receta Pre-Diseñada */}
+                        {!isEditing && predisenadas.length > 0 && (
+                            <div className="bg-blue-50/70 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/60 p-4 rounded-xl shadow-sm">
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="text-sm font-bold text-blue-900 dark:text-blue-200 flex items-center gap-2">
+                                        <Sparkles size={16} className="text-blue-600 dark:text-blue-400 animate-pulse" />
+                                        Cargar Receta Pre-Diseñada (Opcional):
+                                    </label>
+                                    {selectedPredisenadaId && (
+                                        <button
+                                            type="button"
+                                            onClick={handleClearPredisenada}
+                                            className="text-xs bg-red-100 hover:bg-red-200 dark:bg-red-900/40 dark:hover:bg-red-900/60 text-red-600 dark:text-red-300 font-bold px-2.5 py-1 rounded-lg border border-red-200 dark:border-red-800/60 transition-all shadow-xs"
+                                        >
+                                            ✕ Limpiar selección
+                                        </button>
+                                    )}
+                                </div>
+                                <select
+                                    value={selectedPredisenadaId || ''}
+                                    onChange={(e) => handleApplyPredisenada(Number(e.target.value))}
+                                    className="w-full p-2.5 rounded-xl border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-medium focus:ring-2 focus:ring-blue-500 shadow-xs"
+                                >
+                                    <option value="">-- Seleccionar Receta Pre-Diseñada por Especialidad --</option>
+                                    {predisenadas.map(tmpl => {
+                                        const specFound = especialidades.find(e => e.id === tmpl.especialidadId);
+                                        const specName = specFound ? specFound.especialidad : `Especialidad #${tmpl.especialidadId}`;
+                                        return (
+                                            <option key={tmpl.id} value={tmpl.id}>
+                                                [{specName}] - {tmpl.nombre}
+                                            </option>
+                                        );
+                                    })}
+                                </select>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+                                    Al elegir una plantilla pre-diseñada, el formulario se rellenará automáticamente. Podrás editar cualquier campo o agregar más medicamentos libremente.
+                                </p>
+                            </div>
+                        )}
+
                         {/* Diagnostico Field */}
                         <div className="mb-4">
                             <label className="block mb-1 font-medium text-gray-700 dark:text-gray-300">Diagnóstico:</label>
@@ -296,28 +396,36 @@ const RecetarioForm: React.FC<RecetarioFormProps> = ({ isOpen, onClose, id, onSa
                                     value={formData.diagnostico || ''}
                                     onChange={handleChange}
                                     placeholder="Escriba el diagnóstico del paciente (Opcional)"
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all"
                                 />
                             </div>
                         </div>
 
                         {/* Details Table */}
                         <div className="mt-6 border p-4 rounded-xl border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-                            <h3 className="font-bold text-lg mb-3 text-gray-700 dark:text-gray-300">Detalle de Medicamentos</h3>
+                            <div className="flex justify-between items-center mb-3">
+                                <h3 className="font-bold text-base text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                                    <Pill size={18} className="text-blue-500" />
+                                    Detalle de Medicamentos
+                                </h3>
+                                <button
+                                    type="button"
+                                    onClick={addDetalle}
+                                    className="p-1 bg-green-100 dark:bg-green-900 hover:bg-green-200 dark:hover:bg-green-800 text-green-600 dark:text-green-400 rounded-full transition-all transform hover:-translate-y-0.5 shadow-sm flex items-center gap-1 px-2.5 py-1 text-xs font-semibold"
+                                    title="Agregar Medicamento"
+                                >
+                                    <Plus size={16} />
+                                    <span>Agregar Medicamento</span>
+                                </button>
+                            </div>
                             <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                     <thead className="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300">
                                         <tr>
                                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Medicamento</th>
-                                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-32">Cantidad</th>
+                                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-36">Cantidad</th>
                                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Indicaciones</th>
-                                            <th className="px-3 py-2 text-center w-10">
-                                                <button type="button" onClick={addDetalle} className="p-1 bg-green-100 dark:bg-green-900 hover:bg-green-200 dark:hover:bg-green-800 text-green-600 dark:text-green-400 rounded-full transition-all" title="Agregar Detalle">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
-                                                    </svg>
-                                                </button>
-                                            </th>
+                                            <th className="px-3 py-2 text-center w-10">Acción</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -335,7 +443,7 @@ const RecetarioForm: React.FC<RecetarioFormProps> = ({ isOpen, onClose, id, onSa
                                                             value={detalle.medicamento}
                                                             onChange={(e) => handleDetalleChange(index, 'medicamento', e.target.value)}
                                                             placeholder="Nombre del medicamento"
-                                                            className="w-full pl-10 p-2 border border-gray-300 dark:border-gray-600 rounded bg-transparent text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
+                                                            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all"
                                                         />
                                                     </div>
                                                 </td>
@@ -351,7 +459,7 @@ const RecetarioForm: React.FC<RecetarioFormProps> = ({ isOpen, onClose, id, onSa
                                                             value={detalle.cantidad}
                                                             onChange={(e) => handleDetalleChange(index, 'cantidad', e.target.value)}
                                                             placeholder="Cant."
-                                                            className="w-full pl-10 p-2 border border-gray-300 dark:border-gray-600 rounded bg-transparent text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
+                                                            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all"
                                                         />
                                                     </div>
                                                 </td>
@@ -367,7 +475,7 @@ const RecetarioForm: React.FC<RecetarioFormProps> = ({ isOpen, onClose, id, onSa
                                                             value={detalle.indicacion}
                                                             onChange={(e) => handleDetalleChange(index, 'indicacion', e.target.value)}
                                                             placeholder="Indicaciones específicas"
-                                                            className="w-full pl-10 p-2 border border-gray-300 dark:border-gray-600 rounded bg-transparent text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
+                                                            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all"
                                                         />
                                                     </div>
                                                 </td>
@@ -375,7 +483,7 @@ const RecetarioForm: React.FC<RecetarioFormProps> = ({ isOpen, onClose, id, onSa
                                                     <button
                                                         type="button"
                                                         onClick={() => removeDetalle(index)}
-                                                        className="p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-full transition-all"
+                                                        className="p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-full transition-all transform hover:-translate-y-0.5 shadow-sm"
                                                         disabled={formData.detalles.length === 1 && index === 0}
                                                         title="Eliminar fila"
                                                     >
@@ -391,23 +499,21 @@ const RecetarioForm: React.FC<RecetarioFormProps> = ({ isOpen, onClose, id, onSa
                             </div>
                         </div>
 
-                        {/* Legacy/General Notes Section if needed */}
-                        <div className="grid grid-cols-1 gap-4 mt-6">
-                            <div className="collapse collapse-arrow border border-base-300 bg-base-100 rounded-box">
-                                <input type="checkbox" />
-                                <div className="collapse-title text-md font-medium text-gray-500 dark:text-gray-400">
-                                    Notas Adicionales / Generales
-                                </div>
-                                <div className="collapse-content">
-                                    <textarea
-                                        name="indicaciones"
-                                        value={formData.indicaciones}
-                                        onChange={handleChange}
-                                        rows={3}
-                                        placeholder="Indicaciones generales o notas adicionales..."
-                                        className="w-full p-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
+                        {/* Indicaciones Generales de la Receta */}
+                        <div className="mt-6">
+                            <label className="block mb-1 font-semibold text-gray-700 dark:text-gray-300">
+                                Indicaciones Generales de la Receta (Opcional):
+                            </label>
+                            <div className="relative">
+                                <FileText size={18} className="absolute left-3 top-3 text-gray-400 pointer-events-none" />
+                                <textarea
+                                    name="indicaciones"
+                                    value={formData.indicaciones}
+                                    onChange={handleChange}
+                                    rows={3}
+                                    placeholder="Escriba las indicaciones generales de la receta (ej: Aplicar hielo local por 15 minutos, mantener reposo, no usar sorbete, etc.)"
+                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-xs"
+                                />
                             </div>
                         </div>
 

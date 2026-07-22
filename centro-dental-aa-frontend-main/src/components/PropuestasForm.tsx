@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import Swal from 'sweetalert2';
 import type { Paciente, Arancel } from '../types';
@@ -10,22 +10,59 @@ import { formatFullName, formatNumber, formatCurrency } from '../utils/formatter
 
 interface DetalleItem {
     id?: number;
-    letra: string; // Added Letra for Detail
+    letra: string;
     arancelId: number;
     codigo: string;
     tratamiento: string;
     precioUnitario: number;
     piezas: string;
     cantidad: number;
+    descuento: number;
     total: number;
     posible: boolean;
 }
 
-const PropuestasForm: React.FC = () => {
-    const { id, propuestaId } = useParams<{ id: string; propuestaId?: string }>();
+interface PropuestasFormProps {
+    isModal?: boolean;
+    pacienteIdProp?: string;
+    propuestaIdProp?: string;
+    isReadOnlyProp?: boolean;
+    onClose?: () => void;
+    onSaved?: () => void;
+}
+
+const PropuestasForm: React.FC<PropuestasFormProps> = ({
+    isModal = false,
+    pacienteIdProp,
+    propuestaIdProp,
+    isReadOnlyProp = false,
+    onClose,
+    onSaved,
+}) => {
+    const params = useParams<{ id: string; propuestaId?: string }>();
+    const id = isModal ? pacienteIdProp : params.id;
+    const propuestaId = isModal ? propuestaIdProp : params.propuestaId;
     const navigate = useNavigate();
     const location = useLocation();
-    const isReadOnly = location.pathname.includes('/view/');
+    const [searchParams] = useSearchParams();
+    const returnTo = searchParams.get('returnTo'); // e.g. 'presupuestos'
+    const isReadOnly = isModal ? isReadOnlyProp : location.pathname.includes('/view/');
+
+    // Helper: go back to the right place
+    const goBack = () => {
+        if (isModal) { onClose?.(); return; }
+        if (returnTo && !propuestaId) {
+            // Creating new → go directly to the returnTo destination (e.g. presupuestos)
+            navigate(`/pacientes/${id}/${returnTo}`);
+            return;
+        }
+        if (returnTo && propuestaId) {
+            // Editing/viewing existing → go back to the propuestas list with returnTo preserved
+            navigate(`/pacientes/${id}/propuestas?returnTo=${returnTo}`);
+            return;
+        }
+        navigate(`/pacientes/${id}/propuestas`);
+    };
 
     const [paciente, setPaciente] = useState<Paciente | null>(null);
     const [aranceles, setAranceles] = useState<Arancel[]>([]);
@@ -46,6 +83,7 @@ const PropuestasForm: React.FC = () => {
     const [selectedArancelId, setSelectedArancelId] = useState<number>(0);
     const [piezas, setPiezas] = useState('');
     const [cantidad, setCantidad] = useState(1);
+    const [descuentoItem, setDescuentoItem] = useState(0);
     const [posible, setPosible] = useState(false);
     const [showManual, setShowManual] = useState(false);
     const [isArancelModalOpen, setIsArancelModalOpen] = useState(false);
@@ -156,7 +194,7 @@ const PropuestasForm: React.FC = () => {
 
         const precioUsar = Number(arancel.precio);
             
-        const total = precioUsar * cantidad;
+        const total = (precioUsar * cantidad) * (1 - descuentoItem / 100);
 
         const newItem: DetalleItem = {
             id: editingIndex !== null ? detalles[editingIndex].id : undefined,
@@ -167,6 +205,7 @@ const PropuestasForm: React.FC = () => {
             precioUnitario: precioUsar,
             piezas,
             cantidad,
+            descuento: descuentoItem,
             total,
             posible
         };
@@ -184,6 +223,7 @@ const PropuestasForm: React.FC = () => {
         setSelectedArancelId(0);
         setPiezas('');
         setCantidad(1);
+        setDescuentoItem(0);
         setPosible(false);
     };
 
@@ -214,6 +254,7 @@ const PropuestasForm: React.FC = () => {
         setSelectedArancelId(item.arancelId);
         setPiezas(item.piezas);
         setCantidad(item.cantidad);
+        setDescuentoItem(item.descuento || 0);
         setPosible(item.posible);
     };
 
@@ -222,28 +263,28 @@ const PropuestasForm: React.FC = () => {
         setSelectedArancelId(0);
         setPiezas('');
         setCantidad(1);
+        setDescuentoItem(0);
         setPosible(false);
     };
 
-    // Calculate total ONLY for the active tab for display
+    // Subtotal bruto (sin descuento global)
     const calculateTabSubTotal = () => {
         const tabItems = detalles.filter(d => d.letra === activeTab);
-        return tabItems.reduce((sum, item) => sum + item.total, 0);
+        return tabItems.reduce((sum, item) => item.posible ? sum : sum + item.total, 0);
     };
 
     const calculateTabTotal = () => {
         const subTotal = calculateTabSubTotal();
-        const discountAmt = Number(tabDiscounts[activeTab]) || 0;
-        return subTotal - discountAmt;
+        const discountPct = Number(tabDiscounts[activeTab]) || 0;
+        return subTotal * (1 - discountPct / 100);
     };
 
     const calculateGrandTotal = () => {
         return tabs.reduce((totalAcc, tab) => {
             const tabItems = detalles.filter(d => d.letra === tab);
-            const subTotal = tabItems.reduce((sum, item) => sum + item.total, 0);
-            const discountAmt = Number(tabDiscounts[tab]) || 0;
-            const tabTotal = subTotal - discountAmt;
-            return totalAcc + tabTotal;
+            const subTotal = tabItems.filter(i => !i.posible).reduce((sum, item) => sum + item.total, 0);
+            const discountPct = Number(tabDiscounts[tab]) || 0;
+            return totalAcc + subTotal * (1 - discountPct / 100);
         }, 0);
     };
 
@@ -260,7 +301,7 @@ const PropuestasForm: React.FC = () => {
                 letra: letraHeader,
                 fecha: new Date(fecha).toISOString(),
                 total: calculateGrandTotal(),
-                descuentos: tabDiscounts, // Send global tab discounts
+                descuentos: tabDiscounts,
                 detalles: detalles.map(d => ({
                     id: d.id,
                     letra: d.letra,
@@ -268,6 +309,7 @@ const PropuestasForm: React.FC = () => {
                     precioUnitario: d.precioUnitario,
                     piezas: d.piezas,
                     cantidad: d.cantidad,
+                    descuento: d.descuento,
                     total: d.total,
                     posible: d.posible
                 }))
@@ -295,7 +337,11 @@ const PropuestasForm: React.FC = () => {
                 });
             }
             setTimeout(() => {
-                navigate(`/pacientes/${id}/propuestas`);
+                if (isModal) {
+                    onSaved?.();
+                } else {
+                    goBack();
+                }
             }, 1500);
         } catch (error: any) {
             console.error('Error saving propuesta:', error);
@@ -485,6 +531,24 @@ const PropuestasForm: React.FC = () => {
                             </div>
                         </div>
 
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Desc. (%)</label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span className="text-gray-400 font-bold">%</span>
+                                </div>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    value={descuentoItem}
+                                    onChange={(e) => setDescuentoItem(Number(e.target.value))}
+                                    placeholder="0"
+                                    className="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800 dark:text-gray-200"
+                                />
+                            </div>
+                        </div>
+
                         <div className="flex items-end">
                             <label className="flex items-center cursor-pointer text-gray-700 dark:text-gray-300 hover:text-purple-600 transition-all">
                                 <div className="relative">
@@ -545,6 +609,7 @@ const PropuestasForm: React.FC = () => {
                                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Piezas</th>
                                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">P.U.</th>
                                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cant.</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Desc.%</th>
                                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">SubTotal</th>
                                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Posible</th>
                                 {!isReadOnly && <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acción</th>}
@@ -569,6 +634,7 @@ const PropuestasForm: React.FC = () => {
                                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-center">{item.piezas}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-right">{formatNumber(item.precioUnitario)}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-center">{item.cantidad}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-center">{item.descuento || 0}%</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-right font-medium">{formatNumber(item.total)}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
                                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.posible ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}`}>
@@ -636,19 +702,25 @@ const PropuestasForm: React.FC = () => {
 
                             <div className="flex justify-between items-center text-sm font-medium text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-600 pb-2">
                                 <label className="flex items-center gap-2 uppercase tracking-wide">
-                                    Descuento Global (Bs.)
+                                    Descuento Global (%)
                                 </label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    value={tabDiscounts[activeTab] || 0}
-                                    onChange={(e) => {
-                                        const newDiscount = Math.max(0, Number(e.target.value));
-                                        setTabDiscounts(prev => ({ ...prev, [activeTab]: newDiscount }));
-                                    }}
-                                    disabled={isReadOnly}
-                                    className="w-24 px-3 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800 dark:text-gray-200 text-right font-semibold"
-                                />
+                                <div className="w-28 relative">
+                                    <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                                        <span className="text-gray-400 font-bold text-xs">%</span>
+                                    </div>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={tabDiscounts[activeTab] || 0}
+                                        onChange={(e) => {
+                                            const v = Math.min(100, Math.max(0, Number(e.target.value)));
+                                            setTabDiscounts(prev => ({ ...prev, [activeTab]: v }));
+                                        }}
+                                        disabled={isReadOnly}
+                                        className="w-full text-right pl-6 pr-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-800 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-800 font-medium"
+                                    />
+                                </div>
                             </div>
 
                             <div className="flex justify-between items-center pt-2">
@@ -677,7 +749,7 @@ const PropuestasForm: React.FC = () => {
 
 
                             <button
-                                onClick={() => navigate(`/pacientes/${id}/propuestas`)}
+                                onClick={goBack}
                                 className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-6 rounded-xl shadow-md transition-all transform hover:-translate-y-0.5 flex items-center gap-2"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

@@ -4,9 +4,10 @@ import api from '../services/api';
 import type { Agenda, Paciente } from '../types';
 import { formatDate, getLocalDateString } from '../utils/dateUtils';
 import { formatFullName } from '../utils/formatters';
-import { Calendar, Plus, ChevronRight, Info } from 'lucide-react';
+import { Calendar, Plus, ChevronRight, Info, List, Grid } from 'lucide-react';
 import ManualModal, { type ManualSection } from './ManualModal';
 import AgendaForm from './AgendaForm';
+import AgendaView from './AgendaView';
 import Pagination from './Pagination';
 
 const estadoColor = (estado: string) => {
@@ -44,6 +45,7 @@ const PacienteTabCitas: React.FC = () => {
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedCita, setSelectedCita] = useState<Agenda | null>(null);
     const [showManual, setShowManual] = useState(false);
+    const [activeSubTab, setActiveSubTab] = useState<'agenda' | 'lista'>('agenda');
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -51,16 +53,16 @@ const PacienteTabCitas: React.FC = () => {
 
     const manualSections: ManualSection[] = [
         {
-            title: 'Historial de Citas',
-            content: 'En esta pestaña puede ver todas las citas programadas, atendidas o canceladas del paciente.'
+            title: 'Próxima Cita - Agenda y Disponibilidad',
+            content: 'Consulte los horarios y consultorios disponibles directamente en la grilla de la agenda para programar citas fácilmente.'
         },
         {
             title: 'Programar Nueva Cita',
-            content: 'Use el botón "+ Nueva Cita" para abrir el formulario de agenda. El paciente ya estará pre-seleccionado.'
+            content: 'Haga clic en un horario libre en la agenda o use el botón "+ Nueva Cita". El paciente estará pre-seleccionado automáticamente.'
         },
         {
-            title: 'Editar Citas',
-            content: 'Haga clic en la fecha de una cita próxima (resaltada en azul) para modificar sus detalles o estado.'
+            title: 'Lista de Citas del Paciente',
+            content: 'Cambie al modo "Lista de Citas" para ver el historial completo de citas agendadas, pasadas o canceladas del paciente.'
         }
     ];
 
@@ -96,58 +98,67 @@ const PacienteTabCitas: React.FC = () => {
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const paginatedCitas = sorted.slice(indexOfFirstItem, indexOfLastItem);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const isPast = (fecha: string) => new Date(fecha) < today;
-
-    const rowStyle = (c: Agenda) => {
-        const estado = c.estado?.toLowerCase();
-        if (estado === 'cancelada' || estado === 'cancelado')
-            return 'bg-red-50 dark:bg-red-950/40 border-l-4 border-red-400 dark:border-red-600';
-        if (isPast(c.fecha))
-            return 'opacity-60 bg-gray-50 dark:bg-gray-900/40';
-        return 'bg-blue-50/40 dark:bg-blue-900/10';
+    const todayStr = getLocalDateString();
+    const isPastDate = (fechaStr: string) => {
+        if (!fechaStr) return false;
+        const cleanFecha = fechaStr.substring(0, 10);
+        return cleanFecha < todayStr;
     };
 
     const handleFechaClick = (c: Agenda) => {
-        if (!isPast(c.fecha)) {
-            setSelectedCita(c);
-            setModalOpen(true);
-        }
+        setSelectedCita(c);
+        setModalOpen(true);
     };
 
     return (
-        <div className="content-card bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-6 transition-colors">
+        <div className="content-card bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-4 md:p-6 transition-colors">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
                 <div className="flex flex-col">
                     <h2 className="text-xl font-black text-gray-800 dark:text-white flex items-center gap-2">
                         <Calendar className="text-blue-500" size={28} />
-                        Historial de Citas
+                        Próxima Cita
                     </h2>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">Gestión y seguimiento de citas programadas</p>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1 text-xs md:text-sm">
+                        Consulte la disponibilidad en la agenda y programe citas para {paciente ? formatFullName(paciente) : 'el paciente'}
+                    </p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => setShowManual(true)}
-                        className="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 p-1.5 rounded-full flex items-center justify-center w-[30px] h-[30px] text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-sm"
-                        title="Ayuda / Manual"
-                    >
-                        ?
-                    </button>
-                    <button
-                        onClick={() => {
-                            setSelectedCita(null);
-                            setModalOpen(true);
-                        }}
-                        className="bg-[#3498db] hover:bg-blue-600 text-white hover:text-white font-bold py-2.5 px-8 text-lg rounded-lg shadow-md transition-all transform hover:-translate-y-0.5 flex items-center gap-2"
-                    >
-                        <Plus size={20} /> Nueva Cita
-                    </button>
+                <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+                    {/* View Switcher */}
+                    <div className="flex bg-gray-100 dark:bg-gray-900 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <button
+                            onClick={() => setActiveSubTab('agenda')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${
+                                activeSubTab === 'agenda'
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : 'bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'
+                            }`}
+                        >
+                            <Grid size={16} /> Agenda (Disponibilidad)
+                        </button>
+                        <button
+                            onClick={() => {
+                                setActiveSubTab('lista');
+                                fetchCitas();
+                            }}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition-all ${
+                                activeSubTab === 'lista'
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : 'bg-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'
+                            }`}
+                        >
+                            <List size={16} /> Lista de Citas ({citas.length})
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            {loading ? (
+            {/* Content Body */}
+            {activeSubTab === 'agenda' ? (
+                <div className="border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden bg-white dark:bg-gray-800 shadow-inner">
+                    <AgendaView defaultPacienteId={Number(id)} isEmbedded={true} onAppointmentChange={fetchCitas} />
+                </div>
+            ) : loading ? (
                 <div className="flex items-center justify-center py-16">
                     <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
                 </div>
@@ -158,10 +169,10 @@ const PacienteTabCitas: React.FC = () => {
                 </div>
             ) : (
                 <div className="space-y-4">
-                    <div className="flex flex-wrap items-center gap-4 mb-2 text-[11px] font-semibold text-gray-500 uppercase tracking-widest">
-                        <div className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm border-[1.5px] border-blue-500 dark:border-blue-400"></span> Citas futuras <span className="text-[9px] text-gray-400 font-normal normal-case ml-1">(clic en fecha para editar)</span></div>
-                        <div className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm border-[1.5px] border-gray-400 dark:border-gray-500"></span> Citas pasadas</div>
-                        <div className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm border-[1.5px] border-red-500 dark:border-red-400"></span> Canceladas</div>
+                    <div className="flex flex-wrap items-center gap-4 mb-2 text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                        <div className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm bg-blue-600"></span> Citas futuras / Hoy <span className="text-[9px] text-gray-400 font-normal normal-case ml-1">(clic en fecha para editar)</span></div>
+                        <div className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm bg-gray-400"></span> Citas pasadas</div>
+                        <div className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-sm bg-red-500"></span> Canceladas</div>
                     </div>
 
                     {/* Record Count */}
@@ -184,13 +195,13 @@ const PacienteTabCitas: React.FC = () => {
                                 {paginatedCitas.map(c => {
                                     const estadoNorm = c.estado?.toLowerCase() || '';
                                     const esCancelada = ['cancelada', 'cancelado'].includes(estadoNorm);
-                                    const esPasada = isPast(c.fecha) && !esCancelada;
-                                    const esFutura = !isPast(c.fecha) && !esCancelada;
+                                    const esPasada = isPastDate(c.fecha) && !esCancelada;
+                                    const esFutura = !isPastDate(c.fecha) && !esCancelada;
 
                                     let rowClass = 'transition-colors hover:bg-gray-50 dark:hover:bg-gray-700 ';
                                     if (esCancelada) rowClass += 'bg-red-50/10 dark:bg-red-900/10 opacity-70';
                                     else if (esPasada) rowClass += 'bg-gray-50/50 dark:bg-gray-900/20 opacity-70';
-                                    else rowClass += 'bg-white dark:bg-gray-800';
+                                    else rowClass += 'bg-blue-50/20 dark:bg-blue-900/20';
 
                                     return (
                                         <tr key={c.id} className={rowClass}>
@@ -199,11 +210,11 @@ const PacienteTabCitas: React.FC = () => {
                                                     {esFutura ? (
                                                         <span
                                                             onClick={() => handleFechaClick(c)}
-                                                            className="cursor-pointer text-blue-600 dark:text-blue-400 flex items-center gap-2 group"
+                                                            className="cursor-pointer text-blue-600 dark:text-blue-400 font-bold flex items-center gap-2 group hover:underline"
                                                             title="Clic para editar esta cita"
                                                         >
                                                             {formatDate(c.fecha)}
-                                                            <span className="text-[9px] font-bold bg-blue-600/10 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-2 py-0.5 rounded-md uppercase tracking-wide flex items-center gap-1 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                                            <span className="text-[9px] font-bold bg-blue-600 text-white border border-blue-600 px-2 py-0.5 rounded-md uppercase tracking-wide flex items-center gap-1 shadow-sm">
                                                                 próxima ✎
                                                             </span>
                                                         </span>
@@ -249,15 +260,7 @@ const PacienteTabCitas: React.FC = () => {
                 </div>
             )}
 
-            {/* Link to full agenda */}
-            <div className="mt-4 flex justify-end">
-                <span
-                    onClick={() => navigate('/agenda')}
-                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-medium cursor-pointer"
-                >
-                    Ir a la Agenda completa <ChevronRight size={14} />
-                </span>
-            </div>
+
 
             {/* AgendaForm modal */}
             {modalOpen && (
@@ -281,7 +284,7 @@ const PacienteTabCitas: React.FC = () => {
             <ManualModal 
                 isOpen={showManual}
                 onClose={() => setShowManual(false)}
-                title="Manual de Usuario - Historial de Citas"
+                title="Manual de Usuario - Próxima Cita"
                 sections={manualSections}
             />
         </div>

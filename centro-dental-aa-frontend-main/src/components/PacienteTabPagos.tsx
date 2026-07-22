@@ -610,17 +610,17 @@ const PacienteTabPagos: React.FC = () => {
             {/* ─── Plan Selector ─────────────────────────────────────────────── */}
             <div className="flex flex-wrap items-center gap-3 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
                 <label className="font-bold text-gray-700 dark:text-gray-300">
-                    Seleccione el Plan de Tratamiento:
+                    Seleccione el Presupuesto:
                 </label>
                 <select
                     value={selectedProformaId}
                     onChange={(e) => setSelectedProformaId(Number(e.target.value))}
                     className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                 >
-                    <option value={0}>-- Todos / Sin Plan --</option>
+                    <option value={0}>-- Todos / Sin Presupuesto --</option>
                     {proformas.map(p => (
                         <option key={p.id} value={p.id}>
-                            Plan #{p.numero || p.id} - {formatDate(p.fecha)}
+                            Presupuesto #{p.numero || p.id} - {formatDate(p.fecha)}
                         </option>
                     ))}
                 </select>
@@ -632,9 +632,9 @@ const PacienteTabPagos: React.FC = () => {
                     <div className="p-5 bg-blue-50 dark:bg-blue-900/20 rounded-2xl mb-4">
                         <DollarSign size={40} className="text-blue-300" />
                     </div>
-                    <h3 className="text-lg font-bold text-gray-600 dark:text-gray-400 mb-2">Seleccione un Plan de Tratamiento</h3>
+                    <h3 className="text-lg font-bold text-gray-600 dark:text-gray-400 mb-2">Seleccione un Presupuesto</h3>
                     <p className="text-sm text-gray-400 max-w-xs">
-                        Para ver el resumen financiero y el historial de pagos, primero seleccione un Plan de Tratamiento en el selector superior.
+                        Para ver el resumen financiero y el historial de pagos, primero seleccione un Presupuesto en el selector superior.
                     </p>
                 </div>
             )}
@@ -795,7 +795,7 @@ const PacienteTabPagos: React.FC = () => {
                                 {pagosFiltrados.length === 0 ? (
                                     <tr>
                                         <td colSpan={7} className="p-8 text-center text-gray-500 dark:text-gray-400 italic">
-                                            No hay pagos registrados para este plan de tratamiento.
+                                            No hay pagos registrados para este presupuesto.
                                         </td>
                                     </tr>
                                 ) : (
