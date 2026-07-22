@@ -860,27 +860,7 @@ export interface Calificacion {
     updatedAt?: string;
 }
 
-export interface Receta {
-    id: number;
-    pacienteId: number;
-    paciente?: Paciente;
-    userId: number;
-    user?: { id: number; name: string };
-    fecha: string;
-    medicamentos: string;
-    indicaciones: string;
-    diagnostico?: string;
-    detalles?: RecetaDetalle[];
-    esta_firmado?: boolean;
-}
 
-export interface RecetaDetalle {
-    id: number;
-    recetaId: number;
-    medicamento: string;
-    cantidad: string;
-    indicacion: string;
-}
 
 
 

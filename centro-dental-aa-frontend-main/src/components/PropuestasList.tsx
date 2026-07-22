@@ -532,7 +532,7 @@ const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClos
         }
 
         if (action === 'print') {
-            const blobUrl = doc.output('bloburl') as string;
+            const blobUrl = String(doc.output('bloburl'));
             const printWindow = window.open(blobUrl, '_blank');
             if (printWindow) {
                 printWindow.addEventListener('load', () => {
