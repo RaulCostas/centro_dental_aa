@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, Between } from 'typeorm';
+import { getLocalDateString } from '../common/utils/date-utils';
 import { Pago } from './entities/pago.entity';
 import { Paciente } from '../pacientes/entities/paciente.entity';
 import { Proforma } from '../proformas/entities/proforma.entity';
@@ -181,7 +182,7 @@ export class PagosService {
             outgoingPago.factura = '';
             outgoingPago.formaPagoRel = efectivo; // EFECTIVO
             outgoingPago.observaciones = obsSource.toUpperCase();
-            outgoingPago.fecha = new Date().toISOString().split('T')[0];
+            outgoingPago.fecha = getLocalDateString();
             outgoingPago.usuarioId = transferDto.usuarioId ?? null;
             if (transferDto.usuarioId) {
                 outgoingPago.usuario = { id: Number(transferDto.usuarioId) } as any;
@@ -201,7 +202,7 @@ export class PagosService {
             incomingPago.factura = '';
             incomingPago.formaPagoRel = efectivo; // EFECTIVO
             incomingPago.observaciones = obsTarget.toUpperCase();
-            incomingPago.fecha = new Date().toISOString().split('T')[0];
+            incomingPago.fecha = getLocalDateString();
             incomingPago.usuarioId = transferDto.usuarioId ?? null;
             if (transferDto.usuarioId) {
                 incomingPago.usuario = { id: Number(transferDto.usuarioId) } as any;

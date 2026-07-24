@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
+import { getLocalDateString } from '../common/utils/date-utils';
 import { CreateProformaDto } from './dto/create-proforma.dto';
 import { UpdateProformaDto } from './dto/update-proforma.dto';
 import { Proforma } from './entities/proforma.entity';
@@ -50,10 +51,9 @@ export class ProformasService {
       proforma.usuarioId = createProformaDto.usuarioId;
       proforma.numero = nextNumero;
       proforma.nota = createProformaDto.nota || '';
-      // Use provided fecha or default to current date
       proforma.fecha = createProformaDto.fecha
         ? createProformaDto.fecha.split('T')[0]
-        : new Date().toISOString().split('T')[0];
+        : getLocalDateString();
 
       // 4. Totals and Discount fields
       proforma.sub_total = createProformaDto.sub_total || 0;
@@ -168,7 +168,7 @@ export class ProformasService {
                  proformaId: p.id,
                  paciente: p.paciente,
                  cuotaNumero: nextDueCuota.numero,
-                 fechaVencimiento: nextDueCuota.fecha.toISOString().split('T')[0],
+                 fechaVencimiento: getLocalDateString(nextDueCuota.fecha),
                  monto: nextDueCuota.monto,
                  diasParaVencer: diffDays
              });

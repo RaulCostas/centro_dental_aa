@@ -44,14 +44,16 @@ export class RecetaPdfService {
         return new Promise((resolve, reject) => {
             const content: any[] = [];
 
-            // Header with Title
+            // Doctor header info (top right)
             content.push({
-                text: 'RECETA MÉDICA',
-                fontSize: 24,
-                bold: true,
-                color: '#2c3e50',
-                alignment: 'center',
-                margin: [0, 0, 0, 20]
+                stack: [
+                    { text: 'Msc. Dr. Alfredo Dimitri Antequera Villagra', bold: true, fontSize: 11, color: '#2c3e50', alignment: 'right' },
+                    { text: 'Cirujano Dentista', bold: true, fontSize: 9, color: '#333333', alignment: 'right' },
+                    { text: 'M.P. No. 317 Col. 996', fontSize: 8, color: '#555555', alignment: 'right' },
+                    { text: 'Máster en Implantología Oral', fontSize: 8, color: '#555555', alignment: 'right' },
+                    { text: 'Endodoncia', fontSize: 8, color: '#555555', alignment: 'right' }
+                ],
+                margin: [0, 0, 0, 15]
             });
 
             // Blue separator line (Header bottom border)

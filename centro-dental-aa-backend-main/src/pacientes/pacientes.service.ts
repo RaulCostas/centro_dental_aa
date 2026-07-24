@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
+import { getLocalDateString } from '../common/utils/date-utils';
 import { Paciente } from './entities/paciente.entity';
 import { FichaClinica } from './entities/ficha_clinica.entity';
 import { SupabaseStorageService } from '../common/storage/supabase-storage.service';
@@ -199,6 +200,15 @@ export class PacientesService {
                     `patient-photo-${id}`,
                     pacienteData.foto
                 );
+            } else if (pacienteData.hasOwnProperty('foto') && (!pacienteData.foto || pacienteData.foto === '')) {
+                if (paciente.foto) {
+                    try {
+                        await this.storageService.deleteFile('clinica-media', paciente.foto);
+                    } catch (e: any) {
+                        this.logger.error(`Error deleting old patient photo: ${e.message}`);
+                    }
+                }
+                pacienteData.foto = null;
             }
 
             manager.merge(Paciente, paciente, pacienteData);
@@ -207,8 +217,10 @@ export class PacientesService {
             }
             if (pacienteData.seguroId) {
                 paciente.seguro = { id: Number(pacienteData.seguroId) } as any;
+                paciente.seguroId = Number(pacienteData.seguroId);
             } else if (pacienteData.hasOwnProperty('seguroId')) {
                 paciente.seguro = null;
+                paciente.seguroId = null;
             }
             await manager.save(Paciente, paciente);
 
@@ -358,7 +370,7 @@ export class PacientesService {
     }
 
     async findNoRegistrados() {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDateString();
         const query = `
             SELECT 
                 p.id as "pacienteId",

@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike } from 'typeorm';
+import { getLocalDateString } from '../common/utils/date-utils';
 import { Inventario } from './entities/inventario.entity';
 import { PedidosDetalle } from '../pedidos/entities/pedidos-detalle.entity';
 import { CreateInventarioDto, UpdateInventarioDto } from './dto/create-inventario.dto';
@@ -35,7 +36,7 @@ export class InventarioService {
         }
 
         if (expirationStatus) {
-            const today = new Date().toISOString().split('T')[0];
+            const today = getLocalDateString();
             let dateCondition = "";
             let params = {};
 
@@ -83,7 +84,7 @@ export class InventarioService {
     private getDateAfterMonths(months: number): string {
         const date = new Date();
         date.setMonth(date.getMonth() + months);
-        return date.toISOString().split('T')[0];
+        return getLocalDateString(date);
     }
 
     async findLowStock() {
@@ -126,7 +127,7 @@ export class InventarioService {
             .leftJoinAndSelect('inventario.especialidad', 'especialidad')
             .leftJoinAndSelect('inventario.grupoInventario', 'grupoInventario');
 
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDateString();
 
         if (expirationStatus === '3months') {
             queryBuilder.andWhere(

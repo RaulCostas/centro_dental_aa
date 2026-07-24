@@ -289,10 +289,12 @@ export class CreatePacienteDto {
 
     @IsNumber()
     @IsOptional()
+    @ValidateIf((o, v) => v != null)
     usuarioId?: number;
 
     @IsNumber()
     @IsOptional()
+    @ValidateIf((o, v) => v != null)
     seguroId?: number;
 
     @IsString()

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
+import { getLocalDateString } from '../common/utils/date-utils';
 import { CreatePropuestaDto } from './dto/create-propuesta.dto';
 import { UpdatePropuestaDto } from './dto/update-propuesta.dto';
 import { Propuesta } from './entities/propuesta.entity';
@@ -41,7 +42,7 @@ export class PropuestasService {
             pacienteId: propuesta.pacienteId,
             usuarioId: usuarioId,
             nota: `Generado desde Propuesta #${propuesta.numero} (Opción ${letra}). ${propuesta.nota || ''}`,
-            fecha: new Date().toISOString().split('T')[0],
+            fecha: getLocalDateString(),
             sub_total: sub_total,
             descuento: globalDiscount,
             total: total,
@@ -83,7 +84,7 @@ export class PropuestasService {
             propuesta.nota = createPropuestaDto.nota || '';
             propuesta.fecha = createPropuestaDto.fecha
                 ? createPropuestaDto.fecha.split('T')[0]
-                : new Date().toISOString().split('T')[0];
+                : getLocalDateString();
             propuesta.descuentos = createPropuestaDto.descuentos || {};
 
             // Calculate total from details just in case

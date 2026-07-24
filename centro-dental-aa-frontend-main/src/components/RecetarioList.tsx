@@ -192,7 +192,8 @@ const RecetarioList: React.FC = () => {
                     
                     .header {
                         display: flex;
-                        align-items: center;
+                        align-items: flex-start;
+                        justify-content: space-between;
                         margin-bottom: 20px;
                         padding-bottom: 15px;
                         border-bottom: 2px solid #3498db;
@@ -374,7 +375,13 @@ const RecetarioList: React.FC = () => {
                 <div class="content-wrapper">
                     <div class="header">
                         <img src="/logo-clinica-dental.jpg" alt="Logo Clínica" />
-                        <h1>RECETA ODONTOLÓGICA</h1>
+                        <div style="text-align: right; line-height: 1.35; position: relative; z-index: 2;">
+                            <div style="font-size: 13px; font-weight: bold; color: #2c3e50;">Msc. Dr. Alfredo Dimitri Antequera Villagra</div>
+                            <div style="font-size: 11px; font-weight: bold; color: #333;">Cirujano Dentista</div>
+                            <div style="font-size: 11px; color: #555;">M.P. No. 317 Col. 996</div>
+                            <div style="font-size: 10px; color: #555;">Máster en Implantología Oral</div>
+                            <div style="font-size: 10px; color: #555;">Endodoncia</div>
+                        </div>
                     </div>
                 
                 <div class="info-box">

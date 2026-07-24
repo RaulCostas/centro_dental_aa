@@ -9,6 +9,7 @@ import ProveedorList from './components/ProveedorList';
 import PersonalList from './components/PersonalList';
 
 import EspecialidadList from './components/EspecialidadList';
+import CasosClinicosList from './components/CasosClinicosList';
 import DatosCentroDentalList from './components/DatosCentroDentalList';
 import ConsentimientosPlantillasList from './components/ConsentimientosPlantillasList';
 import RecetasPredisenadasList from './components/RecetasPredisenadasList';
@@ -117,6 +118,7 @@ function App() {
                                     <Route path="/configuration/chatbot" element={<ChatbotConfig />} />
                                     <Route path="/consentimientos-plantillas" element={<ConsentimientosPlantillasList />} />
                                     <Route path="/recetas-predisenadas" element={<RecetasPredisenadasList />} />
+                                    <Route path="/casos-clinicos" element={<CasosClinicosList />} />
                                     <Route path="/seguro" element={<SeguroList />} />
                                     <Route element={<ProtectedRoute moduleId="config-backup" />}>
                                         <Route path="/backup" element={<BackupManager />} />

@@ -64,9 +64,6 @@ const PermisosModal: React.FC<PermisosModalProps> = ({ user, isOpen, onClose, on
                 { id: 'pacientes-pendientes', label: ' - Pendientes' },
                 { id: 'arancel', label: ' - Aranceles' },
 
-
-
-
                 { id: 'doctores', label: 'Doctores (Módulo)' },
                 { id: 'doctores-registro', label: ' - Registro de Doctores' },
                 { id: 'pagos-doctores', label: ' - Pagos a Doctores' },
@@ -83,8 +80,6 @@ const PermisosModal: React.FC<PermisosModalProps> = ({ user, isOpen, onClose, on
                 { id: 'pedidos', label: ' - Pedidos' },
                 { id: 'pagos-pedidos', label: ' - Pagar Pedidos' },
 
-
-
                 { id: 'personal', label: 'Personal (Módulo)' },
                 { id: 'personal-registro', label: ' - Registro de Personal' },
                 { id: 'vacaciones', label: ' - Vacaciones' },
@@ -93,7 +88,6 @@ const PermisosModal: React.FC<PermisosModalProps> = ({ user, isOpen, onClose, on
                 { id: 'inventario', label: 'Inventario' },
                 { id: 'egresos', label: 'Egresos Diarios' },
                 { id: 'gastos', label: 'Gastos Fijos' },
-
 
                 { id: 'hoja-diaria', label: 'Hoja Diaria' },
                 { id: 'utilidades', label: 'Utilidades' },
@@ -106,18 +100,20 @@ const PermisosModal: React.FC<PermisosModalProps> = ({ user, isOpen, onClose, on
                 { id: 'estadisticas-productos', label: ' - Estadísticas Productos' },
 
                 { id: 'configuracion', label: 'Configuración (Módulo)' },
-                { id: 'usuarios', label: ' - Usuarios' },
-                { id: 'cambiar-password', label: ' - Cambiar Contraseña' },
-                { id: 'config-chatbot', label: ' - Chatbot (WhatsApp)' },
+                { id: 'config-area-personal', label: ' - Área del Personal' },
                 { id: 'config-backup', label: ' - Backup (Base de Datos)' },
+                { id: 'cambiar-password', label: ' - Cambiar Contraseña' },
+                { id: 'config-casos-clinicos', label: ' - Casos Clínicos' },
+                { id: 'config-chatbot', label: ' - Chatbot (WhatsApp)' },
                 { id: 'config-comision', label: ' - Comisión Tarjeta' },
+                { id: 'config-consentimientos', label: ' - Consentimientos Informados' },
+                { id: 'config-datos-centro', label: ' - Datos Centro Dental' },
                 { id: 'config-especialidad', label: ' - Especialidades' },
                 { id: 'config-forma-pago', label: ' - Formas de Pago' },
                 { id: 'config-grupos', label: ' - Grupos Inventario' },
-                { id: 'config-area-personal', label: ' - Área del Personal' },
-                { id: 'config-consentimientos', label: ' - Consentimientos Informados' },
-                { id: 'config-datos-centro', label: ' - Datos Centro Dental' },
+                { id: 'config-recetas-predisenadas', label: ' - Recetas Pre-Diseñadas' },
                 { id: 'config-seguros', label: ' - Seguros' },
+                { id: 'usuarios', label: ' - Usuarios' },
             ]
         },
         {
@@ -133,27 +129,26 @@ const PermisosModal: React.FC<PermisosModalProps> = ({ user, isOpen, onClose, on
     ];
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-2 sm:p-4">
-            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[95vh] overflow-y-auto">
-                <div className="flex justify-between items-center mb-4 sm:mb-6">
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800">
-                        Restricciones de Acceso: <span className="text-blue-600">{user.name}</span>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-2 sm:p-4">
+            <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-y-auto border border-gray-200 dark:border-gray-700 transition-colors">
+                <div className="flex justify-between items-center mb-4 sm:mb-6 border-b border-gray-200 dark:border-gray-700 pb-3">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
+                        Restricciones de Acceso: <span className="text-blue-600 dark:text-blue-400">{user.name}</span>
                     </h3>
-
                 </div>
 
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 sm:p-4 mb-4 sm:mb-6">
+                <div className="bg-yellow-50 dark:bg-yellow-950/40 border-l-4 border-yellow-400 dark:border-yellow-600 p-3 sm:p-4 mb-4 sm:mb-6 rounded-r-xl">
                     <div className="flex">
                         <div className="flex-shrink-0">
-                            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                            <svg className="h-5 w-5 text-yellow-400 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
                                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                             </svg>
                         </div>
                         <div className="ml-3">
-                            <p className="text-xs sm:text-sm text-yellow-700">
-                                Marque las casillas de los módulos que desea <strong>DENEGAR (Restringir)</strong> a este usuario.
+                            <p className="text-xs sm:text-sm text-yellow-800 dark:text-yellow-200 font-medium">
+                                Marque las casillas de los módulos que desea <strong className="text-yellow-900 dark:text-yellow-100">DENEGAR (Restringir)</strong> a este usuario.
                                 <br />
-                                <span className="text-xs text-gray-500">* Si la casilla está marcada, el usuario NO podrá ver ese módulo.</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">* Si la casilla está marcada, el usuario NO podrá ver ese módulo.</span>
                             </p>
                         </div>
                     </div>
@@ -161,18 +156,18 @@ const PermisosModal: React.FC<PermisosModalProps> = ({ user, isOpen, onClose, on
 
                 <div className="space-y-4 sm:space-y-6">
                     {sections.map(section => (
-                        <div key={section.title} className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-                            <h4 className="font-bold text-sm sm:text-base text-gray-700 mb-2 sm:mb-3 border-b pb-2">{section.title}</h4>
+                        <div key={section.title} className="bg-gray-50 dark:bg-gray-700/50 p-3 sm:p-4 rounded-xl border border-gray-100 dark:border-gray-700">
+                            <h4 className="font-bold text-sm sm:text-base text-gray-800 dark:text-gray-100 mb-2 sm:mb-3 border-b border-gray-200 dark:border-gray-600 pb-2">{section.title}</h4>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                                 {section.items.map(item => (
-                                    <label key={item.id} className="flex items-center space-x-2 sm:space-x-3 cursor-pointer p-2 hover:bg-gray-100 rounded transition-colors">
+                                    <label key={item.id} className="flex items-center space-x-2 sm:space-x-3 cursor-pointer p-2 hover:bg-gray-100 dark:hover:bg-gray-600/50 rounded-lg transition-colors">
                                         <input
                                             type="checkbox"
                                             checked={permisos.includes(item.id)}
                                             onChange={() => handleToggle(item.id)}
-                                            className="form-checkbox h-4 w-4 sm:h-5 sm:w-5 text-red-600 rounded focus:ring-red-500 border-gray-300 transition duration-150 ease-in-out"
+                                            className="form-checkbox h-4 w-4 sm:h-5 sm:w-5 text-red-600 rounded focus:ring-red-500 border-gray-300 dark:border-gray-500 dark:bg-gray-700 transition duration-150 ease-in-out"
                                         />
-                                        <span className={`text-xs sm:text-sm ${permisos.includes(item.id) ? 'text-red-700 font-medium' : 'text-gray-700'}`}>
+                                        <span className={`text-xs sm:text-sm ${permisos.includes(item.id) ? 'text-red-700 dark:text-red-400 font-semibold' : 'text-gray-700 dark:text-gray-200'}`}>
                                             {item.label}
                                         </span>
                                     </label>
@@ -182,11 +177,11 @@ const PermisosModal: React.FC<PermisosModalProps> = ({ user, isOpen, onClose, on
                     ))}
                 </div>
 
-                <div className="p-5 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-start gap-3 rounded-b-xl mt-6 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6">
+                <div className="p-5 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 flex justify-start gap-3 rounded-b-xl mt-6 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6">
                     <button
                         onClick={handleSave}
                         disabled={loading}
-                        className={`bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg flex items-center gap-2 transform hover:-translate-y-0.5 transition-all shadow-md ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                        className={`bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-xl flex items-center gap-2 transform hover:-translate-y-0.5 transition-all shadow-md ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
                         {loading ? (
                             <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
@@ -204,7 +199,7 @@ const PermisosModal: React.FC<PermisosModalProps> = ({ user, isOpen, onClose, on
                     </button>
                     <button
                         onClick={onClose}
-                        className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-all transform hover:-translate-y-0.5 flex items-center gap-2"
+                        className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-xl shadow-md transition-all transform hover:-translate-y-0.5 flex items-center gap-2"
                         disabled={loading}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

@@ -962,5 +962,25 @@ export interface EstudioComplementario {
     archivo_url?: string;
 }
 
+export interface CasoClinicoFoto {
+    id?: number;
+    casoClinicoId?: number;
+    foto: string;
+    descripcion?: string;
+}
+
+export interface CasoClinico {
+    id: number;
+    nombre: string;
+    especialidadId: number;
+    especialidad?: Especialidad;
+    video?: string;
+    estado: string;
+    createdAt?: string;
+    updatedAt?: string;
+    fotos?: CasoClinicoFoto[];
+}
+
+
 
 

@@ -9,6 +9,7 @@ import { RecordatorioService } from '../recordatorio/recordatorio.service';
 import { RecordatorioTratamientoService } from '../recordatorio-tratamiento/recordatorio-tratamiento.service';
 import { RecordatorioPlanService } from '../recordatorio_plan/recordatorio-plan.service';
 import { ProformasService } from '../proformas/proformas.service';
+import { getLocalDateString } from '../common/utils/date-utils';
 
 @Injectable()
 export class DashboardService {
@@ -27,7 +28,7 @@ export class DashboardService {
 
   async getSummary(usuarioId?: number) {
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = getLocalDateString(today);
     const currentDay = today.getDate();
     const currentMonth = today.toLocaleDateString('es-ES', { month: 'long' }).toLowerCase();
 

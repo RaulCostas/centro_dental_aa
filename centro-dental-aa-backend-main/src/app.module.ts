@@ -130,6 +130,9 @@ import { ConsentimientoPlantilla } from './consentimientos-plantillas/entities/c
 import { ConsentimientoPaciente } from './consentimientos-pacientes/entities/consentimientos-paciente.entity';
 import { EstudiosComplementariosModule } from './estudios-complementarios/estudios-complementarios.module';
 import { EstudioComplementario } from './estudios-complementarios/entities/estudio-complementario.entity';
+import { CasosClinicosModule } from './casos_clinicos/casos_clinicos.module';
+import { CasoClinico } from './casos_clinicos/entities/caso_clinico.entity';
+import { CasoClinicoFoto } from './casos_clinicos/entities/caso_clinico_foto.entity';
 
 @Module({
   imports: [
@@ -217,6 +220,8 @@ import { EstudioComplementario } from './estudios-complementarios/entities/estud
         ConsentimientoPlantilla,
         ConsentimientoPaciente,
         EstudioComplementario,
+        CasoClinico,
+        CasoClinicoFoto,
       ],
     }),
     UsersModule,
@@ -281,6 +286,7 @@ import { EstudioComplementario } from './estudios-complementarios/entities/estud
     ConsentimientosPlantillasModule,
     ConsentimientosPacientesModule,
     EstudiosComplementariosModule,
+    CasosClinicosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

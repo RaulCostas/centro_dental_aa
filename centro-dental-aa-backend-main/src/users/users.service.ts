@@ -67,6 +67,15 @@ export class UsersService {
       }
       updateUserDto.foto = await this.storageService.uploadBase64('clinica-media', `user-photo-${id}`, updateUserDto.foto);
       this.logger.warn(`[UsersService] Photo updated successfully: ${updateUserDto.foto}`);
+    } else if (updateUserDto.hasOwnProperty('foto') && (!updateUserDto.foto || updateUserDto.foto === '')) {
+      if (user.foto && user.foto.startsWith('http')) {
+        try {
+          await this.storageService.deleteFile('clinica-media', user.foto);
+        } catch (e: any) {
+          this.logger.error(`Error deleting old user photo: ${e.message}`);
+        }
+      }
+      updateUserDto.foto = null as any;
     }
 
     if (updateUserDto.password) {
