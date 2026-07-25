@@ -25,6 +25,9 @@ export class EstudioComplementario {
   @Column({ type: 'text', nullable: true })
   archivo_url: string;
 
+  @Column({ type: 'text', nullable: true })
+  orden_estudio_url: string;
+
   @CreateDateColumn({ type: 'timestamp', default: () => "timezone('America/La_Paz', now())" })
   createdAt: Date;
 

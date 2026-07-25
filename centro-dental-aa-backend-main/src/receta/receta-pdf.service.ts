@@ -44,15 +44,16 @@ export class RecetaPdfService {
         return new Promise((resolve, reject) => {
             const content: any[] = [];
 
-            // Doctor header info (top right)
+            // Doctor header info (top right centered text block)
             content.push({
                 stack: [
-                    { text: 'Msc. Dr. Alfredo Dimitri Antequera Villagra', bold: true, fontSize: 11, color: '#2c3e50', alignment: 'right' },
-                    { text: 'Cirujano Dentista', bold: true, fontSize: 9, color: '#333333', alignment: 'right' },
-                    { text: 'M.P. No. 317 Col. 996', fontSize: 8, color: '#555555', alignment: 'right' },
-                    { text: 'Máster en Implantología Oral', fontSize: 8, color: '#555555', alignment: 'right' },
-                    { text: 'Endodoncia', fontSize: 8, color: '#555555', alignment: 'right' }
+                    { text: 'Msc. Dr. Alfredo Dimitri Antequera Villagra', bold: true, fontSize: 11, color: '#2c3e50', alignment: 'center' },
+                    { text: 'Cirujano Dentista', bold: true, fontSize: 9, color: '#333333', alignment: 'center' },
+                    { text: 'M.P. No. 317 Col. 996', fontSize: 8, color: '#555555', alignment: 'center' },
+                    { text: 'Máster en Implantología Oral', fontSize: 8, color: '#555555', alignment: 'center' },
+                    { text: 'Endodoncia', fontSize: 8, color: '#555555', alignment: 'center' }
                 ],
+                alignment: 'right',
                 margin: [0, 0, 0, 15]
             });
 

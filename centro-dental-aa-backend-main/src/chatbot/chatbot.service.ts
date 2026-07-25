@@ -880,6 +880,38 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
         });
     }
 
+    async sendMedia(jid: string, filename: string, caption?: string) {
+        const session = this.getSession();
+        if (session.status !== 'connected' || !session.sock) {
+            throw new Error('El chatbot no está conectado a WhatsApp');
+        }
+
+        const filePath = path.join(process.cwd(), 'uploads', filename);
+        if (!fs.existsSync(filePath)) {
+            throw new Error(`El archivo ${filename} no fue encontrado en el servidor.`);
+        }
+
+        const buffer = fs.readFileSync(filePath);
+        const ext = path.extname(filename).toLowerCase();
+
+        if (['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
+            await this.sendMessage(jid, {
+                image: buffer,
+                caption: caption || ''
+            });
+        } else {
+            let mimetype = 'application/pdf';
+            if (ext === '.doc' || ext === '.docx') mimetype = 'application/msword';
+
+            await this.sendMessage(jid, {
+                document: buffer,
+                mimetype,
+                fileName: filename,
+                caption: caption || ''
+            });
+        }
+    }
+
     async sendAgendaPoll(jid: string, pollName: string, options: string[], citaId: number) {
         const session = this.getSession();
         if (session.status !== 'connected' || !session.sock) {

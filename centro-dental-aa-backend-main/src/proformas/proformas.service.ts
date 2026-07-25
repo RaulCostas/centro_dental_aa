@@ -390,6 +390,13 @@ export class ProformasService {
     return this.imagenRepository.remove(imagen);
   }
 
+  async updateImageDescription(id: number, descripcion: string) {
+    const imagen = await this.imagenRepository.findOne({ where: { id } });
+    if (!imagen) throw new NotFoundException('Imagen no encontrada');
+    imagen.descripcion = descripcion || '';
+    return this.imagenRepository.save(imagen);
+  }
+
   async sendWhatsApp(id: number, fileBuffer: Buffer) {
     const proforma = await this.findOne(id);
     const paciente = proforma.paciente;

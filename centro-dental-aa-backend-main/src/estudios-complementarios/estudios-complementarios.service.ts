@@ -63,6 +63,12 @@ export class EstudiosComplementariosService {
     return this.findOne(id);
   }
 
+  async updateOrdenFileUrl(id: number, filename: string) {
+    await this.findOne(id);
+    await this.repository.update(id, { orden_estudio_url: filename });
+    return this.findOne(id);
+  }
+
   async remove(id: number) {
     const record = await this.findOne(id);
     await this.repository.remove(record);

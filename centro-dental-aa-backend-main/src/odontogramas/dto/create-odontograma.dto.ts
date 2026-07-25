@@ -13,6 +13,10 @@ export class CreateOdontogramaDto {
     @IsOptional()
     mapa_dientes?: any;
 
+    @IsString()
+    @IsOptional()
+    tipo?: string;
+
     @IsNumber()
     @IsOptional()
     usuarioId?: number;

@@ -52,4 +52,10 @@ export class ChatbotController {
         await this.chatbotService.sendPdf(body.jid, body.base64, body.fileName, body.caption);
         return { success: true };
     }
+
+    @Post('send-media')
+    async sendMedia(@Body() body: { jid: string, filename: string, caption?: string }) {
+        await this.chatbotService.sendMedia(body.jid, body.filename, body.caption);
+        return { success: true };
+    }
 }

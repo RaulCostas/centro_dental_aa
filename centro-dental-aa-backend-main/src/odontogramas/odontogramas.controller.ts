@@ -16,6 +16,11 @@ export class OdontogramasController {
         return this.odontogramasService.findAllByPaciente(+id);
     }
 
+    @Get('inicial/:pacienteId')
+    findInicialByPaciente(@Param('pacienteId') pacienteId: string) {
+        return this.odontogramasService.findInicialByPaciente(+pacienteId);
+    }
+
     @Get('latest')
     findLatest(@Query('pacienteId') pacienteId?: string) {
         return this.odontogramasService.findLatestByPaciente(

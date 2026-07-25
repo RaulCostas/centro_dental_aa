@@ -12,6 +12,18 @@ export class OdontogramasService {
     ) {}
 
     async create(createDto: CreateOdontogramaDto): Promise<Odontograma> {
+        if (createDto.tipo === 'inicial' && createDto.pacienteId) {
+            const existing = await this.repository.findOne({
+                where: { pacienteId: createDto.pacienteId, tipo: 'inicial' },
+                order: { id: 'DESC' },
+            });
+            if (existing) {
+                existing.mapa_dientes = createDto.mapa_dientes;
+                if (createDto.notas !== undefined) existing.notas = createDto.notas;
+                if (createDto.usuarioId) existing.usuarioId = createDto.usuarioId;
+                return await this.repository.save(existing);
+            }
+        }
         const odontograma = this.repository.create(createDto);
         return await this.repository.save(odontograma);
     }
@@ -28,6 +40,14 @@ export class OdontogramasService {
         return await this.repository.findOne({
             where: { pacienteId },
             order: { fecha: 'DESC', id: 'DESC' },
+        });
+    }
+
+    async findInicialByPaciente(pacienteId: number): Promise<Odontograma | null> {
+        if (!pacienteId) return null;
+        return await this.repository.findOne({
+            where: { pacienteId, tipo: 'inicial' },
+            order: { id: 'DESC' },
         });
     }
 

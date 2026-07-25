@@ -142,4 +142,13 @@ export class TrabajosLaboratoriosService {
 
         return alertWorks;
     }
+
+    async addFotografiaReferencia(id: number, filename: string) {
+        const trabajo = await this.findOne(id);
+        if (!trabajo) return null;
+        const currentPhotos = Array.isArray(trabajo.fotografias_referencias) ? trabajo.fotografias_referencias : [];
+        currentPhotos.push(filename);
+        await this.trabajosRepository.update(id, { fotografias_referencias: currentPhotos });
+        return this.findOne(id);
+    }
 }

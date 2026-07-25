@@ -69,4 +69,28 @@ export class EstudiosComplementariosController {
     }
     return this.service.updateFileUrl(+id, file.filename);
   }
+
+  @Post(':id/upload-orden')
+  @UseInterceptors(FileInterceptor('file', {
+    storage: diskStorage({
+      destination: './uploads',
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = extname(file.originalname);
+        cb(null, `orden-estudio-${uniqueSuffix}${ext}`);
+      }
+    }),
+    fileFilter: (req, file, cb) => {
+      if (!file.mimetype.match(/\/(jpg|jpeg|png|pdf)$/)) {
+        return cb(new BadRequestException('Solo se permiten archivos de imagen o PDF'), false);
+      }
+      cb(null, true);
+    }
+  }))
+  uploadOrdenFile(@Param('id') id: string, @UploadedFile() file: any) {
+    if (!file) {
+      throw new BadRequestException('Archivo no proporcionado');
+    }
+    return this.service.updateOrdenFileUrl(+id, file.filename);
+  }
 }

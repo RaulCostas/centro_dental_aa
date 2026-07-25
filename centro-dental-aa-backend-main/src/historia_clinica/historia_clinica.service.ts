@@ -49,7 +49,7 @@ export class HistoriaClinicaService {
         return await this.historiaClinicaRepository.find({
             where: { pacienteId },
             relations: ['paciente', 'doctor', 'especialidad', 'proforma', 'proformaDetalle'],
-            order: { fecha: 'DESC' }
+            order: { fecha: 'ASC', id: 'ASC' }
         });
     }
 

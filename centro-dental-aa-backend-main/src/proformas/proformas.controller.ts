@@ -63,6 +63,11 @@ export class ProformasController {
     return this.proformasService.removeImage(+id);
   }
 
+  @Patch('imagenes/:id')
+  updateImageDescription(@Param('id') id: string, @Body('descripcion') descripcion: string) {
+    return this.proformasService.updateImageDescription(+id, descripcion);
+  }
+
   @Post('paciente/:id/imagenes')
   @UseInterceptors(FileInterceptor('file'))
   async uploadPacienteImage(

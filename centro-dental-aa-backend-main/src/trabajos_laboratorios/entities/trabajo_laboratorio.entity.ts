@@ -90,4 +90,16 @@ export class TrabajoLaboratorio {
     @ManyToOne(() => Doctor, { nullable: true })
     @JoinColumn({ name: 'idDoctor' })
     doctor: Doctor;
+
+    @Column({ type: 'text', nullable: true })
+    hora: string;
+
+    @Column({ type: 'text', nullable: true })
+    fase_laboratorio: string;
+
+    @Column({ type: 'jsonb', nullable: true })
+    fotografias_referencias: string[];
+
+    @Column({ type: 'jsonb', nullable: true })
+    detalles_orden: any;
 }

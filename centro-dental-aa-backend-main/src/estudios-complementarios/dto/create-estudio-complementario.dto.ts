@@ -20,4 +20,8 @@ export class CreateEstudioComplementarioDto {
   @IsOptional()
   @IsString()
   archivo_url?: string;
+
+  @IsOptional()
+  @IsString()
+  orden_estudio_url?: string;
 }
