@@ -32,9 +32,17 @@ const HistoriaClinicaList: React.FC<HistoriaClinicaListProps> = ({ historia, onD
         return pieza.includes(term) || tratamiento.includes(term);
     });
 
+    // Sort by date ascending (ASC)
+    const sortedHistoria = [...filteredHistoria].sort((a, b) => {
+        const dateA = new Date(a.fecha).getTime();
+        const dateB = new Date(b.fecha).getTime();
+        if (dateA !== dateB) return dateA - dateB;
+        return (a.id || 0) - (b.id || 0);
+    });
+
     // Pagination
-    const totalPages = Math.ceil(filteredHistoria.length / itemsPerPage);
-    const paginatedHistoria = filteredHistoria.slice(
+    const totalPages = Math.ceil(sortedHistoria.length / itemsPerPage);
+    const paginatedHistoria = sortedHistoria.slice(
         (currentPage - 1) * itemsPerPage,
         currentPage * itemsPerPage
     );

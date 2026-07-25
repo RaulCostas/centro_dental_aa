@@ -13,8 +13,9 @@ import PresupuestoViewModal from './PresupuestoViewModal';
 import SeguimientoViewModal from './SeguimientoViewModal';
 import RecordatorioTratamientoModal from './RecordatorioTratamientoModal';
 import ManualModal, { type ManualSection } from './ManualModal';
+import { mergeOdontogramaWithTratamientos } from '../utils/odontogramMerger';
 import { formatDate } from '../utils/dateUtils';
-import { Info, Activity } from 'lucide-react';
+import { Info, Activity, Layers } from 'lucide-react';
 
 
 
@@ -30,6 +31,7 @@ const HistoriaClinica: React.FC = () => {
     const [musicaPreferences, setMusicaPreferences] = useState<string[]>([]);
     const [televisionPreferences, setTelevisionPreferences] = useState<string[]>([]);
     const [selectedProformaId, setSelectedProformaId] = useState<number>(0);
+    const [allAranceles, setAllAranceles] = useState<Arancel[]>([]);
 
 
     const [historiaToEdit, setHistoriaToEdit] = useState<HistoriaClinicaType | null>(null);
@@ -101,8 +103,20 @@ const HistoriaClinica: React.FC = () => {
             fetchPagos();
             fetchMusicaTelevision();
             fetchOdontogramas();
+            fetchInicialOdontograma();
         }
     }, [id]);
+
+    const fetchInicialOdontograma = async () => {
+        try {
+            const response = await api.get(`/odontogramas/inicial/${id}`);
+            if (response.data) {
+                setInicialOdontograma(response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching inicial odontograma:', error);
+        }
+    };
 
     const fetchOdontogramas = async () => {
         try {
@@ -581,10 +595,15 @@ const HistoriaClinica: React.FC = () => {
                     </>
                 ) : activeTab === 'odontograma' ? (
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                        <div className="flex justify-between items-center mb-8">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                             <div>
-                                <h3 className="text-xl font-bold text-gray-800 dark:text-white">Historial de Odontogramas</h3>
-                                <p className="text-sm text-gray-500 mt-1">Registre y visualice la evolución dental del paciente</p>
+                                <h3 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                                    Historial de Odontogramas
+                                </h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1.5">
+                                    <Layers size={14} className="text-blue-500" />
+                                    Visualización unificada (Odontograma Inicial + Tratamientos Terminados en Seguimiento)
+                                </p>
                             </div>
                             <div className="flex gap-4 items-center">
                                 {odontogramas.length > 0 && !isEditingOdonto && (
@@ -659,7 +678,11 @@ const HistoriaClinica: React.FC = () => {
 
                         <div className={`${!isEditingOdonto ? 'pointer-events-none opacity-90' : ''}`}>
                             <Odontogram
-                                initialData={odontogramData}
+                                initialData={
+                                    isEditingOdonto 
+                                        ? odontogramData 
+                                        : mergeOdontogramaWithTratamientos(inicialOdontograma?.mapa_dientes || {}, historia, allAranceles)
+                                }
                                 onChange={(data) => setOdontogramData(data)}
                             />
                         </div>

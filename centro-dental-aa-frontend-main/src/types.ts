@@ -282,6 +282,7 @@ export interface Paciente {
     direccion: string;
     ocupacion: string;
     telefono_celular: string;
+    telefono?: string;
     email?: string;
     tutor_nombre?: string;
     tutor_ci?: string;
@@ -795,9 +796,12 @@ export interface TrabajoLaboratorio {
     idprecios_laboratorios: number;
     precioLaboratorio?: PrecioLaboratorio;
     fecha: string;
+    hora?: string;
+    hora_envio?: string;
     pieza: string;
     cantidad: number;
     fecha_pedido: string;
+    fecha_prueba_estimada?: string;
     color: string;
     estado: string;
     observacion: string;
@@ -811,6 +815,9 @@ export interface TrabajoLaboratorio {
     doctor?: Doctor;
     idHistoriaClinica?: number;
     historiaClinica?: HistoriaClinica;
+    fase_laboratorio?: string;
+    fotografias_referencias?: string[];
+    detalles_orden?: any;
 }
 
 export interface PropuestaDetalle {
@@ -960,6 +967,7 @@ export interface EstudioComplementario {
     tipo_estudio: string;
     observaciones?: string;
     archivo_url?: string;
+    orden_estudio_url?: string;
 }
 
 export interface CasoClinicoFoto {

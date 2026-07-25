@@ -375,7 +375,7 @@ const RecetarioList: React.FC = () => {
                 <div class="content-wrapper">
                     <div class="header">
                         <img src="/logo-clinica-dental.jpg" alt="Logo Clínica" />
-                        <div style="text-align: right; line-height: 1.35; position: relative; z-index: 2;">
+                        <div style="text-align: center; margin-left: auto; line-height: 1.35; position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center;">
                             <div style="font-size: 13px; font-weight: bold; color: #2c3e50;">Msc. Dr. Alfredo Dimitri Antequera Villagra</div>
                             <div style="font-size: 11px; font-weight: bold; color: #333;">Cirujano Dentista</div>
                             <div style="font-size: 11px; color: #555;">M.P. No. 317 Col. 996</div>

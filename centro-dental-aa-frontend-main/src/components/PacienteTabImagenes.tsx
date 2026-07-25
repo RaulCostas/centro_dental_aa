@@ -6,6 +6,7 @@ import { formatDate } from '../utils/dateUtils';
 import { 
     Image as ImageIcon, 
     Trash2, 
+    Pencil,
     Plus, 
     X, 
     Upload, 
@@ -225,6 +226,33 @@ const PacienteTabImagenes: React.FC<PacienteTabImagenesProps> = ({ tipo = 'parti
         }
     };
 
+    const handleEditDescription = async (img: Image) => {
+        const { value: newDesc } = await Swal.fire({
+            title: 'Editar descripción',
+            input: 'text',
+            inputLabel: 'Descripción de la imagen',
+            inputValue: img.descripcion || '',
+            showCancelButton: true,
+            confirmButtonText: 'Guardar',
+            cancelButtonText: 'Cancelar',
+        });
+
+        if (newDesc !== undefined) {
+            try {
+                await api.patch(`/proformas/imagenes/${img.id}`, { descripcion: newDesc });
+                if (viewingGeneral) {
+                    fetchGeneralImagesAndShow();
+                } else if (selectedProforma) {
+                    fetchImages(selectedProforma.id);
+                }
+                Swal.fire({ icon: 'success', title: 'Descripción actualizada', timer: 1500, showConfirmButton: false });
+            } catch (error) {
+                console.error('Error updating description:', error);
+                Swal.fire('Error', 'No se pudo actualizar la descripción', 'error');
+            }
+        }
+    };
+
     const nextImage = () => {
         setCurrentImageIndex((prev) => (prev + 1) % images.length);
     };
@@ -334,12 +362,22 @@ const PacienteTabImagenes: React.FC<PacienteTabImagenesProps> = ({ tipo = 'parti
                                 <div className="p-2">
                                     <p className="text-[10px] text-gray-500 line-clamp-1">{img.descripcion || 'Sin descripción'}</p>
                                 </div>
-                                <button 
-                                    onClick={() => handleDeleteImage(img.id)}
-                                    className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                    <Trash2 size={14} />
-                                </button>
+                                <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button 
+                                        onClick={() => handleEditDescription(img)}
+                                        className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md transition-all transform hover:scale-105"
+                                        title="Editar descripción"
+                                    >
+                                        <Pencil size={14} />
+                                    </button>
+                                    <button 
+                                        onClick={() => handleDeleteImage(img.id)}
+                                        className="p-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-md transition-all transform hover:scale-105"
+                                        title="Eliminar imagen"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>

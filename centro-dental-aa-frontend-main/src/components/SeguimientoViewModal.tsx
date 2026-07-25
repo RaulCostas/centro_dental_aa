@@ -29,10 +29,13 @@ const SeguimientoViewModal: React.FC<Props> = ({
         filteredHistoria = historia.filter(h => h.proformaId === selectedProformaId);
     }
 
-    // Sort by date descending
-    const sortedHistoria = [...filteredHistoria].sort((a, b) => 
-        new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
-    );
+    // Sort by date ascending (ASC)
+    const sortedHistoria = [...filteredHistoria].sort((a, b) => {
+        const dateA = new Date(a.fecha).getTime();
+        const dateB = new Date(b.fecha).getTime();
+        if (dateA !== dateB) return dateA - dateB;
+        return (a.id || 0) - (b.id || 0);
+    });
 
     const getPacienteFullName = () => {
         if (!paciente) return '';

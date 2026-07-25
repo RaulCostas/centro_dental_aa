@@ -13,6 +13,8 @@ import { getFigureUrlByKey } from '../utils/figureRegistry';
 export interface FigureDef {
     type: string;
     color: string;
+    origin?: 'inicial' | 'seguimiento';
+    originLabel?: string;
 }
 
 export interface SingleToothProps {
@@ -76,13 +78,34 @@ const SingleTooth: React.FC<SingleToothProps> = ({
     };
 
     const renderOverlayFigures = () => {
-        const stackableTypes = ['circulo_corona', 'perno', 'implante'];
+        const stackableTypes = [
+            'circulo_corona', 
+            'corona_provisoria', 
+            'perno', 
+            'implante', 
+            'conducto', 
+            'endodoncia', 
+            'puente', 
+            'protesis_removible', 
+            'sellante', 
+            'fractura', 
+            'ortodoncia'
+        ];
         const isStackable = (fig: FigureDef) => stackableTypes.includes(fig.type) || fig.type.startsWith('dynamic:');
-        
-        const stackableCount = activeFigures.filter(isStackable).length;
+
+        // Always sort so 'inicial' baseline figures come first (index 0 / top of vertical stack)
+        const sortedFigures = [...activeFigures].sort((a, b) => {
+            const aOrigin = a.origin || 'inicial';
+            const bOrigin = b.origin || 'inicial';
+            if (aOrigin === 'inicial' && bOrigin !== 'inicial') return -1;
+            if (aOrigin !== 'inicial' && bOrigin === 'inicial') return 1;
+            return 0;
+        });
+
+        const stackableCount = sortedFigures.filter(isStackable).length;
         let currentStackable = 0;
 
-        return activeFigures.map((fig, idx) => {
+        return sortedFigures.map((fig, idx) => {
             const color = fig.color;
             
             const renderContent = () => {
@@ -266,11 +289,35 @@ const SingleTooth: React.FC<SingleToothProps> = ({
         return incisorSvg;
     };
 
+    const hasSeguimiento = activeFigures.some(f => f.origin === 'seguimiento');
+    const hasInicial = activeFigures.some(f => f.origin === 'inicial' || !f.origin);
+
+    const tooltipLines: string[] = [`Pieza ${tooth}`];
+    if (hasInicial && activeFigures.length > 0) {
+        const inicialList = activeFigures
+            .filter(f => f.origin === 'inicial' || !f.origin)
+            .map(f => f.originLabel || f.type)
+            .filter(Boolean);
+        if (inicialList.length > 0) {
+            tooltipLines.push(`📌 Inicial: ${inicialList.join(', ')}`);
+        }
+    }
+    if (hasSeguimiento) {
+        const seguimientoList = activeFigures
+            .filter(f => f.origin === 'seguimiento')
+            .map(f => f.originLabel || f.type)
+            .filter(Boolean);
+        if (seguimientoList.length > 0) {
+            tooltipLines.push(`✅ ${seguimientoList.join(', ')}`);
+        }
+    }
+    const fullTooltip = tooltipLines.join('\n');
+
     return (
         <div 
             className={`${containerClass} relative transition-transform duration-300 ease-in-out hover:scale-[1.8] hover:z-50 select-none ${readOnly ? '' : 'cursor-pointer active:scale-[1.6]'}`}
             onClick={handleToothClick}
-            title={`Pieza ${tooth}`}
+            title={fullTooltip}
         >
             {mode === 'surfaces' ? (
                 // SURFACES ONLY MODE (100x100) - ORGANIC UNIFORM SHAPE

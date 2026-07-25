@@ -7,17 +7,23 @@ import { formatFullName } from '../utils/formatters';
 import Swal from 'sweetalert2';
 import { Heart, User, Stethoscope, Shield, Info, Printer } from 'lucide-react';
 import ManualModal, { type ManualSection } from './ManualModal';
+import OdontogramaInicialModal from './OdontogramaInicialModal';
 
 const PacienteTabFicha: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [paciente, setPaciente] = useState<Paciente | null>(null);
     const [loading, setLoading] = useState(true);
     const [showManual, setShowManual] = useState(false);
+    const [showOdontogramaInicial, setShowOdontogramaInicial] = useState(false);
 
     const manualSections: ManualSection[] = [
         {
             title: 'Historia Clínica del Paciente',
             content: 'Aquí se muestran los datos personales, de contacto y los antecedentes médicos del paciente registrados durante su inscripción.'
+        },
+        {
+            title: 'Odontograma Inicial (Diagnóstico de Entrada)',
+            content: 'Permite registrar el estado de la cavidad bucal con el que llega el paciente por primera vez (piezas ausentes con X roja, caries en rojo, obturaciones en resina/amalgama en azul, endodoncias previas, coronas, implantes y sellantes). Presione el botón "Odontograma Inicial" para abrir el editor interactivo.'
         },
         {
             title: 'Antecedentes Patológicos',
@@ -482,7 +488,7 @@ const PacienteTabFicha: React.FC = () => {
                     </h2>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">Datos personales y antecedentes médicos</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <button
                         onClick={() => setShowManual(true)}
                         className="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 p-1.5 rounded-full flex items-center justify-center w-[30px] h-[30px] text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-sm"
@@ -491,8 +497,16 @@ const PacienteTabFicha: React.FC = () => {
                         ?
                     </button>
                     <button
+                        onClick={() => setShowOdontogramaInicial(true)}
+                        className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-4 rounded-xl transition-all shadow-md transform hover:-translate-y-0.5 active:scale-95 text-xs sm:text-sm"
+                        title="Registrar / Ver Odontograma Inicial del Paciente"
+                    >
+                        <Shield size={18} />
+                        <span>Odontograma Inicial</span>
+                    </button>
+                    <button
                         onClick={() => paciente && handlePrintPaciente(paciente)}
-                        className="flex items-center justify-center gap-2 bg-gray-500 hover:bg-gray-600 text-white font-bold py-1.5 px-4 rounded-xl transition-all shadow-md transform hover:-translate-y-0.5 active:scale-95"
+                        className="flex items-center justify-center gap-2 bg-gray-500 hover:bg-gray-600 text-white font-bold py-1.5 px-4 rounded-xl transition-all shadow-md transform hover:-translate-y-0.5 active:scale-95 text-xs sm:text-sm"
                         title="Imprimir Ficha"
                     >
                         <Printer size={18} />
@@ -684,6 +698,15 @@ const PacienteTabFicha: React.FC = () => {
                     title="Manual de Usuario - Ficha Clínica"
                     sections={manualSections}
                 />
+
+                {paciente && (
+                    <OdontogramaInicialModal
+                        isOpen={showOdontogramaInicial}
+                        onClose={() => setShowOdontogramaInicial(false)}
+                        pacienteId={paciente.id}
+                        pacienteNombre={formatFullName(paciente)}
+                    />
+                )}
             </div>
         </div>
     );
