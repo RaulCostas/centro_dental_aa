@@ -5,7 +5,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import { formatFullName, formatNumber, getImageUrl } from '../utils/formatters';
 import Swal from 'sweetalert2';
-import type { Paciente, HistoriaClinica as HistoriaClinicaType, Proforma, Pago } from '../types';
+import type { Paciente, HistoriaClinica as HistoriaClinicaType, Proforma, Pago, Arancel } from '../types';
 import Odontogram from './Odontogram';
 import HistoriaClinicaForm from './HistoriaClinicaForm';
 import HistoriaClinicaList from './HistoriaClinicaList';
@@ -32,6 +32,7 @@ const HistoriaClinica: React.FC = () => {
     const [televisionPreferences, setTelevisionPreferences] = useState<string[]>([]);
     const [selectedProformaId, setSelectedProformaId] = useState<number>(0);
     const [allAranceles, setAllAranceles] = useState<Arancel[]>([]);
+    const [inicialOdontograma, setInicialOdontograma] = useState<any>(null);
 
 
     const [historiaToEdit, setHistoriaToEdit] = useState<HistoriaClinicaType | null>(null);
