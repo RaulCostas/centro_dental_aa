@@ -1,4 +1,4 @@
-# Dockerfile para Frontend React
+# Dockerfile para Frontend React - v2
 FROM node:20-alpine AS builder
 
 WORKDIR /app
