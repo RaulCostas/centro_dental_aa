@@ -101,7 +101,7 @@ export class SupabaseStorageService {
       // Extract path from local URL
       const pathPart = url.split('/uploads/').pop();
       if (!pathPart) return;
-      const localPath = path.join(this.uploadsDir, pathPart.replace(`${bucket}/`, ''));
+      const localPath = path.join(this.uploadsDir, pathPart);
       if (fs.existsSync(localPath)) {
         fs.unlinkSync(localPath);
       }
