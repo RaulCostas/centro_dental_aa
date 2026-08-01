@@ -15,6 +15,8 @@ async function bootstrap() {
       'https://clinica-dental-frontend.onrender.com',
       'https://clinicadental.com',
       'https://www.clinicadental.com',
+      'https://centrodentalaa.cloud',
+      'https://www.centrodentalaa.cloud',
       'http://localhost:5173',
       'http://localhost:3001'
     ],
