@@ -6,7 +6,7 @@ import type { Receta } from '../types';
 import Pagination from './Pagination';
 import Swal from 'sweetalert2';
 import { formatDate } from '../utils/dateUtils';
-import { formatFullName } from '../utils/formatters';
+import { formatFullName, getImageUrl } from '../utils/formatters';
 import ManualModal, { type ManualSection } from './ManualModal';
 import SignatureModal from './SignatureModal';
 import RecetarioForm from './RecetarioForm';
@@ -426,7 +426,7 @@ const RecetarioList: React.FC = () => {
                 <div class="signature-section" style="display: flex; justify-content: center; margin-top: 40px; width: 100%;">
                     <div class="signature-box" style="width: 300px; text-align: center;">
                         ${doctorSignature ? `
-                            <img src="${doctorSignature.firmaData}" class="signature-image" style="max-height: 80px; margin-bottom: -5px;" />
+                            <img src="${getImageUrl(doctorSignature.firmaData)}" class="signature-image" style="max-height: 80px; margin-bottom: -5px;" />
                         ` : '<div style="height: 60px;"></div>'}
                         <div style="border-top: 1px solid #333; width: 250px; margin: 5px auto;"></div>
                         <div style="font-size: 11px; font-weight: bold; margin-top: 5px; line-height: 1.4;">

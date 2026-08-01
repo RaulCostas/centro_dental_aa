@@ -4,7 +4,7 @@ import api from '../services/api';
 import Swal from 'sweetalert2';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatFullName, formatDateSpanish, formatDateUTC } from '../utils/formatters';
+import { formatFullName, formatDateSpanish, formatDateUTC, getImageUrl } from '../utils/formatters';
 import Pagination from './Pagination';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
@@ -496,7 +496,7 @@ const PacienteTabInformes: React.FC = () => {
 
             // Right Signature (Patient)
             try {
-                doc.addImage(patientSignature.firmaData, 'PNG', 125, cursorY - 22, 50, 25);
+                doc.addImage(getImageUrl(patientSignature.firmaData), 'PNG', 125, cursorY - 22, 50, 25);
             } catch {
                 // ignore
             }
