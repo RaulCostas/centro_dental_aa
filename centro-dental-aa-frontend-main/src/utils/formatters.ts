@@ -133,11 +133,11 @@ export const getImageUrl = (url?: string): string => {
     const backendUrl = import.meta.env.VITE_API_URL || api.defaults.baseURL || '';
     const origin = backendUrl.replace(/\/api\/?$/, '');
 
-    if (url.startsWith('http://localhost') || url.startsWith('https://localhost')) {
-        if (origin && !origin.includes('localhost')) {
-            return url.replace(/^https?:\/\/localhost:\d+/, origin);
-        }
-        return url;
+    // Si la URL contiene '/uploads/', forzamos a que use el origin correcto (backend actual)
+    // Esto previene errores de Mixed Content (HTTP en HTTPS) o IPs antiguas
+    if (url.includes('/uploads/')) {
+        const urlParts = url.split('/uploads/');
+        return `${origin}/uploads/${urlParts[1]}`;
     }
 
     if (url.startsWith('http://') || url.startsWith('https://')) {
