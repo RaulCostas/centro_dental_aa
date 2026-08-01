@@ -16,6 +16,7 @@ import {
     Eye
 } from 'lucide-react';
 import ManualModal, { type ManualSection } from './ManualModal';
+import { getImageUrl } from '../utils/formatters';
 import Pagination from './Pagination';
 
 interface Image {
@@ -354,7 +355,7 @@ const PacienteTabImagenes: React.FC<PacienteTabImagenesProps> = ({ tipo = 'parti
                         {images.map((img, index) => (
                             <div key={img.id} className="group relative bg-gray-50 dark:bg-gray-700 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-600">
                                 <img 
-                                    src={img.ruta} 
+                                    src={getImageUrl(img.ruta)} 
                                     alt="" 
                                     className="w-full h-40 object-cover cursor-pointer hover:scale-105 transition-transform duration-300" 
                                     onClick={() => openLightbox(index)} 
@@ -521,7 +522,7 @@ const PacienteTabImagenes: React.FC<PacienteTabImagenesProps> = ({ tipo = 'parti
 
                     <div className="max-w-5xl max-h-[80vh] flex items-center justify-center p-4">
                         <img 
-                            src={images[currentImageIndex].ruta} 
+                            src={getImageUrl(images[currentImageIndex].ruta)} 
                             alt={images[currentImageIndex].descripcion}
                             className="max-w-full max-h-full object-contain shadow-2xl rounded-sm"
                         />

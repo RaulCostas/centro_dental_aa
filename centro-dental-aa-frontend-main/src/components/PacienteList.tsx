@@ -810,7 +810,7 @@ const PacienteList: React.FC = () => {
                         <div class="signature-section">
                             <div class="signature-box">
                                 ${patientSignature ? `
-                                     <img src="${patientSignature.firmaData}" style="max-height: 55px; margin-bottom: 2px; position: relative; z-index: 1;" />
+                                     <img src="${getImageUrl(patientSignature.firmaData)}" style="max-height: 55px; margin-bottom: 2px; position: relative; z-index: 1;" />
                                  ` : '<div style="height: 45px;"></div>'}
                                 <div class="sig-line"></div>
                                 <div style="font-weight: bold; margin-top: 3px;">${formatFullName(fullPaciente)}</div>

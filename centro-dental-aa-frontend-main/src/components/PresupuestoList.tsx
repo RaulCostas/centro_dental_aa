@@ -6,7 +6,7 @@ import type { Paciente, Arancel } from '../types';
 import jsPDF from 'jspdf';
 import Pagination from './Pagination';
 import autoTable from 'jspdf-autotable';
-import { formatDateSpanish, numberToWords, formatFullName, formatNumber, formatCurrency } from '../utils/formatters';
+import { formatDateSpanish, numberToWords, formatFullName, formatNumber, formatCurrency, getImageUrl } from '../utils/formatters';
 import { formatDate } from '../utils/dateUtils';
 import ManualModal, { type ManualSection } from './ManualModal';
 import SignatureModal from './SignatureModal';
@@ -708,7 +708,7 @@ const PresupuestoList: React.FC = () => {
         if (clinicSignature) {
             try {
                 // Add signature image - positioned exactly above the line
-                doc.addImage(clinicSignature.firmaData, 'PNG', 30, sigY - 22, 50, 25);
+                doc.addImage(getImageUrl(clinicSignature.firmaData), 'PNG', 30, sigY - 22, 50, 25);
             } catch (err) {
                 console.error('Error adding clinic signature to PDF:', err);
             }
@@ -737,7 +737,7 @@ const PresupuestoList: React.FC = () => {
         if (patientSignature) {
             try {
                 // Add signature image - positioned exactly above the line
-                doc.addImage(patientSignature.firmaData, 'PNG', 130, sigY - 22, 50, 25);
+                doc.addImage(getImageUrl(patientSignature.firmaData), 'PNG', 130, sigY - 22, 50, 25);
             } catch (err) {
                 console.error('Error adding patient signature to PDF:', err);
             }

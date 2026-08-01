@@ -533,7 +533,7 @@ const ArancelList: React.FC = () => {
                 <div className="flex flex-col">
                     <h2 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-3">
                         <ClipboardList className="text-blue-600" size={32} />
-                        Lista de Aranceles (Particulares)
+                        Lista de Aranceles
                     </h2>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">Configuración de servicios y lista de precios</p>
                 </div>
