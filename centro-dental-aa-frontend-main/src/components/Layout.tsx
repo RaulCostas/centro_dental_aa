@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
-import { formatFullName } from '../utils/formatters';
+import { formatFullName, getImageUrl } from '../utils/formatters';
 import './Layout.css';
 import ChatWidget from './Chat/ChatWidget';
 
@@ -848,7 +848,7 @@ const Layout: React.FC = () => {
                         {currentUser && (
                             <div className="user-profile-header">
                                 {currentUser.foto ? (
-                                    <img src={currentUser.foto} alt={currentUser.name} className="user-avatar" />
+                                    <img src={getImageUrl(currentUser.foto)} alt={currentUser.name} className="user-avatar" />
                                 ) : (
                                     <div className="user-avatar-placeholder">
                                         {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
