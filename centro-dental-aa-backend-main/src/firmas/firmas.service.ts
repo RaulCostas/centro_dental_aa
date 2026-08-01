@@ -163,6 +163,16 @@ export class FirmasService {
      */
     async remove(id: number): Promise<void> {
         const firma = await this.findOne(id);
+        
+        // Attempt to delete physical file if it starts with http (Supabase URL)
+        if (firma.firmaData && firma.firmaData.startsWith('http')) {
+            try {
+                await this.storageService.deleteFile('clinica-media', firma.firmaData);
+            } catch (error) {
+                console.warn(`[FirmasService] Error deleting physical file for signature ${id}:`, error);
+            }
+        }
+
         await this.firmaRepository.remove(firma);
     }
 

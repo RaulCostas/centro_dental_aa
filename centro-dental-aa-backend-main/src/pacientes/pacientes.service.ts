@@ -252,6 +252,46 @@ export class PacientesService {
                 this.logger.error(`Error deleting patient photo on remove: ${e.message}`);
             }
         }
+
+        try {
+            // Delete general patient images
+            const imagenRepo = this.dataSource.getRepository('ProformaImagen');
+            const patientImages = await imagenRepo.find({ where: { pacienteId: id } });
+            for (const img of patientImages as any[]) {
+                if (img.ruta) await this.storageService.deleteFile('clinica-media', img.ruta).catch(() => {});
+            }
+
+            // Delete patient specific signatures (historia clinica, paciente)
+            const firmaRepo = this.dataSource.getRepository('FirmaDigital');
+            const patientSignatures = await firmaRepo.createQueryBuilder('firma')
+                .where('firma.documentoId = :id AND firma.tipoDocumento IN (:...tipos)', { id, tipos: ['paciente', 'historia_clinica'] })
+                .getMany();
+            for (const firma of patientSignatures as any[]) {
+                if (firma.firmaData && firma.firmaData.startsWith('http')) {
+                    await this.storageService.deleteFile('clinica-media', firma.firmaData).catch(() => {});
+                }
+            }
+
+            // Delete proforma images and signatures for this patient
+            const proformaRepo = this.dataSource.getRepository('Proforma');
+            const proformas = await proformaRepo.find({ where: { pacienteId: id } });
+            
+            for (const p of proformas as any[]) {
+                const pImages = await imagenRepo.find({ where: { proformaId: p.id } });
+                for (const img of pImages as any[]) {
+                    if (img.ruta) await this.storageService.deleteFile('clinica-media', img.ruta).catch(() => {});
+                }
+                const pSignatures = await firmaRepo.find({ where: { documentoId: p.id, tipoDocumento: 'presupuesto' } });
+                for (const firma of pSignatures as any[]) {
+                    if (firma.firmaData && firma.firmaData.startsWith('http')) {
+                        await this.storageService.deleteFile('clinica-media', firma.firmaData).catch(() => {});
+                    }
+                }
+            }
+        } catch (error) {
+            this.logger.warn(`Error cleaning up related files for patient ${id}: ${error}`);
+        }
+
         await this.pacientesRepository.delete(id);
     }
 

@@ -5,6 +5,7 @@ import { CasoClinico } from './entities/caso_clinico.entity';
 import { CasoClinicoFoto } from './entities/caso_clinico_foto.entity';
 import { CreateCasoClinicoDto } from './dto/create-caso-clinico.dto';
 import { UpdateCasoClinicoDto } from './dto/update-caso-clinico.dto';
+import { SupabaseStorageService } from '../common/storage/supabase-storage.service';
 
 @Injectable()
 export class CasosClinicosService {
@@ -13,6 +14,7 @@ export class CasosClinicosService {
         private casoClinicoRepository: Repository<CasoClinico>,
         @InjectRepository(CasoClinicoFoto)
         private fotoRepository: Repository<CasoClinicoFoto>,
+        private readonly storageService: SupabaseStorageService,
     ) {}
 
     async create(createDto: CreateCasoClinicoDto): Promise<CasoClinico> {
@@ -78,7 +80,15 @@ export class CasosClinicosService {
         Object.assign(caso, casoData);
 
         if (fotos !== undefined) {
-            // Delete existing photos
+            // Delete existing photos physical files
+            if (caso.fotos && caso.fotos.length > 0) {
+                for (const foto of caso.fotos) {
+                    if (foto.foto) {
+                        try { await this.storageService.deleteFile('clinica-media', foto.foto); } catch(e){}
+                    }
+                }
+            }
+            // Delete existing photos from DB
             await this.fotoRepository.delete({ casoClinicoId: id });
             // Create new photos
             caso.fotos = fotos.map(f => this.fotoRepository.create({ ...f, casoClinicoId: id }));
@@ -89,6 +99,21 @@ export class CasosClinicosService {
 
     async remove(id: number): Promise<void> {
         const caso = await this.findOne(id);
+        
+        // Delete video
+        if (caso.video) {
+            try { await this.storageService.deleteFile('clinica-media', caso.video); } catch (e) {}
+        }
+        
+        // Delete fotos
+        if (caso.fotos && caso.fotos.length > 0) {
+            for (const foto of caso.fotos) {
+                if (foto.foto) {
+                    try { await this.storageService.deleteFile('clinica-media', foto.foto); } catch (e) {}
+                }
+            }
+        }
+
         await this.casoClinicoRepository.remove(caso);
     }
 }

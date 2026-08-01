@@ -331,6 +331,30 @@ export class ProformasService {
 
   async remove(id: number) {
     const proforma = await this.findOne(id);
+    
+    try {
+      // 1. Delete associated proforma images physical files
+      const imagenes = await this.imagenRepository.find({ where: { proformaId: id } });
+      for (const img of imagenes) {
+        if (img.ruta) {
+           await this.storageService.deleteFile('clinica-media', img.ruta).catch(e => console.warn(e));
+        }
+      }
+
+      // 2. Delete associated signatures physical files (tipoDocumento = 'presupuesto')
+      const firmasRepository = this.dataSource.getRepository('FirmaDigital');
+      const firmas = await firmasRepository.find({ 
+          where: { documentoId: id, tipoDocumento: 'presupuesto' } 
+      });
+      for (const firma of firmas as any[]) {
+          if (firma.firmaData && firma.firmaData.startsWith('http')) {
+              await this.storageService.deleteFile('clinica-media', firma.firmaData).catch(e => console.warn(e));
+          }
+      }
+    } catch (error) {
+      console.warn(`Error cleaning up physical files for proforma ${id}:`, error);
+    }
+
     return this.proformaRepository.remove(proforma);
   }
 
