@@ -8,7 +8,7 @@ import autoTable from 'jspdf-autotable';
 import Pagination from './Pagination';
 import ManualModal, { type ManualSection } from './ManualModal';
 import { formatDate } from '../utils/dateUtils';
-import { formatFullName } from '../utils/formatters';
+import { formatFullName, getImageUrl } from '../utils/formatters';
 import PacienteImagenesModal from './PacienteImagenesModal';
 import Swal from 'sweetalert2';
 import { FileText, Download, Printer, Users, CheckCircle, User } from 'lucide-react';
@@ -997,7 +997,7 @@ const PacienteList: React.FC = () => {
                                 <td className="p-3">
                                     <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center border border-gray-200 dark:border-gray-600 shadow-sm">
                                         {paciente.foto ? (
-                                            <img src={paciente.foto} alt="Foto paciente" className="w-full h-full object-cover" />
+                                            <img src={getImageUrl(paciente.foto)} alt="Foto paciente" className="w-full h-full object-cover" />
                                         ) : (
                                             <User size={20} className="text-gray-400" />
                                         )}
