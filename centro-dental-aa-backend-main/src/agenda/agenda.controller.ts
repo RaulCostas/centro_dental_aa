@@ -21,10 +21,6 @@ export class AgendaController {
         }
     }
 
-    @Post('recordatorios-manana')
-    async enviarRecordatoriosManana() {
-        return await this.agendaService.enviarRecordatoriosManana();
-    }
 
     @Post(':id/recordatorio')
     async enviarRecordatorioIndividual(@Param('id') id: string) {

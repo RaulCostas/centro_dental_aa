@@ -16,6 +16,8 @@ import { ChatbotPdfService } from './chatbot-pdf.service';
 import { WhatsappSession } from './entities/whatsapp-session.entity';
 
 import { PersonalModule } from '../personal/personal.module';
+import { DatosCentroDentalModule } from '../datos_centro_dental/datos_centro_dental.module';
+import { EspecialidadModule } from '../especialidad/especialidad.module';
 
 @Module({
     imports: [
@@ -27,7 +29,9 @@ import { PersonalModule } from '../personal/personal.module';
         HistoriaClinicaModule,
         DoctorsModule,
         InventarioModule,
-        PersonalModule
+        PersonalModule,
+        DatosCentroDentalModule,
+        EspecialidadModule
     ],
     controllers: [ChatbotController, ChatbotIntentosController],
     providers: [ChatbotService, ChatbotIntentosService, ChatbotPdfService],

@@ -8,5 +8,6 @@ import { DatosCentroDental } from './entities/datos_centro_dental.entity';
   imports: [TypeOrmModule.forFeature([DatosCentroDental])],
   controllers: [DatosCentroDentalController],
   providers: [DatosCentroDentalService],
+  exports: [DatosCentroDentalService],
 })
 export class DatosCentroDentalModule {}

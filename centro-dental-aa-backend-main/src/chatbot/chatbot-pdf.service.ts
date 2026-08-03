@@ -1,4 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { DataSource } from 'typeorm';
+import * as fs from 'fs';
+import * as path from 'path';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const PdfPrinter = require('pdfmake');
 
@@ -6,7 +9,9 @@ const PdfPrinter = require('pdfmake');
 export class ChatbotPdfService {
     private printer: any;
 
-    constructor() {
+    constructor(
+        private readonly dataSource: DataSource
+    ) {
         const fonts = {
             Helvetica: {
                 normal: 'Helvetica',
@@ -229,6 +234,419 @@ export class ChatbotPdfService {
                 },
                 pageSize: 'LETTER',
                 pageMargins: [40, 40, 40, 40]
+            };
+
+            const pdfDoc = this.printer.createPdfKitDocument(docDefinition);
+            const chunks: any[] = [];
+            pdfDoc.on('data', (chunk: any) => chunks.push(chunk));
+            pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
+            pdfDoc.on('error', (err: any) => reject(err));
+            pdfDoc.end();
+        });
+    }
+
+    async generateEstadoCuentaPdf(paciente: any, proformaGroups: any[]): Promise<Buffer> {
+        // Load logo
+        let logoBase64: string | null = null;
+        const possibleLogoPaths = [
+            path.join(process.cwd(), '../centro-dental-aa-frontend-main/public/logo-clinica-dental.jpg'),
+            path.join(__dirname, '../../../centro-dental-aa-frontend-main/public/logo-clinica-dental.jpg'),
+            'd:/SOFT-MEDIC/Antigravity/CENTRO DENTAL A&A/centro-dental-aa-frontend-main/public/logo-clinica-dental.jpg'
+        ];
+        for (const p of possibleLogoPaths) {
+            if (fs.existsSync(p)) {
+                logoBase64 = `data:image/jpeg;base64,${fs.readFileSync(p).toString('base64')}`;
+                break;
+            }
+        }
+
+        // Fetch DatosCentroDental for footer
+        let centroDental: any = null;
+        try {
+            const result = await this.dataSource.query('SELECT * FROM "datos_centro_dental" LIMIT 1');
+            if (result && result.length > 0) {
+                centroDental = result[0];
+            }
+        } catch (error) {
+            console.error('Error fetching datos_centro_dental in generateEstadoCuentaPdf:', error);
+        }
+
+        return new Promise((resolve, reject) => {
+            const content: any[] = [];
+            const patientName = `${paciente.nombre || ''} ${paciente.paterno || ''} ${paciente.materno || ''}`.trim().toUpperCase();
+
+            // 1. Header Layout (Logo left, Centered Title)
+            const headerColumns: any[] = [];
+
+            if (logoBase64) {
+                headerColumns.push({
+                    image: logoBase64,
+                    width: 65,
+                    alignment: 'left'
+                });
+            } else {
+                headerColumns.push({ text: '', width: 65 });
+            }
+
+            headerColumns.push({
+                text: 'ESTADO DE CUENTA',
+                fontSize: 18,
+                bold: true,
+                color: '#2c3e50',
+                alignment: 'center',
+                margin: [0, 15, 0, 0]
+            });
+
+            headerColumns.push({ text: '', width: 65 });
+
+            content.push({
+                columns: headerColumns,
+                margin: [0, 0, 0, 10]
+            });
+
+            // 2. Blue Separator Line
+            content.push({
+                canvas: [
+                    { type: 'line', x1: 0, y1: 0, x2: 532, y2: 0, lineWidth: 2, lineColor: '#3498db' }
+                ],
+                margin: [0, 0, 0, 15]
+            });
+
+            // 3. Patient Info Box (bg #f8f9fa, left border #3498db)
+            content.push({
+                stack: [
+                    {
+                        canvas: [
+                            { type: 'rect', x: 0, y: 0, w: 532, h: 32, color: '#f8f9fa' },
+                            { type: 'rect', x: 0, y: 0, w: 4, h: 32, color: '#3498db' }
+                        ]
+                    },
+                    {
+                        text: [
+                            { text: 'PACIENTE: ', bold: true, color: '#2c3e50', fontSize: 10 },
+                            { text: patientName, color: '#333333', fontSize: 10, bold: true }
+                        ],
+                        relativePosition: { x: 12, y: -22 }
+                    }
+                ],
+                margin: [0, 0, 0, 20]
+            });
+
+            // 4. Content per Proforma Group
+            proformaGroups.forEach((group, index) => {
+                if (index > 0) {
+                    content.push({ text: '', pageBreak: 'before' });
+                }
+
+                const titleText = group.proforma
+                    ? `PLAN DE TRATAMIENTO #${(group.proforma.numero || group.proforma.id || 0).toString().padStart(2, '0')}`
+                    : 'RESUMEN GENERAL DE TRATAMIENTOS Y PAGOS';
+
+                content.push({
+                    text: titleText,
+                    fontSize: 12,
+                    bold: true,
+                    color: '#2c3e50',
+                    margin: [0, 5, 0, 10]
+                });
+
+                // --- Historia Clínica Summary ---
+                content.push({
+                    text: 'Resumen de Historia Clínica:',
+                    fontSize: 10,
+                    bold: true,
+                    color: '#34495e',
+                    margin: [0, 0, 0, 5]
+                });
+
+                const hcTableHeader = [
+                    { text: 'Fecha', style: 'tableHeader' },
+                    { text: 'Pieza(s)', style: 'tableHeader' },
+                    { text: 'Tratamiento', style: 'tableHeader' },
+                    { text: 'Observaciones', style: 'tableHeader' },
+                    { text: 'Cant.', style: 'tableHeader' },
+                    { text: 'Doctor(a)', style: 'tableHeader' },
+                    { text: 'Diagnóstico', style: 'tableHeader' },
+                    { text: 'Estado', style: 'tableHeader' }
+                ];
+
+                const hcBody: any[] = [hcTableHeader];
+
+                if (group.historias && group.historias.length > 0) {
+                    group.historias.forEach((h: any) => {
+                        const dateStr = h.fecha ? new Date(h.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-';
+                        const docName = h.doctor ? `${h.doctor.paterno || ''} ${h.doctor.nombre || ''}`.trim() : '-';
+                        hcBody.push([
+                            { text: dateStr, fontSize: 8 },
+                            { text: h.pieza || '-', fontSize: 8 },
+                            { text: h.tratamiento || '-', fontSize: 8 },
+                            { text: h.observaciones || '-', fontSize: 8 },
+                            { text: (h.cantidad || 1).toString(), fontSize: 8, alignment: 'center' },
+                            { text: docName, fontSize: 8 },
+                            { text: h.diagnostico || '-', fontSize: 8 },
+                            { text: h.estadoTratamiento || h.estadoPresupuesto || '-', fontSize: 8 }
+                        ]);
+                    });
+                } else {
+                    hcBody.push([
+                        { text: 'Sin registros de historia clínica', colSpan: 8, alignment: 'center', fontSize: 8, color: '#7f8c8d' },
+                        {}, {}, {}, {}, {}, {}, {}
+                    ]);
+                }
+
+                content.push({
+                    table: {
+                        headerRows: 1,
+                        widths: ['auto', 'auto', '*', '*', 'auto', 'auto', '*', 'auto'],
+                        body: hcBody
+                    },
+                    layout: {
+                        fillColor: (rowIndex: number) => (rowIndex === 0 ? '#3498db' : rowIndex % 2 === 0 ? '#f8f9fa' : null),
+                        hLineWidth: () => 1,
+                        vLineWidth: () => 1,
+                        hLineColor: () => '#ddd',
+                        vLineColor: () => '#ddd'
+                    },
+                    fontSize: 8,
+                    margin: [0, 0, 0, 15]
+                });
+
+                // --- Pagos History ---
+                content.push({
+                    text: 'Historial de Pagos:',
+                    fontSize: 10,
+                    bold: true,
+                    color: '#34495e',
+                    margin: [0, 0, 0, 5]
+                });
+
+                const pagosTableHeader = [
+                    { text: 'Fecha', style: 'tableHeader' },
+                    { text: 'Monto', style: 'tableHeader' },
+                    { text: 'Moneda', style: 'tableHeader' },
+                    { text: 'Forma Pago', style: 'tableHeader' },
+                    { text: 'Recibo/Factura', style: 'tableHeader' }
+                ];
+
+                const pagosBody: any[] = [pagosTableHeader];
+
+                if (group.pagos && group.pagos.length > 0) {
+                    group.pagos.forEach((pago: any) => {
+                        const dateStr = pago.fecha ? new Date(pago.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-';
+                        const rf = pago.recibo ? `R: ${pago.recibo}` : (pago.factura ? `F: ${pago.factura}` : '-');
+                        pagosBody.push([
+                            { text: dateStr, fontSize: 8 },
+                            { text: `Bs. ${Number(pago.monto || 0).toFixed(2)}`, fontSize: 8, alignment: 'right' },
+                            { text: pago.moneda || 'Bolivianos', fontSize: 8 },
+                            { text: pago.formaPagoRel?.forma_pago || '-', fontSize: 8 },
+                            { text: rf, fontSize: 8 }
+                        ]);
+                    });
+                } else {
+                    pagosBody.push([
+                        { text: 'Sin pagos registrados', colSpan: 5, alignment: 'center', fontSize: 8, color: '#7f8c8d' },
+                        {}, {}, {}, {}
+                    ]);
+                }
+
+                content.push({
+                    table: {
+                        headerRows: 1,
+                        widths: ['*', '*', '*', '*', '*'],
+                        body: pagosBody
+                    },
+                    layout: {
+                        fillColor: (rowIndex: number) => (rowIndex === 0 ? '#3498db' : rowIndex % 2 === 0 ? '#f8f9fa' : null),
+                        hLineWidth: () => 1,
+                        vLineWidth: () => 1,
+                        hLineColor: () => '#ddd',
+                        vLineColor: () => '#ddd'
+                    },
+                    fontSize: 8,
+                    margin: [0, 0, 0, 15]
+                });
+
+                // --- Plan de Pagos Activo (Cronograma Proyectado) ---
+                if (group.proforma && group.proforma.plan_pagos && group.proforma.plan_pagos.activo === true) {
+                    const plan = group.proforma.plan_pagos;
+                    const meses = Number(plan.meses || 1);
+                    const dia = Number(plan.diaPago || 15);
+                    const cuotaInicial = Number(plan.cuotaInicial || 0);
+                    const totalTratamiento = Number(group.totalEjecutado || group.proforma.total || 0);
+                    const montoParaCuotas = Math.max(0, totalTratamiento - cuotaInicial);
+                    const cuotaMensual = meses > 0 ? (montoParaCuotas / meses) : 0;
+                    const fechaActual = new Date(plan.fechaInicio || group.proforma.fecha || new Date());
+                    const totalPagado = Number(group.totalPagado || 0);
+
+                    content.push({
+                        text: 'Plan de Pagos Activo (Cronograma Proyectado):',
+                        fontSize: 10,
+                        bold: true,
+                        color: '#34495e',
+                        margin: [0, 5, 0, 5]
+                    });
+
+                    const planTableHeader = [
+                        { text: 'Nº Cuota', style: 'tableHeader' },
+                        { text: 'Monto Proyectado', style: 'tableHeader' },
+                        { text: 'Fecha Vencimiento', style: 'tableHeader' },
+                        { text: 'Estado', style: 'tableHeader' }
+                    ];
+
+                    const planBody: any[] = [planTableHeader];
+
+                    // 1. Cuota Inicial
+                    if (cuotaInicial > 0) {
+                        const isInitialPaid = totalPagado >= cuotaInicial - 0.1;
+                        const dateStr = fechaActual.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                        planBody.push([
+                            { text: 'Cuota Inicial', fontSize: 8, bold: true },
+                            { text: `Bs. ${cuotaInicial.toFixed(2)}`, fontSize: 8, alignment: 'right' },
+                            { text: dateStr, fontSize: 8, alignment: 'center' },
+                            { text: isInitialPaid ? 'Pagado' : 'Pendiente', fontSize: 8, alignment: 'center', color: isInitialPaid ? '#27ae60' : '#e74c3c', bold: true }
+                        ]);
+                    }
+
+                    // 2. Cuotas Mensuales
+                    for (let i = 1; i <= meses; i++) {
+                        let nextMonth = new Date(fechaActual.getFullYear(), fechaActual.getMonth() + i, dia);
+                        if (nextMonth.getMonth() !== (fechaActual.getMonth() + i) % 12) {
+                            nextMonth = new Date(fechaActual.getFullYear(), fechaActual.getMonth() + i + 1, 0);
+                        }
+
+                        const montoAcumuladoRequerido = cuotaInicial + (cuotaMensual * i);
+                        const isPaid = totalPagado >= montoAcumuladoRequerido - 0.1;
+                        const dateStr = nextMonth.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+                        planBody.push([
+                            { text: `Cuota ${i}`, fontSize: 8 },
+                            { text: `Bs. ${cuotaMensual.toFixed(2)}`, fontSize: 8, alignment: 'right' },
+                            { text: dateStr, fontSize: 8, alignment: 'center' },
+                            { text: isPaid ? 'Pagado' : 'Pendiente', fontSize: 8, alignment: 'center', color: isPaid ? '#27ae60' : '#e74c3c', bold: true }
+                        ]);
+                    }
+
+                    content.push({
+                        table: {
+                            headerRows: 1,
+                            widths: ['*', '*', '*', '*'],
+                            body: planBody
+                        },
+                        layout: {
+                            fillColor: (rowIndex: number) => (rowIndex === 0 ? '#3498db' : rowIndex % 2 === 0 ? '#f8f9fa' : null),
+                            hLineWidth: () => 1,
+                            vLineWidth: () => 1,
+                            hLineColor: () => '#ddd',
+                            vLineColor: () => '#ddd'
+                        },
+                        fontSize: 8,
+                        margin: [0, 0, 0, 15]
+                    });
+                }
+
+                // --- Resumen Financiero Cards ---
+                const hasPending = Number(group.saldoPendiente || 0) > 0;
+                const pendingColor = hasPending ? '#e74c3c' : '#27ae60';
+
+                content.push({
+                    columns: [
+                        {
+                            stack: [
+                                {
+                                    stack: [
+                                        { text: 'TOTAL PAGADO:', fontSize: 8, color: '#666', bold: true },
+                                        { text: `Bs. ${Number(group.totalPagado || 0).toFixed(2)}`, fontSize: 12, bold: true, color: '#27ae60', margin: [0, 2, 0, 0] }
+                                    ],
+                                    margin: [10, 5, 0, 5]
+                                },
+                                { canvas: [{ type: 'rect', x: 0, y: -30, w: 4, h: 30, color: '#27ae60' }] }
+                            ],
+                            fillColor: '#f8f9fa',
+                            margin: [0, 0, 10, 0]
+                        },
+                        {
+                            stack: [
+                                {
+                                    stack: [
+                                        { text: 'SALDO PENDIENTE:', fontSize: 8, color: '#666', bold: true },
+                                        { text: `Bs. ${Number(group.saldoPendiente || 0).toFixed(2)}`, fontSize: 12, bold: true, color: pendingColor, margin: [0, 2, 0, 0] }
+                                    ],
+                                    margin: [10, 5, 0, 5]
+                                },
+                                { canvas: [{ type: 'rect', x: 0, y: -30, w: 4, h: 30, color: pendingColor }] }
+                            ],
+                            fillColor: '#f8f9fa',
+                            margin: [0, 0, 0, 0]
+                        }
+                    ],
+                    margin: [0, 5, 0, 20]
+                });
+            });
+
+            // Build footer info from centroDental
+            const footerParts: string[] = [];
+            if (centroDental) {
+                if (centroDental.direccion) footerParts.push(`Dirección: ${centroDental.direccion}`);
+                if (centroDental.telefono) footerParts.push(`Teléfono: ${centroDental.telefono}`);
+                if (centroDental.celular) footerParts.push(`Celular: ${centroDental.celular}`);
+                if (centroDental.emergencias) footerParts.push(`Emergencias: ${centroDental.emergencias}`);
+                if (centroDental.email) footerParts.push(`Email: ${centroDental.email}`);
+            }
+
+            const docDefinition = {
+                pageSize: 'LETTER',
+                pageMargins: [40, 40, 40, 70],
+                content,
+                footer: (currentPage: number, pageCount: number) => {
+                    const footerStack: any[] = [];
+
+                    footerStack.push({
+                        canvas: [
+                            { type: 'line', x1: 40, y1: 0, x2: 572, y2: 0, lineWidth: 0.5, lineColor: '#333333' }
+                        ],
+                        margin: [0, 0, 0, 6]
+                    });
+
+                    if (footerParts.length > 0) {
+                        footerStack.push({
+                            text: footerParts.join(' | '),
+                            fontSize: 7,
+                            color: '#555555',
+                            alignment: 'center',
+                            margin: [0, 0, 0, 4]
+                        });
+                    }
+
+                    footerStack.push({
+                        columns: [
+                            {
+                                text: 'Documento de Estado de Cuenta emitido por CENTRO DENTAL A&A.',
+                                fontSize: 7,
+                                color: '#7f8c8d',
+                                alignment: 'left',
+                                margin: [40, 0, 0, 0]
+                            },
+                            {
+                                text: `Página ${currentPage} de ${pageCount} | Fecha: ${new Date().toLocaleDateString('es-ES')}`,
+                                fontSize: 7,
+                                color: '#7f8c8d',
+                                alignment: 'right',
+                                margin: [0, 0, 40, 0]
+                            }
+                        ]
+                    });
+
+                    return {
+                        stack: footerStack
+                    };
+                },
+                styles: {
+                    tableHeader: { bold: true, fontSize: 8, color: 'white', alignment: 'center' }
+                },
+                defaultStyle: {
+                    font: 'Helvetica',
+                    fontSize: 9
+                }
             };
 
             const pdfDoc = this.printer.createPdfKitDocument(docDefinition);

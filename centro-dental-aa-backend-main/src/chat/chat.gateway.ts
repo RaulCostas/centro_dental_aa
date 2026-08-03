@@ -11,13 +11,7 @@ import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
     cors: {
-        origin: [
-            'https://clinica-dental-frontend.onrender.com',
-            'https://clinicadental.com',
-            'https://www.clinicadental.com',
-            'http://localhost:5173',
-            'http://localhost:3001'
-        ],
+        origin: true,
         credentials: true,
     },
 })

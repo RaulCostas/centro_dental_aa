@@ -36,7 +36,7 @@ const ChatbotConfig: React.FC = () => {
     const fetchStatus = async () => {
         try {
             // Add timestamp to prevent caching
-            const response = await api.get(`/chatbot/1/status?t=${Date.now()}`);
+            const response = await api.get(`/chatbot/status?t=${Date.now()}`);
             console.log('Status fetch:', response.data);
             setStatus(response.data.status);
             setQrCode(response.data.qr);
@@ -71,7 +71,7 @@ const ChatbotConfig: React.FC = () => {
         setShowTimeoutWarning(false);
         setConnectingStartTime(null);
         try {
-            const response = await api.post(`/chatbot/1/initialize`);
+            const response = await api.post(`/chatbot/initialize`);
             if (response.data.error) {
                 throw new Error(response.data.error);
             }
@@ -107,7 +107,7 @@ const ChatbotConfig: React.FC = () => {
         if (shouldDisconnect) {
             setLoading(true);
             try {
-                await api.post(`/chatbot/1/disconnect`);
+                await api.post(`/chatbot/disconnect`);
                 fetchStatus();
                 if (!skipConfirm) Swal.fire('Desconectado', 'El bot ha sido desconectado.', 'success');
             } catch (error) {
@@ -260,7 +260,7 @@ const ChatbotConfig: React.FC = () => {
                                         </p>
                                         <button
                                             onClick={async () => {
-                                                await api.post(`/chatbot/1/disconnect`);
+                                                await api.post(`/chatbot/disconnect`);
                                                 setShowTimeoutWarning(false);
                                                 setConnectingStartTime(null);
                                                 await new Promise(resolve => setTimeout(resolve, 1000));
@@ -286,7 +286,7 @@ const ChatbotConfig: React.FC = () => {
                                         });
 
                                         if (result.isConfirmed) {
-                                            await api.post(`/chatbot/1/disconnect`);
+                                            await api.post(`/chatbot/disconnect`);
                                             setShowTimeoutWarning(false);
                                             setConnectingStartTime(null);
                                             fetchStatus();
@@ -333,7 +333,7 @@ const ChatbotConfig: React.FC = () => {
                                             if (result.isConfirmed) {
                                                 setLoading(true);
                                                 try {
-                                                    await api.post(`/chatbot/1/reset`);
+                                                    await api.post(`/chatbot/reset`);
                                                     await Swal.fire('Sesión reiniciada', 'Intente iniciar el bot nuevamente.', 'success');
                                                     fetchStatus();
                                                 } finally {
