@@ -1,12 +1,18 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseInterceptors, UploadedFile, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { TrabajosLaboratoriosService } from './trabajos_laboratorios.service';
+import { TrabajosLaboratoriosPdfService } from './trabajos_laboratorios-pdf.service';
+import { ChatbotService } from '../chatbot/chatbot.service';
 
 @Controller('trabajos-laboratorios')
 export class TrabajosLaboratoriosController {
-    constructor(private readonly trabajosService: TrabajosLaboratoriosService) { }
+    constructor(
+        private readonly trabajosService: TrabajosLaboratoriosService,
+        private readonly pdfService: TrabajosLaboratoriosPdfService,
+        private readonly chatbotService: ChatbotService,
+    ) { }
 
     @Post()
     create(@Body() createTrabajoLaboratorioDto: any) {
@@ -72,5 +78,59 @@ export class TrabajosLaboratoriosController {
             throw new BadRequestException('Archivo no proporcionado');
         }
         return this.trabajosService.addFotografiaReferencia(+id, file.filename);
+    }
+
+    @Post(':id/send-whatsapp')
+    async sendWhatsApp(@Param('id') id: string) {
+        try {
+            const trabajo = await this.trabajosService.findOne(+id);
+
+            if (!trabajo) {
+                throw new HttpException('Trabajo de laboratorio no encontrado', HttpStatus.NOT_FOUND);
+            }
+
+            if (!trabajo.laboratorio) {
+                throw new HttpException('El trabajo no tiene un laboratorio asignado.', HttpStatus.BAD_REQUEST);
+            }
+
+            if (!trabajo.laboratorio.celular) {
+                return { message: 'El laboratorio no tiene un número de celular registrado.' };
+            }
+
+            const chatbotStatus = this.chatbotService.getStatus();
+            if (chatbotStatus.status !== 'connected') {
+                throw new HttpException('El chatbot no está conectado. Por favor, conecte el chatbot primero.', HttpStatus.SERVICE_UNAVAILABLE);
+            }
+
+            let phone = trabajo.laboratorio.celular.replace(/\D/g, '');
+            if (phone.length === 8) {
+                phone = '591' + phone;
+            }
+            const jid = phone + '@s.whatsapp.net';
+
+            const pdfBuffer = await this.pdfService.generateTrabajoLaboratorioPdf(trabajo);
+
+            const pacienteNombre = [trabajo.paciente?.paterno, trabajo.paciente?.materno, trabajo.paciente?.nombre].filter(Boolean).join(' ') || 'Paciente';
+            const ordenNo = `A&A-${String(trabajo.id).padStart(7, '0')}`;
+            const message = `Hola *${trabajo.laboratorio.laboratorio}*, le enviamos la Orden de Trabajo Dental N° *${ordenNo}* correspondiente al paciente *${pacienteNombre}*.`;
+
+            await this.chatbotService.sendMessage(jid, {
+                document: pdfBuffer,
+                mimetype: 'application/pdf',
+                fileName: `Orden_Trabajo_Dental_${ordenNo}.pdf`,
+                caption: message
+            });
+
+            return {
+                success: true,
+                message: 'Orden de trabajo enviada por WhatsApp al laboratorio exitosamente'
+            };
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            console.error('Error sending WhatsApp to lab:', error);
+            throw new HttpException('Error al enviar la orden por WhatsApp', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }
