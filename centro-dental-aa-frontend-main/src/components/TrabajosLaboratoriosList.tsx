@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import api from '../services/api';
 import type { TrabajoLaboratorio } from '../types';
 import Pagination from './Pagination';
 import { formatFullName, formatNumber } from '../utils/formatters';
+import { generateOrdenTrabajoHTML } from '../utils/ordenTrabajoHtml';
 import * as XLSX from 'xlsx';
 import ManualModal, { type ManualSection } from './ManualModal';
 import TrabajoLaboratorioViewModal from './TrabajoLaboratorioViewModal';
@@ -102,8 +105,8 @@ const TrabajosLaboratoriosList: React.FC = () => {
         }
 
         Swal.fire({
-            title: 'Enviando...',
-            text: 'Enviando Orden de Trabajo por WhatsApp al laboratorio',
+            title: 'Generando PDF...',
+            text: 'Preparando la Orden de Trabajo Dental con el formato completo...',
             allowOutsideClick: false,
             didOpen: () => {
                 Swal.showLoading();
@@ -111,7 +114,56 @@ const TrabajosLaboratoriosList: React.FC = () => {
         });
 
         try {
-            const response = await api.post(`/trabajos-laboratorios/${trabajo.id}/send-whatsapp`);
+            // Fetch complete data for trabajo and centroDental
+            const [workRes, centroRes] = await Promise.all([
+                api.get(`/trabajos-laboratorios/${trabajo.id}`).catch(() => ({ data: trabajo })),
+                api.get('/datos-centro-dental').catch(() => ({ data: [] }))
+            ]);
+
+            const fullTrabajo = workRes.data || trabajo;
+            const centroList = Array.isArray(centroRes.data) ? centroRes.data : (centroRes.data?.data || []);
+            const centroDental = centroList[0] || null;
+
+            // Generate HTML identical to print view
+            const htmlContent = generateOrdenTrabajoHTML(fullTrabajo, centroDental);
+
+            // Container for html2canvas rendering
+            const container = document.createElement('div');
+            container.style.position = 'fixed';
+            container.style.left = '-9999px';
+            container.style.top = '0';
+            container.style.width = '794px'; // standard A4 px at 96 DPI
+            container.style.background = '#ffffff';
+            container.innerHTML = htmlContent;
+            document.body.appendChild(container);
+
+            await new Promise(resolve => setTimeout(resolve, 350));
+
+            const canvas = await html2canvas(container, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff'
+            });
+
+            if (document.body.contains(container)) {
+                document.body.removeChild(container);
+            }
+
+            const imgData = canvas.toDataURL('image/jpeg', 0.95);
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+            const pdfBlob = pdf.output('blob');
+
+            const formData = new FormData();
+            const ordenNo = `A&A-${String(trabajo.id).padStart(7, '0')}`;
+            formData.append('file', pdfBlob, `Orden_Trabajo_Dental_${ordenNo}.pdf`);
+
+            const response = await api.post(`/trabajos-laboratorios/${trabajo.id}/send-whatsapp`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
 
             Swal.fire({
                 icon: 'success',

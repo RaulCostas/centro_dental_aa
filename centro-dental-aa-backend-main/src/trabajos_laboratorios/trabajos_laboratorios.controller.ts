@@ -81,7 +81,8 @@ export class TrabajosLaboratoriosController {
     }
 
     @Post(':id/send-whatsapp')
-    async sendWhatsApp(@Param('id') id: string) {
+    @UseInterceptors(FileInterceptor('file'))
+    async sendWhatsApp(@Param('id') id: string, @UploadedFile() file?: any) {
         try {
             const trabajo = await this.trabajosService.findOne(+id);
 
@@ -108,7 +109,12 @@ export class TrabajosLaboratoriosController {
             }
             const jid = phone + '@s.whatsapp.net';
 
-            const pdfBuffer = await this.pdfService.generateTrabajoLaboratorioPdf(trabajo);
+            let pdfBuffer: Buffer;
+            if (file && file.buffer) {
+                pdfBuffer = file.buffer;
+            } else {
+                pdfBuffer = await this.pdfService.generateTrabajoLaboratorioPdf(trabajo);
+            }
 
             const pacienteNombre = [trabajo.paciente?.paterno, trabajo.paciente?.materno, trabajo.paciente?.nombre].filter(Boolean).join(' ') || 'Paciente';
             const ordenNo = `A&A-${String(trabajo.id).padStart(7, '0')}`;
