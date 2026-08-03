@@ -461,7 +461,7 @@ const CasosClinicosList: React.FC = () => {
 
             {/* Video Player Modal */}
             {activeVideoUrl && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
                     <div className="relative bg-gray-900 rounded-2xl max-w-4xl w-full overflow-hidden shadow-2xl border border-gray-700">
                         <div className="flex items-center justify-between px-6 py-3 bg-gray-800 text-white border-b border-gray-700">
                             <div className="flex items-center gap-2 font-bold text-sm">
@@ -489,7 +489,7 @@ const CasosClinicosList: React.FC = () => {
 
             {/* Photo Lightbox Modal */}
             {activeGalleryFotos.length > 0 && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
                     <div className="relative max-w-5xl w-full flex flex-col items-center">
                         <div className="w-full flex items-center justify-between text-white mb-4">
                             <div>

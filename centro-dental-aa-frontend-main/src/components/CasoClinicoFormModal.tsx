@@ -150,7 +150,7 @@ const CasoClinicoFormModal: React.FC<CasoClinicoFormModalProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 transition-opacity">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black bg-opacity-50 transition-opacity">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] my-8">
                 {/* Header matching standard modals */}
                 <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
