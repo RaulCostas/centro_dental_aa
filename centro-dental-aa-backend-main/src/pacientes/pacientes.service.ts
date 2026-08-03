@@ -313,6 +313,8 @@ export class PacientesService {
     }
 
     async findByCelular(celular: string): Promise<Paciente | null> {
+        if (!celular) return null;
+
         let paciente = await this.pacientesRepository.findOne({
             where: { telefono_celular: celular },
         });
@@ -321,10 +323,23 @@ export class PacientesService {
         const cleanCelular = celular.replace(/[^0-9]/g, '');
         if (!cleanCelular || cleanCelular.length < 7) return null;
 
+        const last8 = cleanCelular.length >= 8 ? cleanCelular.slice(-8) : cleanCelular;
+        const last7 = cleanCelular.length >= 7 ? cleanCelular.slice(-7) : cleanCelular;
+
         try {
             paciente = await this.pacientesRepository.createQueryBuilder('p')
-                .where("REGEXP_REPLACE(p.telefono_celular, '[^0-9]', '', 'g') LIKE :suffix", { suffix: `%${cleanCelular}` })
-                .orWhere(":cleanCelular LIKE CONCAT('%', REGEXP_REPLACE(p.telefono_celular, '[^0-9]', '', 'g'))", { cleanCelular })
+                .where("p.telefono_celular IS NOT NULL")
+                .andWhere("LENGTH(REGEXP_REPLACE(p.telefono_celular, '[^0-9]', '', 'g')) >= 7")
+                .andWhere(
+                    "(REGEXP_REPLACE(p.telefono_celular, '[^0-9]', '', 'g') LIKE :last8Suffix " +
+                    "OR REGEXP_REPLACE(p.telefono_celular, '[^0-9]', '', 'g') LIKE :last7Suffix " +
+                    "OR :cleanCelular LIKE CONCAT('%', REGEXP_REPLACE(p.telefono_celular, '[^0-9]', '', 'g')))",
+                    {
+                        last8Suffix: `%${last8}`,
+                        last7Suffix: `%${last7}`,
+                        cleanCelular,
+                    }
+                )
                 .getOne();
         } catch (e) {
             console.error('Error in fuzzy search:', e);

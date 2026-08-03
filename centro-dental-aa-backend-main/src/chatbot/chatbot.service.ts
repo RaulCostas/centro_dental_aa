@@ -568,7 +568,7 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
         let message = '';
 
         if (menuType === 'new') {
-            message = `¡Hola! Bienvenido a CENTRO DENTAL A&A. ¿En qué podemos ayudarte? 🦷✨\n\n` +
+            message = `¡Hola! Bienvenido(a) a CENTRO DENTAL A&A. ¿En qué podemos ayudarte? 🦷✨\n\n` +
                 `*Menu:*\n` +
                 `*A* 📍 ¿Donde queda la Clínica?\n` +
                 `*B* 🕒 ¿Cual es el horario de atención?\n` +
@@ -578,7 +578,16 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
                 `📌 Guarda nuestro número.`;
         } else {
             const nombreCompleto = [actor.nombre, actor.paterno, actor.materno].filter(Boolean).join(' ');
-            message = `¡Hola ${nombreCompleto}! Bienvenido de nuevo. ¿En qué podemos ayudarte hoy? 😊✨\n\n` +
+
+            let saludoGenero = 'Bienvenido(a)';
+            const g = String(actor?.genero || '').trim().toUpperCase();
+            if (['F', 'FEMENINO', 'MUJER'].includes(g)) {
+                saludoGenero = 'Bienvenida';
+            } else if (['M', 'MASCULINO', 'HOMBRE'].includes(g)) {
+                saludoGenero = 'Bienvenido';
+            }
+
+            message = `¡Hola ${nombreCompleto}! ${saludoGenero} de nuevo. ¿En qué podemos ayudarte hoy? 😊✨\n\n` +
                 `*Menu Principal:*\n` +
                 `*1* 📅 Consultar Citas\n` +
                 `*2* 📄 Consultar Presupuestos\n` +
