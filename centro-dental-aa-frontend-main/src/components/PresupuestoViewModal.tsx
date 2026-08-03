@@ -262,7 +262,9 @@ const PresupuestoViewModal: React.FC<Props> = ({ isOpen, onClose, id, proformaId
                                 </div>
                                 <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30 p-3 rounded-xl flex flex-col gap-0.5 shadow-sm">
                                     <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Total</span>
-                                    <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{formatNumber(proforma.total / (proforma.tipoCambio || 1))} <span className="text-[9px]">{proforma.moneda === 'USD' ? '$' : 'Bs.'}</span></span>
+                                    <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                                        {formatNumber((proforma.descuento > 0 ? proforma.sub_total * (1 - proforma.descuento / 100) : (proforma.total || proforma.sub_total)) / (proforma.tipoCambio || 1))} <span className="text-[9px]">{proforma.moneda === 'USD' ? '$' : 'Bs.'}</span>
+                                    </span>
                                 </div>
                             </div>
 
@@ -371,7 +373,9 @@ const PresupuestoViewModal: React.FC<Props> = ({ isOpen, onClose, id, proformaId
                                 )}
                                 <div className="bg-gray-100 dark:bg-gray-700 px-6 py-3 rounded-xl flex items-center justify-between gap-4 w-72 border border-gray-200 dark:border-gray-600">
                                     <span className="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest text-[9px]">Total del Plan:</span>
-                                    <span className="text-xl font-bold text-gray-800 dark:text-white">{formatNumber(proforma.total / (proforma.tipoCambio || 1))} <span className="text-xs">{proforma.moneda === 'USD' ? '$' : 'Bs.'}</span></span>
+                                    <span className="text-xl font-bold text-gray-800 dark:text-white">
+                                        {formatNumber((proforma.descuento > 0 ? proforma.sub_total * (1 - proforma.descuento / 100) : (proforma.total || proforma.sub_total)) / (proforma.tipoCambio || 1))} <span className="text-xs">{proforma.moneda === 'USD' ? '$' : 'Bs.'}</span>
+                                    </span>
                                 </div>
                             </div>
                         </div>

@@ -577,14 +577,18 @@ const PresupuestoList: React.FC = () => {
         doc.rect(finalBoxX, finalY - 4, finalBoxWidth, 7);
         doc.rect(lastColX, finalY - 4, lastColWidth, 7);
 
+        const discountPercent = Number(proforma.descuento || 0);
+        const subtotalVal = Number(proforma.sub_total || 0);
+        const netTotal = discountPercent > 0 ? subtotalVal * (1 - discountPercent / 100) : Number(proforma.total || subtotalVal);
+        const convertedTotal = netTotal / (proforma.tipoCambio || 1);
+
         doc.text(`TOTAL ${currencyLabel}`, finalBoxX + finalBoxWidth - 2, finalY + 1, { align: 'right' });
-        doc.text(formatNumber(proforma.total / (proforma.tipoCambio || 1)), lastColX + lastColWidth - 2, finalY + 1, { align: 'right' });
+        doc.text(formatNumber(convertedTotal), lastColX + lastColWidth - 2, finalY + 1, { align: 'right' });
 
         finalY += 10;
 
         // 5. Amount in Words
         doc.setFont('helvetica', 'normal');
-        const convertedTotal = proforma.total / (proforma.tipoCambio || 1);
         const decimalPart = formatNumber(convertedTotal).split(',')[1] || '00';
         const words = numberToWords(convertedTotal);
         doc.text(`SON: ${words} ${decimalPart}/100 ${isUSD ? 'DÓLARES AMERICANOS' : 'BOLIVIANOS'}`, 14, finalY);
@@ -1371,7 +1375,7 @@ const PresupuestoList: React.FC = () => {
                                     <td className="px-5 py-4 whitespace-nowrap text-sm font-bold text-gray-800 dark:text-gray-200">
                                         <div className="flex items-center gap-1">
                                             {proforma.moneda === 'USD' ? <DollarSign size={14} className="text-emerald-500" /> : <span className="text-xs text-gray-500">Bs.</span>}
-                                            {formatNumber(proforma.total / (proforma.tipoCambio || 1))}
+                                            {formatNumber((proforma.descuento && proforma.descuento > 0 ? proforma.sub_total * (1 - proforma.descuento / 100) : (proforma.total || proforma.sub_total)) / (proforma.tipoCambio || 1))}
                                         </div>
                                     </td>
                                     <td className="px-5 py-4 whitespace-nowrap text-center no-print">

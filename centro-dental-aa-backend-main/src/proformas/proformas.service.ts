@@ -58,7 +58,10 @@ export class ProformasService {
       // 4. Totals and Discount fields
       proforma.sub_total = createProformaDto.sub_total || 0;
       proforma.descuento = createProformaDto.descuento || 0;
-      proforma.total = createProformaDto.total || 0;
+      const createDiscountPercent = proforma.descuento || 0;
+      proforma.total = createDiscountPercent > 0
+        ? proforma.sub_total * (1 - createDiscountPercent / 100)
+        : (createProformaDto.total || proforma.sub_total);
       proforma.moneda = createProformaDto.moneda || 'Bs';
       proforma.tipoCambio = createProformaDto.tipoCambio || 1;
 
@@ -245,9 +248,13 @@ export class ProformasService {
 
       if (updateProformaDto.sub_total !== undefined) proforma.sub_total = updateProformaDto.sub_total;
       if (updateProformaDto.descuento !== undefined) proforma.descuento = updateProformaDto.descuento;
-      if (updateProformaDto.total !== undefined) proforma.total = updateProformaDto.total;
       if (updateProformaDto.moneda !== undefined) proforma.moneda = updateProformaDto.moneda;
       if (updateProformaDto.tipoCambio !== undefined) proforma.tipoCambio = updateProformaDto.tipoCambio;
+
+      const updateDiscountPercent = proforma.descuento || 0;
+      proforma.total = updateDiscountPercent > 0
+        ? Number(proforma.sub_total) * (1 - updateDiscountPercent / 100)
+        : (updateProformaDto.total !== undefined ? updateProformaDto.total : proforma.total);
 
       if (updateProformaDto.odontograma_mapa !== undefined) {
           proforma.odontograma_mapa = updateProformaDto.odontograma_mapa;
@@ -307,8 +314,10 @@ export class ProformasService {
         // Update proforma totals (exclude 'posible' items)
         const subtotal = savedDetalles.reduce((sum, item) => item.posible ? sum : sum + Number(item.total), 0);
         proforma.sub_total = subtotal;
-        const discount = proforma.descuento || 0;
-        proforma.total = subtotal - discount;
+        const discountPercent = proforma.descuento || 0;
+        proforma.total = discountPercent > 0
+          ? subtotal * (1 - discountPercent / 100)
+          : subtotal;
 
         // Update reference for return
         proforma.detalles = savedDetalles;
