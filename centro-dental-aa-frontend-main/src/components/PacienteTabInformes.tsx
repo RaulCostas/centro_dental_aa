@@ -142,21 +142,23 @@ const PacienteTabInformes: React.FC = () => {
         const pieza = seguimiento.pieza ? seguimiento.pieza : '-';
         
         const tableHtml = `
-            <table class="seguimiento-table" style="width: 100%; border-collapse: collapse; border: 1px solid #ddd; margin-bottom: 10px;" border="1">
-                <tbody>
-                    <tr style="background-color: #f3f4f6;">
-                        <td style="padding: 8px; border: 1px solid #ddd; text-align: left;"><strong>Fecha</strong></td>
-                        <td style="padding: 8px; border: 1px solid #ddd; text-align: left;"><strong>Plan #</strong></td>
-                        <td style="padding: 8px; border: 1px solid #ddd; text-align: left;"><strong>Tratamiento</strong></td>
-                        <td style="padding: 8px; border: 1px solid #ddd; text-align: left;"><strong>Pieza</strong></td>
-                        <td style="padding: 8px; border: 1px solid #ddd; text-align: left;"><strong>Observaciones</strong></td>
+            <table class="seguimiento-table" style="width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; margin-bottom: 10px;" border="1">
+                <thead>
+                    <tr style="background-color: #102a6b; color: #ffffff;">
+                        <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: left; background-color: #102a6b; color: #ffffff;"><strong>Fecha</strong></th>
+                        <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: left; background-color: #102a6b; color: #ffffff;"><strong>Plan #</strong></th>
+                        <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: left; background-color: #102a6b; color: #ffffff;"><strong>Tratamiento</strong></th>
+                        <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: left; background-color: #102a6b; color: #ffffff;"><strong>Pieza</strong></th>
+                        <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: left; background-color: #102a6b; color: #ffffff;"><strong>Observaciones</strong></th>
                     </tr>
+                </thead>
+                <tbody>
                     <tr>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${fechaStr}</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${pNumero}</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${seguimiento.tratamiento || '-'}</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${pieza}</td>
-                        <td style="padding: 8px; border: 1px solid #ddd;">${obs}</td>
+                        <td style="padding: 8px; border: 1px solid #cbd5e1;">${fechaStr}</td>
+                        <td style="padding: 8px; border: 1px solid #cbd5e1;">${pNumero}</td>
+                        <td style="padding: 8px; border: 1px solid #cbd5e1;">${seguimiento.tratamiento || '-'}</td>
+                        <td style="padding: 8px; border: 1px solid #cbd5e1;">${pieza}</td>
+                        <td style="padding: 8px; border: 1px solid #cbd5e1;">${obs}</td>
                     </tr>
                 </tbody>
             </table><p><br/></p>
@@ -596,17 +598,21 @@ const PacienteTabInformes: React.FC = () => {
             color: isDark ? '#f3f4f6' : '#000',
             preConfirm: () => {
                 const code = (document.getElementById('country-code') as HTMLSelectElement).value;
-                const num = (document.getElementById('phone-number') as HTMLInputElement).value;
-                if (!num || num.trim() === '') {
+                const rawNum = (document.getElementById('phone-number') as HTMLInputElement).value;
+                if (!rawNum || rawNum.trim() === '') {
                     Swal.showValidationMessage('¡Necesita escribir un número de celular!');
                     return false;
                 }
-                return code + num.trim();
+                let cleanNum = rawNum.replace(/\D/g, '');
+                if (cleanNum.startsWith(code)) {
+                    cleanNum = cleanNum.substring(code.length);
+                }
+                return code + cleanNum;
             }
         });
 
         if (result.isConfirmed && result.value) {
-            const celular = result.value.replace(/\+/g, '').replace(/\s/g, '');
+            const celular = result.value.replace(/\D/g, '');
             
             try {
                 // Check chatbot status first
@@ -649,8 +655,8 @@ const PacienteTabInformes: React.FC = () => {
                 Swal.fire({
                     icon: 'success',
                     title: '¡Enviado!',
-                    text: 'El informe ha sido enviado exitosamente.',
-                    timer: 2000,
+                    text: `El informe ha sido enviado exitosamente al número +${celular}.`,
+                    timer: 3000,
                     showConfirmButton: false,
                     background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
                     color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
@@ -996,6 +1002,36 @@ const PacienteTabInformes: React.FC = () => {
                             </h3>
                         </div>
                         <div className="p-8 overflow-y-auto overflow-x-hidden flex-1 bg-white dark:bg-gray-900">
+                            <style>{`
+                                .report-view table {
+                                    width: 100%;
+                                    border-collapse: collapse;
+                                    margin-bottom: 1rem;
+                                }
+                                .report-view tr[style*="f3f4f6"],
+                                .report-view table tr:first-child,
+                                .report-view table thead tr {
+                                    background-color: #102a6b !important;
+                                    color: #ffffff !important;
+                                }
+                                .report-view tr[style*="f3f4f6"] td,
+                                .report-view tr[style*="f3f4f6"] th,
+                                .report-view table tr:first-child td,
+                                .report-view table tr:first-child th,
+                                .report-view table tr:first-child strong,
+                                .report-view table thead th {
+                                    background-color: #102a6b !important;
+                                    color: #ffffff !important;
+                                }
+                                .report-view td, .report-view th {
+                                    padding: 8px;
+                                    border: 1px solid #cbd5e1;
+                                }
+                                .dark .report-view td, .dark .report-view th {
+                                    border-color: #374151;
+                                    color: #f3f4f6;
+                                }
+                            `}</style>
                             <div className="report-view prose dark:prose-invert max-w-none break-words whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: viewingInforme.contenido }} />
                         </div>
                         <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 flex justify-end">
