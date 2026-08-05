@@ -39,7 +39,7 @@ interface SessionState {
     intentionalDisconnect: boolean;
     initializationStartTime: number | null;
     initializationTimeout: NodeJS.Timeout | null;
-    userSessions: Map<string, { type: 'new' | 'registered' | 'waiting_cancellation_reason' | 'waiting_agenda_response', timestamp: number, citaId?: number }>;
+    userSessions: Map<string, { type: string, timestamp: number, citaId?: number }>;
     pollStore: Map<string, { message: any, citaId: number }>;
 }
 
@@ -517,23 +517,27 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
         }
 
         const menuSession = session.userSessions.get(remoteJid);
-        const options = ['a', 'b', 'c', 'd', '1', '2', '3'];
-        const isOption = options.includes(normalizedText);
+        const options = ['1', '2', '3', '4'];
+        const currentOption = normalizedText.trim();
+        const isOption = options.includes(currentOption);
 
-        if (isOption && menuSession && (menuSession.type === 'new' || menuSession.type === 'registered')) {
-            if (Date.now() - menuSession.timestamp < 300000) {
-                await this.handleMenuOption(remoteJid, normalizedText, actor, menuSession.type as 'new' | 'registered');
-                return;
-            } else {
-                session.userSessions.delete(remoteJid);
-            }
+        const isSessionValid = menuSession && (Date.now() - menuSession.timestamp < 300000);
+
+        if (currentOption === '0' || currentOption === 'menu' || currentOption === 'inicio') {
+            await this.sendMenu(remoteJid);
+            return;
+        }
+
+        if (isOption && isSessionValid && menuSession.type) {
+            await this.handleMenuOption(remoteJid, currentOption, actor, menuSession.type);
+            return;
         }
 
         if (matchedIntent) {
             try {
                 switch (matchedIntent.action) {
                     case 'MENU_PRINCIPAL' as any:
-                        await this.sendMenu(remoteJid, actor);
+                        await this.sendMenu(remoteJid);
                         break;
                     case 'CONSULTAR_CITA_HOY':
                         if (isDoctor) {
@@ -549,7 +553,7 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
                         await this.handleConsultarInventario(remoteJid, normalizedText);
                         break;
                     default:
-                        await this.sendMenu(remoteJid, actor);
+                        await this.sendMenu(remoteJid);
                         break;
                 }
             } catch (error) {
@@ -557,130 +561,168 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
             }
         } else {
             // Default action if text is unrecognized
-            await this.sendMenu(remoteJid, actor);
+            await this.sendMenu(remoteJid);
         }
     }
 
-
-    async sendMenu(remoteJid: string, actor: any) {
+    async sendMenu(remoteJid: string) {
         const session = this.getSession();
-        let menuType: 'new' | 'registered' = actor ? 'registered' : 'new';
-        let message = '';
-
-        if (menuType === 'new') {
-            message = `¡Hola! Bienvenido(a) a CENTRO DENTAL A&A. ¿En qué podemos ayudarte? 🦷✨\n\n` +
-                `*Menu:*\n` +
-                `*A* 📍 ¿Donde queda la Clínica?\n` +
-                `*B* 🕒 ¿Cual es el horario de atención?\n` +
-                `*C* 🦷 ¿Con qué especialidades cuenta el Centro Dental?\n` +
-                `*D* 💬 Requiero otro tipo de consulta\n\n` +
-                `Por favor, responde con la letra de la opción que desees.\n\n` +
-                `📌 Guarda nuestro número.`;
-        } else {
-            const nombreCompleto = [actor.nombre, actor.paterno, actor.materno].filter(Boolean).join(' ');
-
-            let saludoGenero = 'Bienvenido(a)';
-            const g = String(actor?.genero || '').trim().toUpperCase();
-            if (['F', 'FEMENINO', 'MUJER'].includes(g)) {
-                saludoGenero = 'Bienvenida';
-            } else if (['M', 'MASCULINO', 'HOMBRE'].includes(g)) {
-                saludoGenero = 'Bienvenido';
-            }
-
-            message = `¡Hola ${nombreCompleto}! ${saludoGenero} de nuevo. ¿En qué podemos ayudarte hoy? 😊✨\n\n` +
-                `*Menu Principal:*\n` +
-                `*1* 📅 Consultar Citas\n` +
-                `*2* 📄 Consultar Presupuestos\n` +
-                `*3* 💳 Consultar mi Saldo\n\n` +
-                `Por favor, responde con el número de la opción que desees.\n\n` +
-                `📌 Guarda nuestro número para recibir tus recordatorios.`;
-        }
+        const message = `¡Hola! 👋 Te damos la bienvenida al Centro Dental A&A. \n\n` +
+            `*Menú:*\n` +
+            `*1* Ya soy paciente de la clínica\n` +
+            `*2* Es mi primera vez aquí / Soy nuevo paciente\n` +
+            `*3* Urgencia\n\n` +
+            `Por favor, responde con el número de la opción que desees.\n` +
+            `📌 Guarda nuestro número.`;
 
         await this.sendMessage(remoteJid, message);
-        session.userSessions.set(remoteJid, { type: menuType, timestamp: Date.now() });
+        session.userSessions.set(remoteJid, { type: 'root_menu', timestamp: Date.now() });
     }
 
-    async handleMenuOption(remoteJid: string, option: string, actor: any, type: 'new' | 'registered') {
+    async sendSubmenuRegistered(remoteJid: string, actor: any) {
         const session = this.getSession();
-        const opt = option.toUpperCase();
+        const nombre = actor ? `${actor.nombre || ''} ${actor.paterno || ''}`.trim() : 'estimado paciente';
+        const message = `¡Qué gusto atenderte de nuevo ${nombre}! 😊 ¿En qué te podemos ayudar?\n\n` +
+            `*Menú:*\n` +
+            `*1* 🗓️ Agendar o reprogramar mi cita de control/tratamiento\n` +
+            `*2* 🦷 Consultar sobre mi tratamiento actual\n` +
+            `*3* 💳 Consultar mi saldo o plan de pago\n` +
+            `*4* 📅 Consultar mis citas programadas\n\n` +
+            `Por favor, responde con el número de la opción elegida.`;
 
-        switch (opt) {
-            case 'A': {
-                const datosList = await this.datosCentroDentalService.findAll();
-                const datos = datosList && datosList.length > 0 ? datosList[0] : null;
-                const direccion = datos?.direccion || 'Av. Principal #123';
-                await this.sendMessage(remoteJid, `📍 *Nos encontramos en:* ${direccion}`);
+        await this.sendMessage(remoteJid, message);
+        session.userSessions.set(remoteJid, { type: 'submenu_registered', timestamp: Date.now() });
+    }
 
-                if (datos?.latitud && datos?.longitud) {
-                    const lat = parseFloat(datos.latitud);
-                    const lng = parseFloat(datos.longitud);
-                    if (!isNaN(lat) && !isNaN(lng)) {
-                        const s = this.getSession();
-                        if (s.sock) {
-                            try {
-                                await s.sock.sendMessage(remoteJid, {
-                                    location: {
-                                        degreesLatitude: lat,
-                                        degreesLongitude: lng
-                                    }
-                                });
-                            } catch (e) {
-                                console.error('Error sending location:', e);
+    async sendSubmenuNew(remoteJid: string) {
+        const session = this.getSession();
+        const message = `¡Bienvenido al Centro Dental A&A! 🦷 Nos encantará cuidar de tu salud bucodental. ¿En qué te podemos ayudar?\n\n` +
+            `*Menú:*\n` +
+            `*1* 📋 Agendar una cita\n` +
+            `*2* 📍 Ubicación y Horarios\n\n` +
+            `Por favor, responde con el número de la opción elegida.`;
+
+        await this.sendMessage(remoteJid, message);
+        session.userSessions.set(remoteJid, { type: 'submenu_new', timestamp: Date.now() });
+    }
+
+    async sendUbicacionYHorarios(remoteJid: string) {
+        const datosList = await this.datosCentroDentalService.findAll();
+        const datos = datosList && datosList.length > 0 ? datosList[0] : null;
+        const direccion = datos?.direccion || 'Av. Principal #123';
+        const horarios = datos?.horarios || 'Lunes a Viernes de 8:00 a 18:00';
+
+        const message = `📍 *Nos encontramos en:* ${direccion}\n\n` +
+            `🕒 *Nuestro horario de atención es:* ${horarios}`;
+
+        await this.sendMessage(remoteJid, message);
+
+        if (datos?.latitud && datos?.longitud) {
+            const lat = parseFloat(datos.latitud);
+            const lng = parseFloat(datos.longitud);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                const s = this.getSession();
+                if (s.sock) {
+                    try {
+                        await s.sock.sendMessage(remoteJid, {
+                            location: {
+                                degreesLatitude: lat,
+                                degreesLongitude: lng
                             }
-                        }
+                        });
+                    } catch (e) {
+                        console.error('Error enviando ubicación GPS:', e);
                     }
                 }
-                break;
             }
-            case 'B': {
-                const datosList = await this.datosCentroDentalService.findAll();
-                const datos = datosList && datosList.length > 0 ? datosList[0] : null;
-                const horarios = datos?.horarios || 'Lunes a Viernes de 8:00 a 18:00';
-                await this.sendMessage(remoteJid, `🕒 *Nuestro horario de atención es:* ${horarios}`);
-                break;
+        }
+    }
+
+    async handleMenuOption(remoteJid: string, option: string, actor: any, sessionType: string) {
+        const session = this.getSession();
+        const opt = option.trim().toUpperCase();
+
+        if (sessionType === 'root_menu') {
+            switch (opt) {
+                case '1':
+                    if (actor) {
+                        await this.sendSubmenuRegistered(remoteJid, actor);
+                    } else {
+                        await this.sendMessage(remoteJid, "No encontramos tu número registrado como paciente en nuestra clínica. Te derivamos a las opciones para Pacientes Nuevos:");
+                        await this.sendSubmenuNew(remoteJid);
+                    }
+                    break;
+                case '2':
+                    await this.sendSubmenuNew(remoteJid);
+                    break;
+                case '3':
+                    await this.sendMessage(
+                        remoteJid,
+                        `Por favor déjanos tu Nombre Completo y Número de Cédula de Identidad, cuéntanos brevemente cual es tu urgencia.\n\n` +
+                        `Puedes llamar al 72030111 Dr. Alfredo D. Antequera V.`
+                    );
+                    session.userSessions.delete(remoteJid);
+                    break;
+                default:
+                    await this.sendMenu(remoteJid);
+                    break;
             }
-            case 'C': {
-                const res = await this.especialidadService.findAll(undefined, 1, 100);
-                const items = res?.data || [];
-                if (items.length > 0) {
-                    const list = items.map(e => `• ${e.especialidad}`).join('\n');
-                    await this.sendMessage(remoteJid, `🦷 *Las Especialidades con las que contamos son:*\n\n${list}`);
-                } else {
-                    await this.sendMessage(remoteJid, `🦷 *Contamos con especialidades odontológicas integrales para toda la familia.*`);
-                }
-                break;
-            }
-            case 'D': {
-                await this.sendMessage(remoteJid, `💬 En un momento personal del Centro Dental se comunicará con usted. 🏥`);
-                break;
-            }
-            case '1':
-                if (type === 'registered' && actor) {
-                    await this.checkAppointments(actor, remoteJid);
-                } else {
-                    await this.sendMessage(remoteJid, "Esta opción es solo para pacientes registrados.");
-                }
-                break;
-            case '2':
-                if (type === 'registered' && actor) {
-                    await this.executeConsultarPresupuesto(actor, remoteJid);
-                } else {
-                    await this.sendMessage(remoteJid, "Esta opción es solo para pacientes registrados.");
-                }
-                break;
-            case '3':
-                if (type === 'registered' && actor) {
-                    await this.executeConsultarEstadoCuenta(actor, remoteJid);
-                } else {
-                    await this.sendMessage(remoteJid, "Esta opción es solo para pacientes registrados.");
-                }
-                break;
-            default:
-                await this.sendMessage(remoteJid, "Opción no válida. Por favor, selecciona una de las opciones del menú.");
-                break;
+            return;
         }
 
-        session.userSessions.set(remoteJid, { type, timestamp: Date.now() });
+        if (sessionType === 'submenu_registered') {
+            switch (opt) {
+                case '1':
+                    await this.sendMessage(remoteJid, "Por favor díganos el día que prefieres venir. Revisaremos tu ficha y te confirmaremos en breve.");
+                    break;
+                case '2':
+                    await this.sendMessage(remoteJid, "Por favor indícanos tu duda o si tienes alguna molestia post-atención. Un asistente o tu doctor/a asignado/a se pondrá en contacto contigo a la brevedad.");
+                    break;
+                case '3':
+                    if (actor) {
+                        await this.executeConsultarEstadoCuenta(actor, remoteJid);
+                    } else {
+                        await this.sendMessage(remoteJid, "No encontramos tu expediente de paciente para consultar saldo.");
+                    }
+                    break;
+                case '4':
+                    if (actor) {
+                        await this.checkAppointments(actor, remoteJid);
+                    } else {
+                        await this.sendMessage(remoteJid, "No encontramos tu expediente de paciente para consultar citas.");
+                    }
+                    break;
+                default:
+                    await this.sendSubmenuRegistered(remoteJid, actor);
+                    break;
+            }
+            return;
+        }
+
+        if (sessionType === 'submenu_new') {
+            switch (opt) {
+                case '1':
+                    await this.sendMessage(
+                        remoteJid,
+                        `¡Excelente elección! Para agendar tu primera consulta, por favor envíanos los siguientes datos:\n` +
+                        `👤 Nombre y Apellido:\n` +
+                        `📱 Nº de Celular de contacto:\n` +
+                        `🦷 Motivo de consulta:\n` +
+                        `⏰ Turno de preferencia (Mañana o Tarde):\n\n` +
+                        `ℹ️ Nota: El costo de la consulta clínica es de 300 Bs.`
+                    );
+                    break;
+                case '2':
+                    await this.sendUbicacionYHorarios(remoteJid);
+                    break;
+                default:
+                    await this.sendSubmenuNew(remoteJid);
+                    break;
+            }
+            return;
+        }
+
+        await this.sendMenu(remoteJid);
     }
 
     async executeConsultarPresupuesto(actor: any, remoteJid: string) {

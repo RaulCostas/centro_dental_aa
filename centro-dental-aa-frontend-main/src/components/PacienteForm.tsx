@@ -324,6 +324,65 @@ const PacienteForm: React.FC = () => {
 
         payload.seguroId = formData.seguroId && formData.seguroId !== '' ? Number(formData.seguroId) : null;
         try {
+            // --- PRE-CHECK DE DUPLICADOS (solo al crear, no al editar) ---
+            if (!isEditing) {
+                try {
+                    const dupRes = await api.post('/pacientes/check-duplicate', {
+                        ci: payload.ci,
+                        nombre: payload.nombre,
+                        paterno: payload.paterno,
+                        fecha_nacimiento: payload.fecha_nacimiento,
+                        telefono_celular: payload.telefono_celular,
+                    });
+                    const { isDuplicate, level, paciente: dup } = dupRes.data;
+                    if (isDuplicate && dup) {
+                        const nombreDup = [dup.paterno, dup.materno, dup.nombre].filter(Boolean).join(' ');
+                        if (level === 'ci') {
+                            await Swal.fire({
+                                icon: 'error',
+                                title: t('Paciente Duplicado', 'Duplicate Patient'),
+                                html: t(
+                                    `Ya existe un paciente registrado con el mismo CI.<br><br><strong>${nombreDup}</strong>`,
+                                    `A patient is already registered with the same ID.<br><br><strong>${nombreDup}</strong>`
+                                ),
+                                confirmButtonText: t('Entendido', 'Understood'),
+                            });
+                            return;
+                        }
+                        if (level === 'nombre_fecha') {
+                            await Swal.fire({
+                                icon: 'error',
+                                title: t('Paciente Duplicado', 'Duplicate Patient'),
+                                html: t(
+                                    `Ya existe un paciente con el mismo Nombre, Apellido Paterno y Fecha de Nacimiento.<br><br><strong>${nombreDup}</strong>`,
+                                    `A patient already exists with the same Name, Last Name and Date of Birth.<br><br><strong>${nombreDup}</strong>`
+                                ),
+                                confirmButtonText: t('Entendido', 'Understood'),
+                            });
+                            return;
+                        }
+                        if (level === 'nombre_celular') {
+                            const confirm = await Swal.fire({
+                                icon: 'warning',
+                                title: t('Posible Paciente Duplicado', 'Possible Duplicate Patient'),
+                                html: t(
+                                    `Existe un paciente con el mismo Nombre, Apellido y Celular.<br><br><strong>${nombreDup}</strong><br><br>¿Desea continuar con el registro de todas formas?`,
+                                    `A patient with the same Name, Last Name and Phone was found.<br><br><strong>${nombreDup}</strong><br><br>Do you still want to register this patient?`
+                                ),
+                                showCancelButton: true,
+                                confirmButtonText: t('Sí, continuar', 'Yes, continue'),
+                                cancelButtonText: t('Cancelar', 'Cancel'),
+                                confirmButtonColor: '#f59e0b',
+                            });
+                            if (!confirm.isConfirmed) return;
+                        }
+                    }
+                } catch (dupErr) {
+                    console.warn('Error en pre-check de duplicados, se continúa:', dupErr);
+                }
+            }
+            // -----------------------------------------------------------
+
             let targetId = isEditing ? Number(id) : null;
             if (isEditing) {
                 await api.patch(`/pacientes/${id}`, payload);
@@ -502,7 +561,7 @@ const PacienteForm: React.FC = () => {
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Género', 'Gender')} <span className="text-red-500">*</span></label>
+                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Género', 'Gender')}</label>
                             <div className="relative">
                                 <Users size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                 <select name="genero" value={formData.genero} onChange={handleChange} required className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none">
@@ -513,7 +572,7 @@ const PacienteForm: React.FC = () => {
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('C.I. / Extensión', 'ID / Extension')}</label>
+                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('C.I. / Extensión', 'ID / Extension')} <span className="text-red-500">*</span></label>
                             <div className="flex gap-2">
                                 <div className="relative flex-grow">
                                     <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />

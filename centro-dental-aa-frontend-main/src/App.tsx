@@ -26,7 +26,6 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import PacienteList from './components/PacienteList';
 import PacienteForm from './components/PacienteForm';
 import PublicPacienteForm from './components/PublicPacienteForm';
-import PublicPagoForm from './components/PublicPagoForm';
 import PersonalTipoList from './components/PersonalTipoList';
 import PresupuestoList from './components/PresupuestoList';
 import PresupuestoForm from './components/PresupuestoForm';
@@ -99,7 +98,6 @@ function App() {
                     <ThemeProvider>
                         <Routes>
                             <Route path="/login" element={<Login />} />
-                            <Route path="/registro-pago" element={<PublicPagoForm />} />
                             <Route path="/registro-paciente" element={<PublicPacienteForm />} />
                             <Route path="/" element={<Layout />}>
                                 <Route index element={<RootRedirect />} />

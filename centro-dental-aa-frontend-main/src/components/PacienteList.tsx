@@ -73,12 +73,13 @@ const PacienteList: React.FC = () => {
     };
 
 
-    const [searchInput, setSearchInput] = useState('');
-    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+    const [searchInput, setSearchInput] = useState(() => sessionStorage.getItem('pacienteListSearch') || '');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(() => sessionStorage.getItem('pacienteListSearch') || '');
 
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedSearchTerm(searchInput);
+            sessionStorage.setItem('pacienteListSearch', searchInput);
         }, 500);
 
         return () => {
@@ -182,6 +183,7 @@ const PacienteList: React.FC = () => {
 
     const handleClearSearch = () => {
         setSearchInput('');
+        sessionStorage.removeItem('pacienteListSearch');
     };
 
     const handlePageChange = (newPage: number) => {

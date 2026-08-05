@@ -76,31 +76,26 @@ export class PacientesService {
     async create(createPacienteDto: CreatePacienteDto): Promise<Paciente> {
         const { pacienteData, fichaData } = this.splitDto(createPacienteDto);
 
-        // --- DUPLICATE CHECK ---
-        const whereConditions: any[] = [];
-        
-        if (pacienteData.ci) {
-            whereConditions.push({ ci: pacienteData.ci });
-        }
+        // --- DUPLICATE CHECK (niveles 1 y 2 bloquean, nivel 3 es manejado por el frontend) ---
+        const dupResult = await this.checkDuplicate({
+            ci: pacienteData.ci,
+            nombre: pacienteData.nombre,
+            paterno: pacienteData.paterno,
+            fecha_nacimiento: pacienteData.fecha_nacimiento,
+            telefono_celular: pacienteData.telefono_celular,
+        });
 
-        if (pacienteData.nombre && pacienteData.paterno && pacienteData.fecha_nacimiento) {
-            whereConditions.push({
-                nombre: pacienteData.nombre,
-                paterno: pacienteData.paterno,
-                fecha_nacimiento: pacienteData.fecha_nacimiento
-            });
-        }
-
-        if (whereConditions.length > 0) {
-            const existing = await this.pacientesRepository.findOne({
-                where: whereConditions
-            });
-            if (existing) {
-                const dupField = existing.ci === pacienteData.ci ? `CI: ${existing.ci}` : `Nombre y Fecha Nac.`;
-                throw new BadRequestException(`Ya existe un paciente registrado con estos datos (${dupField}). Registrado como: ${existing.nombre} ${existing.paterno}`);
+        if (dupResult.isDuplicate && dupResult.level !== 'nombre_celular') {
+            const p = dupResult.paciente!;
+            const nombreDup = [p.paterno, p.materno, p.nombre].filter(Boolean).join(' ');
+            if (dupResult.level === 'ci') {
+                throw new BadRequestException(`Ya existe un paciente registrado con el CI: ${p.ci}. Registrado como: ${nombreDup}`);
+            }
+            if (dupResult.level === 'nombre_fecha') {
+                throw new BadRequestException(`Ya existe un paciente con el mismo Nombre, Apellido Paterno y Fecha de Nacimiento. Registrado como: ${nombreDup}`);
             }
         }
-        // -----------------------
+        // -----------------------------------------------------------------------------------------
 
         return await this.dataSource.transaction(async (manager) => {
             if (pacienteData.foto && pacienteData.foto.startsWith('data:image')) {
@@ -473,5 +468,67 @@ export class PacientesService {
         });
 
         return monthlyStats;
+    }
+
+    /**
+     * Verifica si existe un paciente duplicado según 3 niveles de prioridad:
+     * - Nivel 1 (ci):           CI idéntico (case-insensitive) → bloqueo absoluto
+     * - Nivel 2 (nombre_fecha): Nombre + Paterno + Fecha de Nacimiento (case-insensitive) → bloqueo
+     * - Nivel 3 (nombre_celular): Nombre + Paterno + Celular (últimos 8 dígitos) → advertencia
+     */
+    async checkDuplicate(data: {
+        ci?: string;
+        nombre?: string;
+        paterno?: string;
+        fecha_nacimiento?: string;
+        telefono_celular?: string;
+        excludeId?: number;
+    }): Promise<{ isDuplicate: boolean; level: 'ci' | 'nombre_fecha' | 'nombre_celular' | null; paciente: Paciente | null }> {
+        const { ci, nombre, paterno, fecha_nacimiento, telefono_celular, excludeId } = data;
+
+        // --- Nivel 1: CI exacto (case-insensitive) ---
+        if (ci && ci.trim() !== '') {
+            const qb = this.pacientesRepository.createQueryBuilder('p')
+                .where('LOWER(TRIM(p.ci)) = LOWER(TRIM(:ci))', { ci: ci.trim() });
+            if (excludeId) qb.andWhere('p.id != :excludeId', { excludeId });
+            const existing = await qb.getOne();
+            if (existing) return { isDuplicate: true, level: 'ci', paciente: existing };
+        }
+
+        // --- Nivel 2: Nombre + Paterno + Fecha de Nacimiento (case-insensitive) ---
+        if (nombre && nombre.trim() && paterno && paterno.trim() && fecha_nacimiento) {
+            const qb = this.pacientesRepository.createQueryBuilder('p')
+                .where('LOWER(TRIM(p.nombre)) = LOWER(TRIM(:nombre))', { nombre: nombre.trim() })
+                .andWhere('LOWER(TRIM(p.paterno)) = LOWER(TRIM(:paterno))', { paterno: paterno.trim() })
+                .andWhere('p.fecha_nacimiento = :fecha_nacimiento', { fecha_nacimiento });
+            if (excludeId) qb.andWhere('p.id != :excludeId', { excludeId });
+            const existing = await qb.getOne();
+            if (existing) return { isDuplicate: true, level: 'nombre_fecha', paciente: existing };
+        }
+
+        // --- Nivel 3: Nombre + Paterno + Celular (últimos 8 dígitos, case-insensitive en nombres) ---
+        if (nombre && nombre.trim() && paterno && paterno.trim() && telefono_celular) {
+            const cleanPhone = telefono_celular.replace(/\D/g, '');
+            if (cleanPhone.length >= 7) {
+                const last8 = cleanPhone.slice(-8);
+                try {
+                    const qb = this.pacientesRepository.createQueryBuilder('p')
+                        .where('LOWER(TRIM(p.nombre)) = LOWER(TRIM(:nombre))', { nombre: nombre.trim() })
+                        .andWhere('LOWER(TRIM(p.paterno)) = LOWER(TRIM(:paterno))', { paterno: paterno.trim() })
+                        .andWhere('p.telefono_celular IS NOT NULL')
+                        .andWhere(
+                            "REGEXP_REPLACE(p.telefono_celular, '[^0-9]', '', 'g') LIKE :phoneSuffix",
+                            { phoneSuffix: `%${last8}` }
+                        );
+                    if (excludeId) qb.andWhere('p.id != :excludeId', { excludeId });
+                    const existing = await qb.getOne();
+                    if (existing) return { isDuplicate: true, level: 'nombre_celular', paciente: existing };
+                } catch (e) {
+                    this.logger.warn('Error en check de duplicado por celular (nivel 3):', e);
+                }
+            }
+        }
+
+        return { isDuplicate: false, level: null, paciente: null };
     }
 }

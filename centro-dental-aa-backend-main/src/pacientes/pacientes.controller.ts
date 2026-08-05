@@ -7,6 +7,11 @@ import { UpdatePacienteDto } from './dto/update-paciente.dto';
 export class PacientesController {
     constructor(private readonly pacientesService: PacientesService) { }
 
+    @Post('check-duplicate')
+    checkDuplicate(@Body() body: any) {
+        return this.pacientesService.checkDuplicate(body);
+    }
+
     @Post()
     create(@Body() createPacienteDto: CreatePacienteDto) {
         return this.pacientesService.create(createPacienteDto);

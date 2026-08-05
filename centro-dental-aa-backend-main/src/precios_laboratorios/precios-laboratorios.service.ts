@@ -32,25 +32,26 @@ export class PreciosLaboratoriosService {
 
     async findAll(page: number = 1, limit: number = 10, search?: string, laboratorioId?: number) {
         const skip = (page - 1) * limit;
-        const where: any = {};
+        const qb = this.preciosLaboratoriosRepository.createQueryBuilder('p')
+            .leftJoinAndSelect('p.laboratorio', 'laboratorio');
 
-        if (search) {
-            where.detalle = ILike(`%${search}%`);
+        if (search && search.trim() !== '') {
+            const searchTerm = `%${search.trim()}%`;
+            qb.andWhere(
+                '(LOWER(p.detalle) LIKE LOWER(:search) OR LOWER(laboratorio.laboratorio) LIKE LOWER(:search))',
+                { search: searchTerm }
+            );
         }
 
         if (laboratorioId) {
-            where.idLaboratorio = laboratorioId;
+            qb.andWhere('p.idLaboratorio = :laboratorioId', { laboratorioId });
         }
 
-        const [data, total] = await this.preciosLaboratoriosRepository.findAndCount({
-            where,
-            skip,
-            take: limit,
-            order: {
-                detalle: 'ASC',
-            },
-            relations: ['laboratorio'],
-        });
+        qb.orderBy('p.detalle', 'ASC')
+            .skip(skip)
+            .take(limit);
+
+        const [data, total] = await qb.getManyAndCount();
 
         return {
             data,

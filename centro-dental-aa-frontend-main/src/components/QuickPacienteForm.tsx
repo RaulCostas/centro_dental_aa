@@ -100,6 +100,45 @@ const QuickPacienteForm: React.FC<QuickPacienteFormProps> = ({ isOpen, onClose, 
                 }
             }
 
+            // --- PRE-CHECK DE DUPLICADOS ---
+            // Nota: este form no tiene fecha_nacimiento, por eso solo aplican nivel 1 (CI) y nivel 3 (celular)
+            try {
+                const dupRes = await api.post('/pacientes/check-duplicate', {
+                    ci: payload.ci,
+                    nombre: payload.nombre,
+                    paterno: payload.paterno,
+                    telefono_celular: payload.telefono_celular,
+                });
+                const { isDuplicate, level, paciente: dup } = dupRes.data;
+                if (isDuplicate && dup) {
+                    const nombreDup = [dup.paterno, dup.materno, dup.nombre].filter(Boolean).join(' ');
+                    if (level === 'ci') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Paciente ya registrado',
+                            html: `Ya existe un paciente con el mismo CI.<br><br><strong>${nombreDup}</strong>`,
+                            confirmButtonText: 'Entendido',
+                        });
+                        return;
+                    }
+                    if (level === 'nombre_celular') {
+                        const confirm = await Swal.fire({
+                            icon: 'warning',
+                            title: 'Posible Paciente Duplicado',
+                            html: `Existe un paciente con el mismo Nombre, Apellido y Celular.<br><br><strong>${nombreDup}</strong><br><br>¿Desea continuar con el registro de todas formas?`,
+                            showCancelButton: true,
+                            confirmButtonText: 'Sí, continuar',
+                            cancelButtonText: 'Cancelar',
+                            confirmButtonColor: '#f59e0b',
+                        });
+                        if (!confirm.isConfirmed) return;
+                    }
+                }
+            } catch (dupErr) {
+                console.warn('Error en pre-check de duplicados, se continúa:', dupErr);
+            }
+            // --------------------------------
+
             const response = await api.post('/pacientes', payload);
             if (response.data) {
                 Swal.fire({
@@ -132,7 +171,7 @@ const QuickPacienteForm: React.FC<QuickPacienteFormProps> = ({ isOpen, onClose, 
                 <form onSubmit={handleSubmit}>
                     <div className="grid gap-3">
                         <div>
-                            <label className="block mb-1 font-bold text-sm text-gray-700 dark:text-gray-300">Nombre:</label>
+                            <label className="block mb-1 font-bold text-sm text-gray-700 dark:text-gray-300">Nombre: <span className="text-red-500">*</span></label>
                             <input
                                 type="text"
                                 name="nombre"
@@ -145,7 +184,7 @@ const QuickPacienteForm: React.FC<QuickPacienteFormProps> = ({ isOpen, onClose, 
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <label className="block mb-1 font-bold text-sm text-gray-700 dark:text-gray-300">Paterno:</label>
+                                <label className="block mb-1 font-bold text-sm text-gray-700 dark:text-gray-300">Paterno: <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     name="paterno"
@@ -170,7 +209,7 @@ const QuickPacienteForm: React.FC<QuickPacienteFormProps> = ({ isOpen, onClose, 
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <label className="block mb-1 font-bold text-sm text-gray-700 dark:text-gray-300">C.I.:</label>
+                                <label className="block mb-1 font-bold text-sm text-gray-700 dark:text-gray-300">C.I.: <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     name="ci"
@@ -194,7 +233,7 @@ const QuickPacienteForm: React.FC<QuickPacienteFormProps> = ({ isOpen, onClose, 
                             </div>
                         </div>
                         <div>
-                            <label className="block mb-1 font-bold text-sm text-gray-700 dark:text-gray-300">Celular:</label>
+                            <label className="block mb-1 font-bold text-sm text-gray-700 dark:text-gray-300">Celular: <span className="text-red-500">*</span></label>
                             <div className="flex gap-2">
                                 <select
                                     value={countryCode}

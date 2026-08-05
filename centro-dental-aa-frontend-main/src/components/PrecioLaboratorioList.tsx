@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import api from '../services/api';
 import type { PrecioLaboratorio } from '../types';
@@ -34,7 +34,7 @@ const PrecioLaboratorioList: React.FC = () => {
         },
         {
             title: 'Búsqueda',
-            content: 'Utilice la barra de búsqueda para filtrar por detalle del trabajo.'
+            content: 'Utilice la barra de búsqueda para filtrar por detalle del trabajo o por nombre del laboratorio.'
         },
         {
             title: 'Dar de Baja y Reactivar',
@@ -622,7 +622,7 @@ const PrecioLaboratorioList: React.FC = () => {
                     <div className="relative flex-grow">
                         <input
                             type="text"
-                            placeholder="Buscar por detalle..."
+                            placeholder="Buscar por detalle o laboratorio..."
                             value={searchTerm}
                             onChange={handleSearch}
                             className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700"

@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from 'react';
-
 import api from '../services/api';
 import Swal from 'sweetalert2';
 import SignatureCanvas from './SignatureCanvas';
-import { CheckCircle, Camera, User, X } from 'lucide-react';
-
 import { getLocalDateString } from '../utils/dateUtils';
+import { getImageUrl } from '../utils/formatters';
+import { 
+    User, Users, Activity, Wind, Info, Edit, Mail, Calendar, MapPin, 
+    Phone, Briefcase, HelpCircle, Save, X, Fingerprint, Search, Shield, 
+    Camera, CheckCircle 
+} from 'lucide-react';
 
-const CameraModal: React.FC<{ isOpen: boolean; onClose: () => void; onCapture: (base64: string) => void }> = ({ isOpen, onClose, onCapture }) => {
+const CameraModal: React.FC<{ isOpen: boolean; onClose: () => void; onCapture: (base64: string) => void; isEnglish?: boolean }> = ({ isOpen, onClose, onCapture, isEnglish = false }) => {
     const videoRef = React.useRef<HTMLVideoElement>(null);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [error, setError] = useState<string | null>(null);
+
+    const t = (es: string, en: string) => isEnglish ? en : es;
 
     useEffect(() => {
         if (isOpen) {
@@ -23,7 +28,7 @@ const CameraModal: React.FC<{ isOpen: boolean; onClose: () => void; onCapture: (
                 })
                 .catch(err => {
                     console.error("Camera access error:", err);
-                    setError("No se pudo acceder a la cámara. Asegúrese de dar los permisos correspondientes.");
+                    setError(t("No se pudo acceder a la cámara. Asegúrese de dar los permisos correspondientes.", "Could not access camera. Please ensure permissions are granted."));
                 });
         } else {
             stopCamera();
@@ -32,7 +37,7 @@ const CameraModal: React.FC<{ isOpen: boolean; onClose: () => void; onCapture: (
         return () => {
             stopCamera();
         };
-    }, [isOpen]);
+    }, [isOpen, isEnglish]);
 
     const stopCamera = () => {
         if (stream) {
@@ -62,7 +67,7 @@ const CameraModal: React.FC<{ isOpen: boolean; onClose: () => void; onCapture: (
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full shadow-2xl border border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Capturar Foto del Paciente</h3>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{t('Capturar Foto del Paciente', 'Capture Patient Photo')}</h3>
                 {error ? (
                     <div className="p-4 bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 rounded-xl text-sm mb-4">
                         {error}
@@ -78,7 +83,7 @@ const CameraModal: React.FC<{ isOpen: boolean; onClose: () => void; onCapture: (
                         onClick={onClose}
                         className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200"
                     >
-                        Cancelar
+                        {t('Cancelar', 'Cancel')}
                     </button>
                     {!error && (
                         <button
@@ -86,7 +91,7 @@ const CameraModal: React.FC<{ isOpen: boolean; onClose: () => void; onCapture: (
                             onClick={handleCapture}
                             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
                         >
-                            Capturar
+                            {t('Capturar', 'Capture')}
                         </button>
                     )}
                 </div>
@@ -100,8 +105,8 @@ const PublicPacienteForm: React.FC = () => {
     const [currentStep, setCurrentStep] = useState<'form' | 'signature' | 'success'>('form');
     const [newPatientId, setNewPatientId] = useState<number | null>(null);
     const [showCameraModal, setShowCameraModal] = useState(false);
-
-    // Los formularios públicos son agnóticos a la sesión, no deben limpiarla preventivamente
+    const [isEnglish, setIsEnglish] = useState(false);
+    const t = (es: string, en: string) => isEnglish ? en : es;
 
     const [formData, setFormData] = useState({
         fecha_ingreso: getLocalDateString(),
@@ -114,23 +119,22 @@ const PublicPacienteForm: React.FC = () => {
         estado_civil: 'Soltero',
         fecha_nacimiento: '',
         genero: '',
-        responsable: '',
-        parentesco: '',
-        telefono_responsable: '',
+        tutor_nombre: '',
+        tutor_ci: '',
+        tutor_celular: '',
         ci: '',
         ci_extension: '',
         foto: '',
         estado: 'activo',
         grado_instruccion: 'Ninguna',
         seguroId: '' as string | number,
-        tutor_celular: '',
         persona_brinda_informacion: '',
         telefono: '',
+        ocupacion: '',
         lugar_residencia: '',
         profesion: '',
-        direccion_responsable: '',
 
-        // NUEVA FICHA CLÍNICA
+        // FICHA CLÍNICA DE ANTECEDENTES
         motivo_consulta: '',
         ant_pat_familiares: '',
         ant_pat_anemia: false,
@@ -182,11 +186,10 @@ const PublicPacienteForm: React.FC = () => {
         observaciones_ficha: '',
     });
 
-    // New state for phone country code
     const [countryCode, setCountryCode] = useState('+591');
     const [localCelular, setLocalCelular] = useState('');
-    const [responsableCountryCode, setResponsableCountryCode] = useState('+591');
-    const [localTelefonoResponsable, setLocalTelefonoResponsable] = useState('');
+    const [tutorCountryCode, setTutorCountryCode] = useState('+591');
+    const [tutorLocalCelular, setTutorLocalCelular] = useState('');
 
     const countryCodes = [
         { code: '+591', label: '🇧🇴 +591' },
@@ -217,22 +220,6 @@ const PublicPacienteForm: React.FC = () => {
         }
     };
 
-    // const [categorias, setCategorias] = useState<any[]>([]);
-
-    // useEffect(() => {
-    //     fetchCategorias();
-    // }, []);
-
-    // const fetchCategorias = async () => {
-    //     try {
-    //         const response = await api.get('/categoria-paciente?limit=100');
-    //         const activeCategorias = (response.data.data || []).filter((cat: any) => cat.estado === 'activo');
-    //         setCategorias(activeCategorias);
-    //     } catch (error) {
-    //         console.error('Error fetching categorias:', error);
-    //     }
-    // };
-
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
         const checked = (e.target as HTMLInputElement).checked;
@@ -246,6 +233,9 @@ const PublicPacienteForm: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const fullCelular = localCelular ? `${countryCode}${localCelular}` : '';
+            const fullTutorCelular = tutorLocalCelular ? `${tutorCountryCode}${tutorLocalCelular}` : '';
+
             const payload: any = { ...formData };
             Object.entries(payload).forEach(([key, value]) => {
                 if (value === null || value === undefined || value === '') {
@@ -254,22 +244,67 @@ const PublicPacienteForm: React.FC = () => {
             });
             
             payload.genero = formData.genero;
-            payload.telefono_celular = `${countryCode}${localCelular}`;
+            payload.telefono_celular = fullCelular;
+            payload.tutor_celular = fullTutorCelular;
+            payload.foto = formData.foto ? formData.foto : null;
+            payload.seguroId = formData.seguroId && formData.seguroId !== '' ? Number(formData.seguroId) : null;
 
-            // Map Responsable fields to Tutor fields in the backend
-            if (formData.responsable) {
-                payload.tutor_nombre = formData.responsable;
+            // --- PRE-CHECK DE DUPLICADOS ---
+            try {
+                const dupRes = await api.post('/pacientes/check-duplicate', {
+                    ci: payload.ci,
+                    nombre: payload.nombre,
+                    paterno: payload.paterno,
+                    fecha_nacimiento: payload.fecha_nacimiento,
+                    telefono_celular: payload.telefono_celular,
+                });
+                const { isDuplicate, level, paciente: dup } = dupRes.data;
+                if (isDuplicate && dup) {
+                    const nombreDup = [dup.paterno, dup.materno, dup.nombre].filter(Boolean).join(' ');
+                    if (level === 'ci') {
+                        await Swal.fire({
+                            icon: 'error',
+                            title: t('Paciente Duplicado', 'Duplicate Patient'),
+                            html: t(
+                                `Ya existe un paciente registrado con el mismo CI.<br><br><strong>${nombreDup}</strong>`,
+                                `A patient is already registered with the same ID.<br><br><strong>${nombreDup}</strong>`
+                            ),
+                            confirmButtonText: t('Entendido', 'Understood'),
+                        });
+                        return;
+                    }
+                    if (level === 'nombre_fecha') {
+                        await Swal.fire({
+                            icon: 'error',
+                            title: t('Paciente Duplicado', 'Duplicate Patient'),
+                            html: t(
+                                `Ya existe un paciente con el mismo Nombre, Apellido Paterno y Fecha de Nacimiento.<br><br><strong>${nombreDup}</strong>`,
+                                `A patient already exists with the same Name, Last Name and Date of Birth.<br><br><strong>${nombreDup}</strong>`
+                            ),
+                            confirmButtonText: t('Entendido', 'Understood'),
+                        });
+                        return;
+                    }
+                    if (level === 'nombre_celular') {
+                        const confirm = await Swal.fire({
+                            icon: 'warning',
+                            title: t('Posible Paciente Duplicado', 'Possible Duplicate Patient'),
+                            html: t(
+                                `Existe un paciente con el mismo Nombre, Apellido y Celular.<br><br><strong>${nombreDup}</strong><br><br>¿Desea continuar con el registro de todas formas?`,
+                                `A patient with the same Name, Last Name and Phone was found.<br><br><strong>${nombreDup}</strong><br><br>Do you still want to register this patient?`
+                            ),
+                            showCancelButton: true,
+                            confirmButtonText: t('Sí, continuar', 'Yes, continue'),
+                            cancelButtonText: t('Cancelar', 'Cancel'),
+                            confirmButtonColor: '#f59e0b',
+                        });
+                        if (!confirm.isConfirmed) return;
+                    }
+                }
+            } catch (dupErr) {
+                console.warn('Error en pre-check de duplicados, se continúa:', dupErr);
             }
-            if (localTelefonoResponsable) {
-                payload.tutor_celular = `${responsableCountryCode}${localTelefonoResponsable}`;
-            }
-
-            // Convert seguroId to number or null explicitly so backend validates and updates correctly
-            if (formData.seguroId && formData.seguroId !== '') {
-                payload.seguroId = Number(formData.seguroId);
-            } else {
-                payload.seguroId = null;
-            }
+            // --------------------------------
 
             const response = await api.post('/pacientes', payload);
             const createdId = response.data.id;
@@ -284,8 +319,8 @@ const PublicPacienteForm: React.FC = () => {
         } catch (error: any) {
             Swal.fire({
                 icon: 'error',
-                title: 'Error',
-                text: 'Hubo un error guardando sus datos. Intente nuevamente.'
+                title: t('Error', 'Error'),
+                text: error.response?.data?.message || t('Hubo un error guardando sus datos. Intente nuevamente.', 'There was an error saving your information. Please try again.')
             });
         }
     };
@@ -300,7 +335,7 @@ const PublicPacienteForm: React.FC = () => {
                 rolFirmante: 'paciente',
                 firmaData: signatureData,
                 tipoFirma: 'dibujada',
-                usuarioId: 1, // Default admin
+                usuarioId: 1,
                 timestamp: new Date().toISOString()
             });
 
@@ -308,36 +343,35 @@ const PublicPacienteForm: React.FC = () => {
             window.scrollTo(0, 0);
         } catch (error: any) {
             console.error("Error salvando firma:", error);
-            const errorMsg = error.response?.data?.message || 'No se pudo guardar la firma digital. Intente de nuevo.';
+            const errorMsg = error.response?.data?.message || t('No se pudo guardar la firma digital. Intente de nuevo.', 'Could not save digital signature. Please try again.');
             Swal.fire({
                 icon: 'error',
-                title: 'Error al Guardar Firma',
+                title: t('Error al Guardar Firma', 'Error Saving Signature'),
                 text: typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg)
             });
         }
     };
 
-
     if (currentStep === 'signature') {
         return (
-            <div className="min-h-screen bg-gray-50 flex flex-col items-center py-10 px-4">
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center py-10 px-4">
                 <div className="w-full max-w-[700px] mb-8">
-                    <div className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm mb-6">
+                    <div className="flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm mb-6 border border-gray-200 dark:border-gray-700">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">1</div>
-                            <span className="text-gray-400 font-medium line-through">Datos Personales</span>
+                            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold">1</div>
+                            <span className="text-gray-400 dark:text-gray-500 font-medium line-through">{t('Datos Personales', 'Personal Information')}</span>
                         </div>
-                        <div className="h-px bg-blue-200 flex-1 mx-4"></div>
+                        <div className="h-px bg-blue-200 dark:bg-blue-800 flex-1 mx-4"></div>
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">2</div>
-                            <span className="text-blue-600 font-bold">Firma Digital</span>
+                            <span className="text-blue-600 dark:text-blue-400 font-bold">{t('Firma Digital', 'Digital Signature')}</span>
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 md:p-8 border border-gray-100 dark:border-gray-700">
                         <div className="text-center mb-6">
-                            <h2 className="text-2xl font-bold text-gray-800">Casi terminamos</h2>
-                            <p className="text-gray-500 mt-2">Por favor, realice su firma digital para completar el registro legal de su ficha.</p>
+                            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{t('Casi terminamos', 'Almost done')}</h2>
+                            <p className="text-gray-500 dark:text-gray-400 mt-2">{t('Por favor, realice su firma digital para completar el registro legal de su ficha.', 'Please provide your digital signature to complete the legal registration of your form.')}</p>
                         </div>
                         
                         <SignatureCanvas 
@@ -352,68 +386,91 @@ const PublicPacienteForm: React.FC = () => {
 
     if (currentStep === 'success') {
         return (
-            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center py-10 px-4">
-                <div className="w-full max-w-[500px] bg-white rounded-2xl shadow-xl p-10 text-center">
-                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <CheckCircle className="w-12 h-12 text-green-600" />
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center py-10 px-4">
+                <div className="w-full max-w-[500px] bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-10 text-center border border-gray-100 dark:border-gray-700">
+                    <div className="w-20 h-20 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400" />
                     </div>
-                    <h2 className="text-3xl font-extrabold text-gray-900 mb-4">¡Registro Exitoso!</h2>
-                    <p className="text-gray-600 text-lg mb-8">
-                        Muchas gracias por completar su registro y firmar su ficha médica. <br/>
-                        Ya puede pasar a sala de espera, lo llamaremos enseguida.
-                    </p>
+                    <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-6">{t('¡Registro Exitoso!', 'Registration Successful!')}</h2>
                     <button 
                         onClick={() => window.location.reload()}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl text-lg transition-all shadow-lg active:scale-95"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl text-lg transition-all shadow-lg active:scale-95 cursor-pointer"
                     >
-                        Finalizar
+                        {t('Finalizar', 'Finish')}
                     </button>
-                    <p className="mt-6 text-sm text-gray-400">La página se reiniciará automáticamente para el siguiente paciente.</p>
+                    <p className="mt-6 text-sm text-gray-400 dark:text-gray-500">{t('La página se reiniciará automáticamente para el siguiente paciente.', 'The page will automatically reset for the next patient.')}</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center py-10 px-4">
-            <div className="w-full max-w-[700px] bg-white rounded-xl shadow-lg p-6 md:p-8">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-blue-600 mb-2">CENTRO DENTAL A&A</h1>
-                    <p className="text-gray-500">Formulario de Ingreso de Paciente Nuevo</p>
-                </div>
-            <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-                    <span className="p-2 bg-blue-100 rounded-lg text-blue-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                    </span>
-                    Registro de Paciente
-                </h2>
-                
+        <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen mb-20 font-sans text-gray-800 dark:text-gray-100">
+            {/* Top Branding Banner */}
+            <div className="text-center mb-6">
+                <h1 className="text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tight">CENTRO DENTAL A&A</h1>
+                <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-widest mt-1">{t('Formulario de Ingreso de Paciente Nuevo', 'New Patient Entry Form')}</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="grid gap-5">
-                {/* Datos Personales */}
-                 <fieldset className="border border-gray-300 p-4 rounded-lg">
-                    <legend className="font-bold px-2 text-gray-600">Datos Personales</legend>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div></div> {/* Espacio vacío */}
-                        <div></div> {/* Espacio vacío */}
+            {/* Header section with icon, title and language toggle */}
+            <div className="flex items-center justify-between mb-10 border-b pb-4 border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col">
+                    <h2 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-4">
+                        <span className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-2xl text-blue-600 dark:text-blue-400 shadow-sm border border-blue-200 dark:border-blue-800">
+                            <Users size={32} />
+                        </span>
+                        <div>
+                            {t('Registro de Paciente', 'Patient Registration')}
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-0.5">
+                                {t('Registro integral de datos y antecedentes médicos', 'Full patient registration & medical history')}
+                            </p>
+                        </div>
+                    </h2>
+                </div>
+                <div className="flex items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={() => setIsEnglish(prev => !prev)}
+                        className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm shadow-md flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
+                        title={isEnglish ? 'Cambiar a Español' : 'Switch to English'}
+                    >
+                        <span>🌐</span>
+                        <span>{isEnglish ? 'Español' : 'Inglés'}</span>
+                    </button>
+                </div>
+            </div>
 
-                        {/* Foto del Paciente colocada al extremo superior derecho (Columna 3) */}
-                        <div className="flex flex-col mb-2">
-                            <label className="block mb-1 font-medium text-gray-700">Foto del Paciente:</label>
+            <form onSubmit={handleSubmit} className="space-y-8">
+                {/* --- FILIACIÓN --- */}
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-100 dark:border-gray-700">
+                    <div className="flex items-center mb-6 pb-2 border-b border-blue-500/20">
+                        <User size={24} className="text-blue-600 mr-4" />
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wider">{t('Filiación', 'Personal Information')}</h2>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Fecha Ingreso', 'Admission Date')}</label>
+                            <div className="relative">
+                                <Calendar size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <input type="date" name="fecha_ingreso" value={formData.fecha_ingreso} onChange={handleChange} className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                        </div>
+
+                        <div></div>
+
+                        <div className="flex flex-col">
+                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Foto del Paciente', 'Patient Photo')}</label>
                             <div className="flex items-center gap-3">
                                 <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center border border-gray-300 dark:border-gray-600 shadow-inner relative group flex-shrink-0">
                                     {formData.foto ? (
                                         <>
-                                            <img src={formData.foto} alt="Foto paciente" className="w-full h-full object-cover" />
+                                            <img src={getImageUrl(formData.foto)} alt="Foto paciente" className="w-full h-full object-cover" />
                                             <button 
                                                 type="button" 
                                                 onClick={() => setFormData(prev => ({ ...prev, foto: '' }))}
                                                 className="absolute top-0.5 right-0.5 bg-red-600 hover:bg-red-700 text-white rounded-full p-0.5 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-                                                title="Eliminar foto"
+                                                title={t('Eliminar foto', 'Remove photo')}
                                             >
                                                 <X size={10} />
                                             </button>
@@ -426,14 +483,14 @@ const PublicPacienteForm: React.FC = () => {
                                     <button
                                         type="button"
                                         onClick={() => setShowCameraModal(true)}
-                                        className="py-1 px-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm flex items-center gap-1"
+                                        className="py-1 px-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm flex items-center gap-1 cursor-pointer"
                                     >
                                         <Camera size={12} />
-                                        Tomar
+                                        {t('Tomar', 'Take Photo')}
                                     </button>
                                     <label className="py-1 px-2.5 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100 text-xs font-semibold rounded-lg shadow-sm flex items-center gap-1 cursor-pointer text-center font-sans">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                                        Subir
+                                        {t('Subir', 'Upload')}
                                         <input 
                                             type="file" 
                                             accept="image/*" 
@@ -453,140 +510,164 @@ const PublicPacienteForm: React.FC = () => {
                                 </div>
                             </div>
                         </div>
+
                         <div>
-                            <label className="block mb-1 font-medium text-gray-700 dark:text-gray-300">Paterno:</label>
-                             <div className="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="12" cy="7" r="4"></circle>
-                                </svg>
-                                <input type="text" name="paterno" value={formData.paterno} onChange={handleChange} required placeholder="Ej: Pérez"
-                                    className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 block"
-                                />
+                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Paterno', 'Paternal Surname')} <span className="text-red-500">*</span></label>
+                            <div className="relative">
+                                <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <input type="text" name="paterno" value={formData.paterno} onChange={handleChange} required placeholder={t('Ej: Pérez', 'e.g. Smith')} className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
                             </div>
                         </div>
                         <div>
-                            <label className="block mb-1 font-medium text-gray-700 dark:text-gray-300">Materno:</label>
+                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Materno', 'Maternal Surname')}</label>
                             <div className="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="12" cy="7" r="4"></circle>
-                                </svg>
-                                <input type="text" name="materno" value={formData.materno} onChange={handleChange} required placeholder="Ej: Gómez"
-                                    className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 block"
-                                />
+                                <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <input type="text" name="materno" value={formData.materno} onChange={handleChange} placeholder={t('Ej: Gómez', 'e.g. Johnson')} className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
                             </div>
                         </div>
                         <div>
-                            <label className="block mb-1 font-medium text-gray-700 dark:text-gray-300">Nombre:</label>
+                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Nombres', 'First Name(s)')} <span className="text-red-500">*</span></label>
                             <div className="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="12" cy="7" r="4"></circle>
-                                </svg>
-                                <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} required placeholder="Ej: Juan"
-                                    className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 block"
-                                />
+                                <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} required placeholder={t('Ej: Juan', 'e.g. John')} className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
                             </div>
                         </div>
                         <div>
-                            <label className="block mb-1 font-medium text-gray-700 dark:text-gray-300">Fecha Nacimiento:</label>
-                            <div className="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none">
-                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                                </svg>
-                                <input type="date" name="fecha_nacimiento" value={formData.fecha_nacimiento} onChange={handleChange} required className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Nacimiento', 'Date of Birth')} <span className="text-red-500">*</span></label>
+                            <div className="relative flex items-center gap-2">
+                                <div className="relative flex-grow">
+                                    <Calendar size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    <input type="date" name="fecha_nacimiento" value={formData.fecha_nacimiento} onChange={handleChange} required className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                                {formData.fecha_nacimiento && (
+                                    <div className="flex flex-col items-center bg-gray-100 dark:bg-gray-700 p-1 px-2 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 min-w-[50px]">
+                                        <span className="text-[8px] font-black text-gray-400 uppercase">{t('Edad', 'Age')}</span>
+                                        <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                                            {(() => {
+                                                const birthDate = new Date(formData.fecha_nacimiento);
+                                                const today = new Date();
+                                                let age = today.getFullYear() - birthDate.getFullYear();
+                                                const m = today.getMonth() - birthDate.getMonth();
+                                                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+                                                return age;
+                                            })()}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <div>
-                            <label className="block mb-1 font-medium text-gray-700 dark:text-gray-300">Sexo:</label>
+                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Género', 'Gender')}</label>
                             <div className="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none">
-                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="9" cy="7" r="4"></circle>
-                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                </svg>
-                                <select name="genero" value={formData.genero} onChange={handleChange} required className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
-                                    <option value="" disabled>-- Seleccione --</option>
-                                    <option value="M">Masculino</option>
-                                    <option value="F">Femenino</option>
+                                <Users size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <select name="genero" value={formData.genero} onChange={handleChange} className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none">
+                                    <option value="">{t('-- Seleccionar --', '-- Select --')}</option>
+                                    <option value="M">{t('Masculino', 'Male')}</option>
+                                    <option value="F">{t('Femenino', 'Female')}</option>
                                 </select>
                             </div>
                         </div>
                         <div>
-                            <label className="block mb-1 font-medium text-gray-700 dark:text-gray-300">Estado Civil:</label>
-                            <div className="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none">
-                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                                </svg>
-                                <select name="estado_civil" value={formData.estado_civil} onChange={handleChange} required className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
-                                    <option value="" disabled>-- Seleccione --</option>
-                                    <option value="Soltero">Soltero(a)</option>
-                                    <option value="Casado">Casado(a)</option>
-                                    <option value="Viudo">Viudo(a)</option>
-                                    <option value="Separado">Separado(a)</option>
-                                    <option value="Conviviente">Conviviente</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block mb-1 font-medium text-gray-700 dark:text-gray-300">Carnet de Identidad (CI) / Extensión:</label>
+                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('C.I. / Extensión', 'ID / Extension')} <span className="text-red-500">*</span></label>
                             <div className="flex gap-2">
                                 <div className="relative flex-grow">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                                    </svg>
-                                    <input type="text" name="ci" value={formData.ci} onChange={handleChange} placeholder="Ej: 1234567"
-                                        className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 block"
-                                    />
+                                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    <input type="text" name="ci" value={formData.ci} onChange={handleChange} placeholder={t('Ej: 1234567', 'e.g. 1234567')} className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                                 <div className="w-24">
                                     <input type="text" name="ci_extension" value={formData.ci_extension || ''} onChange={(e) => {
                                         e.target.value = e.target.value.toUpperCase();
                                         handleChange(e);
-                                    }} maxLength={4} placeholder="Ext"
-                                        className="w-full px-3 py-2 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 block"
+                                    }} maxLength={4} placeholder={t('Ext', 'Ext')} className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Dirección', 'Address')}</label>
+                            <div className="relative">
+                                <MapPin size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <input type="text" name="direccion" value={formData.direccion} onChange={handleChange} placeholder={t('Ej: Av. Principal #123', 'e.g. 123 Main St')} className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Ocupación', 'Occupation')}</label>
+                            <div className="relative">
+                                <Briefcase size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <input type="text" name="ocupacion" value={formData.ocupacion} onChange={handleChange} placeholder={t('Ej: Estudiante', 'e.g. Student')} className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Teléfono/Celular', 'Phone/Mobile')} <span className="text-red-500">*</span></label>
+                            <div className="flex gap-2">
+                                <select
+                                    value={countryCode}
+                                    onChange={(e) => setCountryCode(e.target.value)}
+                                    className="py-2 px-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 outline-none focus:ring-2 focus:ring-blue-500 transition-all font-sans text-sm"
+                                >
+                                    {countryCodes.map(c => (
+                                        <option key={c.code} value={c.code}>{c.label}</option>
+                                    ))}
+                                </select>
+                                <div className="relative flex-1">
+                                    <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    <input 
+                                        type="text" 
+                                        value={localCelular} 
+                                        onChange={(e) => setLocalCelular(e.target.value)} 
+                                        required 
+                                        placeholder={t('Ej: 70012345', 'e.g. 70012345')} 
+                                        className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" 
                                     />
                                 </div>
                             </div>
                         </div>
                         <div>
-                            <label className="block mb-1 font-medium text-gray-700">Grado de Instrucción:</label>
+                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Email', 'Email')}</label>
                             <div className="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none">
-                                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                                </svg>
-                                <select name="grado_instruccion" value={formData.grado_instruccion} onChange={handleChange} required className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
-                                    <option value="Ninguna">Ninguna</option>
-                                    <option value="Inicial">Inicial</option>
-                                    <option value="Primaria">Primaria</option>
-                                    <option value="Secundaria">Secundaria</option>
-                                    <option value="Tecnico">Técnico</option>
-                                    <option value="Universidad">Universidad</option>
-                                    <option value="Profesional">Profesional</option>
+                                <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder={t('Ej: paciente@gmail.com', 'e.g. patient@gmail.com')} className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Estado Civil', 'Marital Status')}</label>
+                            <div className="relative">
+                                <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <select name="estado_civil" value={formData.estado_civil} onChange={handleChange} className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none">
+                                    <option value="Soltero">{t('Soltero(a)', 'Single')}</option>
+                                    <option value="Casado">{t('Casado(a)', 'Married')}</option>
+                                    <option value="Viudo">{t('Viudo(a)', 'Widowed')}</option>
+                                    <option value="Separado">{t('Separado(a)', 'Separated')}</option>
+                                    <option value="Conviviente">{t('Conviviente', 'Cohabitating')}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Grado de Instrucción', 'Education Level')}</label>
+                            <div className="relative">
+                                <Briefcase size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <select name="grado_instruccion" value={formData.grado_instruccion} onChange={handleChange} className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none">
+                                    <option value="Ninguna">{t('Ninguna', 'None')}</option>
+                                    <option value="Inicial">{t('Inicial', 'Preschool')}</option>
+                                    <option value="Primaria">{t('Primaria', 'Primary School')}</option>
+                                    <option value="Secundaria">{t('Secundaria', 'High School')}</option>
+                                    <option value="Tecnico">{t('Técnico', 'Technical Degree')}</option>
+                                    <option value="Universidad">{t('Universidad', 'University')}</option>
+                                    <option value="Profesional">{t('Profesional', 'Postgraduate/Professional')}</option>
                                 </select>
                             </div>
                         </div>
 
                         <div>
-                            <label className="block mb-1 font-medium text-gray-700">Seguro / Convenio:</label>
+                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Seguro / Convenio', 'Insurance / Agreement')}</label>
                             <div className="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                                </svg>
+                                <Shield size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                 <select 
                                     name="seguroId" 
                                     value={formData.seguroId || ''} 
-                                    onChange={handleChange}
-                                    className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 block appearance-none"
+                                    onChange={handleChange} 
+                                    className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
                                 >
-                                    <option value="">-- Sin Seguro (Particular) --</option>
+                                    <option value="">{t('-- Sin Seguro (Particular) --', '-- No Insurance (Private) --')}</option>
                                     {seguros.map((s) => (
                                         <option key={s.id} value={s.id}>
                                             {s.nombre}
@@ -596,615 +677,611 @@ const PublicPacienteForm: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                </fieldset>
 
-                {/* Contacto */}
-                 <fieldset className="border border-gray-300 p-4 rounded-lg mt-4">
-                    <legend className="font-bold px-2 text-gray-600">Contacto</legend>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="md:col-span-3">
-                            <label className="block mb-1 font-medium text-gray-700">Dirección:</label>
-                            <div className="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                    <circle cx="12" cy="10" r="3"></circle>
-                                </svg>
-                                <input type="text" name="direccion" value={formData.direccion} onChange={handleChange} placeholder="Dirección completa..."
-                                    className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 block"
-                                />
-                            </div>
+                    {/* --- TUTOR Y ACOMPAÑANTE --- */}
+                    <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center mb-6 pb-2 border-b border-gray-500/20">
+                            <Info size={24} className="text-gray-600 mr-4" />
+                            <h2 className="text-xl font-bold uppercase text-gray-800 dark:text-gray-100">{t('Tutor y Acompañante', 'Guardian & Companion')}</h2>
                         </div>
-                        <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                             <div>
-                                 <label className="block mb-1 font-medium text-gray-700">Teléfono:</label>
+                                <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Nombre Tutor', 'Guardian Name')}</label>
                                 <div className="relative">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                                    </svg>
-                                    <input type="text" name="telefono" value={formData.telefono} onChange={handleChange} placeholder="Ej: 4-440000"
-                                        className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 block"
-                                    />
+                                    <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    <input type="text" name="tutor_nombre" value={formData.tutor_nombre} onChange={handleChange} placeholder={t('Nombre Tutor', 'Guardian Name')} className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
                                 </div>
                             </div>
                             <div>
-                                <label className="block mb-1 font-medium text-gray-700">Celular:</label>
+                                <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('C.I. Tutor', 'Guardian ID')}</label>
+                                <div className="relative">
+                                    <Fingerprint size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    <input type="text" name="tutor_ci" value={formData.tutor_ci} onChange={handleChange} placeholder={t('C.I. Tutor', 'Guardian ID')} className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Celular Tutor', 'Guardian Mobile')}</label>
                                 <div className="flex gap-2">
                                     <select
-                                        value={countryCode}
-                                        onChange={(e) => setCountryCode(e.target.value)}
-                                        className="py-2 px-2 border border-gray-300 rounded-lg bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        value={tutorCountryCode}
+                                        onChange={(e) => setTutorCountryCode(e.target.value)}
+                                        className="py-2 px-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 outline-none focus:ring-2 focus:ring-blue-500 transition-all font-sans text-sm"
                                     >
-                                        <option value="" disabled>-- Seleccione --</option>
                                         {countryCodes.map(c => (
                                             <option key={c.code} value={c.code}>{c.label}</option>
                                         ))}
                                     </select>
                                     <div className="relative flex-1">
-                                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                                            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-                                            <line x1="12" y1="18" x2="12.01" y2="18"></line>
-                                        </svg>
-                                        <input
-                                            type="text"
-                                            name="localCelular"
-                                            value={localCelular}
-                                            onChange={(e) => setLocalCelular(e.target.value)}
-                                            placeholder="Ej: 70012345"
-                                            className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-800 transition-colors"
+                                        <Phone size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                        <input 
+                                            type="text" 
+                                            value={tutorLocalCelular} 
+                                            onChange={(e) => setTutorLocalCelular(e.target.value)} 
+                                            placeholder={t('Celular Tutor', 'Guardian Mobile')} 
+                                            className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" 
                                         />
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div>
-                             <label className="block mb-1 font-medium text-gray-700">Email:</label>
+                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Persona que brinda la información', 'Person Providing Info')}</label>
                             <div className="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                                    <polyline points="22,6 12,13 2,6"></polyline>
-                                </svg>
-                                <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Ej: correo@ejemplo.com"
-                                    className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 block"
-                                />
-                            </div>
-                        </div>
-                         <div>
-                            <label className="block mb-1 font-medium text-gray-700">Lugar de Residencia:</label>
-                            <div className="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                    <circle cx="12" cy="10" r="3"></circle>
-                                </svg>
-                                <input type="text" name="lugar_residencia" value={formData.lugar_residencia} onChange={handleChange} placeholder="Ej: Cochabamba"
-                                    className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 block"
-                                />
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block mb-1 font-medium text-gray-700">Profesión:</label>
-                            <div className="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                                </svg>
-                                <input type="text" name="profesion" value={formData.profesion} onChange={handleChange} placeholder="Ej: Arquitecto"
-                                    className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 block"
-                                />
+                                <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <input type="text" name="persona_brinda_informacion" value={formData.persona_brinda_informacion} onChange={handleChange} placeholder={t('Persona que brinda la información', 'Person providing information')} className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
                             </div>
                         </div>
                     </div>
-                </fieldset>
+                </div>
 
-
-
-                {/* Responsable */}
-                 <fieldset className="border border-gray-300 p-4 rounded-lg mt-4">
-                    <legend className="font-bold px-2 text-gray-600">Responsable</legend>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block mb-1 font-medium text-gray-700">Nombre Responsable:</label>
-                            <div className="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="12" cy="7" r="4"></circle>
-                                </svg>
-                                <input type="text" name="responsable" value={formData.responsable} onChange={handleChange} placeholder="Ej: María Gómez"
-                                    className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 block"
-                                />
-                            </div>
+                {/* --- FICHA CLÍNICA DE ANTECEDENTES --- */}
+                <div className="space-y-8 animate-slide-up">
+                    {/* MOTIVO DE CONSULTA */}
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-100 dark:border-gray-700 animate-slide-up">
+                        <div className="flex items-center mb-6 pb-2 border-b border-blue-500/20">
+                            <HelpCircle size={24} className="text-blue-600 mr-4" />
+                            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wider">{t('Motivo de Consulta', 'Reason for Visit')}</h2>
                         </div>
                         <div>
-                            <label className="block mb-1 font-medium text-gray-700">Parentesco:</label>
-                            <div className="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="9" cy="7" r="4"></circle>
-                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                </svg>
-                                <input type="text" name="parentesco" value={formData.parentesco} onChange={handleChange} placeholder="Ej: Madre"
-                                    className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 block"
-                                />
-                            </div>
+                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">
+                                {t('Motivo de la consulta dental', 'Reason for dental visit')}
+                            </label>
+                            <textarea 
+                                name="motivo_consulta" 
+                                value={formData.motivo_consulta || ''} 
+                                onChange={handleChange} 
+                                rows={2} 
+                                placeholder={t('Describa brevemente el motivo de la consulta...', 'Briefly describe the reason for your visit...')} 
+                                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none resize-none" 
+                            />
+                        </div>
+                    </div>
+
+                    {/* 1. ANTECEDENTES FAMILIARES */}
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <div className="flex items-center mb-6 pb-2 border-b border-indigo-500/20">
+                            <Users size={24} className="text-indigo-600 mr-4" />
+                            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wider">{t('Antecedentes Familiares', 'Family Medical History')}</h2>
                         </div>
                         <div>
-                            <label className="block mb-1 font-medium text-gray-700">Dirección Responsable:</label>
-                            <div className="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                    <circle cx="12" cy="10" r="3"></circle>
-                                </svg>
-                                <input type="text" name="direccion_responsable" value={formData.direccion_responsable} onChange={handleChange} placeholder="Dirección completa..."
-                                    className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 block"
-                                />
+                            <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">
+                                {t('Enfermedades familiares hereditarias', 'Hereditary family conditions')}
+                            </label>
+                            <textarea 
+                                name="ant_pat_familiares" 
+                                value={formData.ant_pat_familiares || ''} 
+                                onChange={handleChange} 
+                                rows={3} 
+                                placeholder={t('Especifique si algún familiar padece de Diabetes, Hipertensión, Cardiopatías, Cáncer, etc.', 'Specify if any family member has Diabetes, Hypertension, Heart Disease, Cancer, etc.')} 
+                                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none resize-none" 
+                            />
+                        </div>
+                    </div>
+
+                    {/* 2. ANTECEDENTES PERSONALES PATOLÓGICOS */}
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-red-50 dark:border-red-900/30">
+                        <div className="flex items-center mb-6 pb-2 border-b border-red-500/20">
+                            <Activity size={24} className="text-red-600 mr-4" />
+                            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wider">{t('Antecedentes Personales Patológicos', 'Personal Medical History (Pathological)')}</h2>
+                        </div>
+                        
+                        {/* Grid de checkboxes de enfermedades */}
+                        <div className="mb-6">
+                            <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-wider">{t('Marque las condiciones que padece o ha padecido:', 'Check conditions you currently have or had:')}</h3>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700">
+                                {[
+                                    { id: 'ant_pat_anemia', label: t('Anemia', 'Anemia') },
+                                    { id: 'ant_pat_cardiopatias', label: t('Cardiopatías', 'Heart Disease') },
+                                    { id: 'ant_pat_gastricas', label: t('Enf. Gástricas', 'Gastric Disease') },
+                                    { id: 'ant_pat_hepatitis', label: t('Hepatitis', 'Hepatitis') },
+                                    { id: 'ant_pat_tuberculosis', label: t('Tuberculosis', 'Tuberculosis') },
+                                    { id: 'ant_pat_asma', label: t('Asma', 'Asthma') },
+                                    { id: 'ant_pat_diabetes', label: t('Diabetes', 'Diabetes') },
+                                    { id: 'ant_pat_epilepsia', label: t('Epilepsia', 'Epilepsy') },
+                                    { id: 'ant_pat_hipertension', label: t('Hipertensión', 'Hypertension') },
+                                    { id: 'ant_pat_vih', label: t('VIH', 'HIV') },
+                                    { id: 'ant_pat_ninguno', label: t('Ninguno', 'None') },
+                                ].map((cond) => (
+                                    <label key={cond.id} className="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                        <input 
+                                            type="checkbox" 
+                                            name={cond.id} 
+                                            checked={!!formData[cond.id as keyof typeof formData]} 
+                                            onChange={(e) => setFormData(prev => ({ ...prev, [cond.id]: e.target.checked }))} 
+                                            className="w-5 h-5 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:bg-gray-700" 
+                                        />
+                                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{cond.label}</span>
+                                    </label>
+                                ))}
                             </div>
                         </div>
-                        <div>
-                            <label className="block mb-1 font-medium text-gray-700">Teléfono Responsable:</label>
-                            <div className="flex gap-2">
-                                <select
-                                    value={responsableCountryCode}
-                                    onChange={(e) => setResponsableCountryCode(e.target.value)}
-                                    className="py-2 px-2 border border-gray-300 rounded-lg bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                >
-                                    <option value="" disabled>-- Seleccione --</option>
-                                    {countryCodes.map(c => (
-                                        <option key={c.code} value={c.code}>{c.label}</option>
-                                    ))}
-                                </select>
-                                <div className="relative flex-1">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                                    </svg>
-                                    <input 
-                                        type="text" 
-                                        value={localTelefonoResponsable} 
-                                        onChange={(e) => setLocalTelefonoResponsable(e.target.value)} 
-                                        placeholder="Ej: 70012345"
-                                        className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 block"
-                                    />
+
+                        {/* Detalle de patologías complejas */}
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b pb-1">{t('Detalle Médico Específico:', 'Specific Medical Details:')}</h3>
+                            
+                            {/* Cirugías */}
+                            <div className="p-4 rounded-xl bg-red-50/30 dark:bg-red-900/10 border border-red-100/50 dark:border-red-900/20 md:flex md:items-center md:justify-between gap-6 space-y-3 md:space-y-0 animate-in fade-in slide-in-from-top-1">
+                                <div className="md:w-1/3">
+                                    <span className="text-sm font-bold text-gray-700 dark:text-gray-200 block">{t('¿Tuvo alguna cirugía? / ¿Le realizaron alguna operación?', 'Have you had any surgery or operations?')}</span>
+                                </div>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center cursor-pointer group">
+                                        <input type="radio" checked={formData.ant_pat_cirugia === true} onChange={() => setFormData({ ...formData, ant_pat_cirugia: true })} className="hidden peer" />
+                                        <div className="w-10 h-6 bg-gray-300 dark:bg-gray-700 rounded-full flex items-center px-1 peer-checked:bg-red-500 transition-all after:w-4 after:h-4 after:bg-white after:rounded-full peer-checked:after:translate-x-4 shadow-inner"></div>
+                                        <span className="ml-2 text-xs font-black text-gray-400 peer-checked:text-red-500">{t('SÍ', 'YES')}</span>
+                                    </label>
+                                    <label className="flex items-center cursor-pointer group">
+                                        <input type="radio" checked={formData.ant_pat_cirugia === false} onChange={() => setFormData({ ...formData, ant_pat_cirugia: false, ant_pat_cirugia_detalle: '' })} className="hidden peer" />
+                                        <div className="w-10 h-6 bg-gray-300 dark:bg-gray-700 rounded-full flex items-center px-1 peer-checked:bg-gray-400 transition-all after:w-4 after:h-4 after:bg-white after:rounded-full shadow-inner"></div>
+                                        <span className="ml-2 text-xs font-black text-gray-400 peer-checked:text-gray-500">{t('NO', 'NO')}</span>
+                                    </label>
+                                </div>
+                                <div className="flex-1">
+                                    {formData.ant_pat_cirugia && (
+                                        <div className="relative animate-in fade-in slide-in-from-top-1">
+                                            <Edit size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-red-400" />
+                                            <input 
+                                                type="text" 
+                                                name="ant_pat_cirugia_detalle" 
+                                                value={formData.ant_pat_cirugia_detalle || ''} 
+                                                onChange={handleChange} 
+                                                placeholder={t('Especifique qué tipo de cirugía y hace cuánto tiempo', 'Specify surgery type and how long ago')}
+                                                className="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-red-200 dark:border-red-800 bg-white dark:bg-gray-800 text-gray-800 dark:text-white outline-none focus:ring-4 focus:ring-red-500/10 transition-all font-medium" 
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </fieldset>
 
-                {/* Ficha Médica Title */}
-                <div className="mt-8 mb-2 pb-2 border-b-2 border-blue-500">
-                    <h3 className="text-xl font-bold flex items-center gap-2 text-blue-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                            <line x1="16" y1="13" x2="8" y2="13"></line>
-                            <line x1="16" y1="17" x2="8" y2="17"></line>
-                            <polyline points="10 9 9 9 8 9"></polyline>
-                        </svg>
-                        Cuestionario Médico (Ficha Médica)
-                    </h3>
-                    <p className="text-sm text-gray-500 mt-1">Por favor complete sus antecedentes médicos de manera honesta para su seguridad.</p>
-                </div>
+                            {/* Alergias */}
+                            <div className="p-4 rounded-xl bg-red-50/30 dark:bg-red-900/10 border border-red-100/50 dark:border-red-900/20 md:flex md:items-center md:justify-between gap-6 space-y-3 md:space-y-0">
+                                <div className="md:w-1/3">
+                                    <span className="text-sm font-bold text-gray-700 dark:text-gray-200 block">{t('¿Es alérgico a algún medicamento/sustancia?', 'Are you allergic to any medication or substance?')}</span>
+                                </div>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center cursor-pointer group">
+                                        <input type="radio" checked={formData.ant_pat_alergias === true} onChange={() => setFormData({ ...formData, ant_pat_alergias: true })} className="hidden peer" />
+                                        <div className="w-10 h-6 bg-gray-300 dark:bg-gray-700 rounded-full flex items-center px-1 peer-checked:bg-red-500 transition-all after:w-4 after:h-4 after:bg-white after:rounded-full peer-checked:after:translate-x-4 shadow-inner"></div>
+                                        <span className="ml-2 text-xs font-black text-gray-400 peer-checked:text-red-500">{t('SÍ', 'YES')}</span>
+                                    </label>
+                                    <label className="flex items-center cursor-pointer group">
+                                        <input type="radio" checked={formData.ant_pat_alergias === false} onChange={() => setFormData({ ...formData, ant_pat_alergias: false, ant_pat_alergias_detalle: '' })} className="hidden peer" />
+                                        <div className="w-10 h-6 bg-gray-300 dark:bg-gray-700 rounded-full flex items-center px-1 peer-checked:bg-gray-400 transition-all after:w-4 after:h-4 after:bg-white after:rounded-full shadow-inner"></div>
+                                        <span className="ml-2 text-xs font-black text-gray-400 peer-checked:text-gray-500">{t('NO', 'NO')}</span>
+                                    </label>
+                                </div>
+                                <div className="flex-1">
+                                    {formData.ant_pat_alergias && (
+                                        <div className="relative animate-in fade-in slide-in-from-top-1">
+                                            <Edit size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-red-400" />
+                                            <input 
+                                                type="text" 
+                                                name="ant_pat_alergias_detalle" 
+                                                value={formData.ant_pat_alergias_detalle || ''} 
+                                                onChange={handleChange} 
+                                                placeholder={t('Ej: Penicilina, Látex, etc.', 'e.g. Penicillin, Latex, etc.')}
+                                                className="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-red-200 dark:border-red-800 bg-white dark:bg-gray-800 text-gray-800 dark:text-white outline-none focus:ring-4 focus:ring-red-500/10 transition-all font-medium" 
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
 
-                {/* MOTIVO DE CONSULTA */}
-                <fieldset className="border border-gray-300 p-4 rounded-lg">
-                    <legend className="font-bold px-2 text-blue-600">Motivo de Consulta</legend>
-                    <div className="mt-2">
-                        <label className="block mb-1 font-medium text-gray-700">Motivo de la consulta dental:</label>
-                        <textarea 
-                            name="motivo_consulta" 
-                            value={formData.motivo_consulta || ''} 
-                            onChange={handleChange} 
-                            rows={2} 
-                            placeholder="Describa brevemente por qué acude a la consulta hoy..." 
-                            className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-                </fieldset>
+                            {/* Condicional Embarazo si el género es Femenino */}
+                            {formData.genero === 'F' && (
+                                <div className="p-4 rounded-xl bg-red-50/30 dark:bg-red-900/10 border border-red-100/50 dark:border-red-900/20 md:flex md:items-center md:justify-between gap-6 space-y-3 md:space-y-0">
+                                    <div className="md:w-1/3">
+                                        <span className="text-sm font-bold text-gray-700 dark:text-gray-200 block">{t('¿Se encuentra en estado de gestación?', 'Are you currently pregnant?')}</span>
+                                    </div>
+                                    <div className="flex gap-4">
+                                        <label className="flex items-center cursor-pointer group">
+                                            <input type="radio" checked={formData.ant_pat_embarazo === true} onChange={() => setFormData({ ...formData, ant_pat_embarazo: true })} className="hidden peer" />
+                                            <div className="w-10 h-6 bg-gray-300 dark:bg-gray-700 rounded-full flex items-center px-1 peer-checked:bg-red-500 transition-all after:w-4 after:h-4 after:bg-white after:rounded-full peer-checked:after:translate-x-4 shadow-inner"></div>
+                                            <span className="ml-2 text-xs font-black text-gray-400 peer-checked:text-red-500">{t('SÍ', 'YES')}</span>
+                                        </label>
+                                        <label className="flex items-center cursor-pointer group">
+                                            <input type="radio" checked={formData.ant_pat_embarazo === false} onChange={() => setFormData({ ...formData, ant_pat_embarazo: false, ant_pat_embarazo_semanas: '' })} className="hidden peer" />
+                                            <div className="w-10 h-6 bg-gray-300 dark:bg-gray-700 rounded-full flex items-center px-1 peer-checked:bg-gray-400 transition-all after:w-4 after:h-4 after:bg-white after:rounded-full shadow-inner"></div>
+                                            <span className="ml-2 text-xs font-black text-gray-400 peer-checked:text-gray-500">{t('NO', 'NO')}</span>
+                                        </label>
+                                    </div>
+                                    <div className="flex-1">
+                                        {formData.ant_pat_embarazo && (
+                                            <div className="relative animate-in fade-in slide-in-from-top-1">
+                                                <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-red-400" />
+                                                <input 
+                                                    type="number" 
+                                                    name="ant_pat_embarazo_semanas" 
+                                                    value={formData.ant_pat_embarazo_semanas || ''} 
+                                                    onChange={handleChange} 
+                                                    placeholder={t('Semanas de gestación (ej: 12)', 'Weeks of pregnancy (e.g. 12)')}
+                                                    min={1}
+                                                    max={45}
+                                                    className="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-red-200 dark:border-red-800 bg-white dark:bg-gray-800 text-gray-800 dark:text-white outline-none focus:ring-4 focus:ring-red-500/10 transition-all font-medium" 
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
 
-                {/* 1. ANTECEDENTES FAMILIARES */}
-                <fieldset className="border border-gray-300 p-4 rounded-lg">
-                    <legend className="font-bold px-2 text-gray-700">Antecedentes Familiares</legend>
-                    <div className="mt-2">
-                        <label className="block mb-1 font-medium text-gray-700">Enfermedades familiares hereditarias:</label>
-                        <textarea 
-                            name="ant_pat_familiares" 
-                            value={formData.ant_pat_familiares || ''} 
-                            onChange={handleChange} 
-                            rows={3} 
-                            placeholder="Especifique si algún familiar directo padece de Diabetes, Hipertensión, Cardiopatías, Cáncer, etc." 
-                            className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-                </fieldset>
+                            {/* Tratamiento Médico */}
+                            <div className="p-4 rounded-xl bg-red-50/30 dark:bg-red-900/10 border border-red-100/50 dark:border-red-900/20 md:flex md:items-center md:justify-between gap-6 space-y-3 md:space-y-0">
+                                <div className="md:w-1/3">
+                                    <span className="text-sm font-bold text-gray-700 dark:text-gray-200 block">{t('¿Se encuentra bajo tratamiento médico actualmente?', 'Are you currently under medical treatment?')}</span>
+                                </div>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center cursor-pointer group">
+                                        <input type="radio" checked={formData.ant_pat_tratamiento_medico === true} onChange={() => setFormData({ ...formData, ant_pat_tratamiento_medico: true })} className="hidden peer" />
+                                        <div className="w-10 h-6 bg-gray-300 dark:bg-gray-700 rounded-full flex items-center px-1 peer-checked:bg-red-500 transition-all after:w-4 after:h-4 after:bg-white after:rounded-full peer-checked:after:translate-x-4 shadow-inner"></div>
+                                        <span className="ml-2 text-xs font-black text-gray-400 peer-checked:text-red-500">{t('SÍ', 'YES')}</span>
+                                    </label>
+                                    <label className="flex items-center cursor-pointer group">
+                                        <input type="radio" checked={formData.ant_pat_tratamiento_medico === false} onChange={() => setFormData({ ...formData, ant_pat_tratamiento_medico: false, ant_pat_tratamiento_medico_detalle: '' })} className="hidden peer" />
+                                        <div className="w-10 h-6 bg-gray-300 dark:bg-gray-700 rounded-full flex items-center px-1 peer-checked:bg-gray-400 transition-all after:w-4 after:h-4 after:bg-white after:rounded-full shadow-inner"></div>
+                                        <span className="ml-2 text-xs font-black text-gray-400 peer-checked:text-gray-500">{t('NO', 'NO')}</span>
+                                    </label>
+                                </div>
+                                <div className="flex-1">
+                                    {formData.ant_pat_tratamiento_medico && (
+                                        <div className="relative animate-in fade-in slide-in-from-top-1">
+                                            <Edit size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-red-400" />
+                                            <input 
+                                                type="text" 
+                                                name="ant_pat_tratamiento_medico_detalle" 
+                                                value={formData.ant_pat_tratamiento_medico_detalle || ''} 
+                                                onChange={handleChange} 
+                                                placeholder={t('Describa el tratamiento e indicación médica', 'Describe treatment and medical recommendations')}
+                                                className="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-red-200 dark:border-red-800 bg-white dark:bg-gray-800 text-gray-800 dark:text-white outline-none focus:ring-4 focus:ring-red-500/10 transition-all font-medium" 
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
 
-                {/* 2. ANTECEDENTES PERSONALES PATOLÓGICOS */}
-                <fieldset className="border border-gray-300 p-4 rounded-lg mt-4">
-                    <legend className="font-bold px-2 text-gray-700">Antecedentes Personales Patológicos</legend>
-                    <p className="text-sm text-gray-600 mb-3">Marque las condiciones que padece o ha padecido:</p>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200">
-                        {[
-                            { id: 'ant_pat_anemia', label: 'Anemia' },
-                            { id: 'ant_pat_cardiopatias', label: 'Cardiopatías' },
-                            { id: 'ant_pat_gastricas', label: 'Enf. Gástricas' },
-                            { id: 'ant_pat_hepatitis', label: 'Hepatitis' },
-                            { id: 'ant_pat_tuberculosis', label: 'Tuberculosis' },
-                            { id: 'ant_pat_asma', label: 'Asma' },
-                            { id: 'ant_pat_diabetes', label: 'Diabetes' },
-                            { id: 'ant_pat_epilepsia', label: 'Epilepsia' },
-                            { id: 'ant_pat_hipertension', label: 'Hipertensión' },
-                            { id: 'ant_pat_vih', label: 'VIH' },
-                            { id: 'ant_pat_ninguno', label: 'Ninguno' },
-                        ].map((cond) => (
-                            <label key={cond.id} className="flex items-center gap-2 cursor-pointer p-1.5 rounded hover:bg-gray-200 transition-colors text-gray-700">
-                                <input 
-                                    type="checkbox" 
-                                    name={cond.id} 
-                                    checked={!!(formData as any)[cond.id]} 
-                                    onChange={(e) => setFormData(prev => ({ ...prev, [cond.id]: e.target.checked }))} 
-                                    className="accent-blue-500 w-4 h-4 cursor-pointer" 
-                                />
-                                <span className="text-sm font-semibold">{cond.label}</span>
-                            </label>
-                        ))}
-                    </div>
+                            {/* Toma Medicamentos */}
+                            <div className="p-4 rounded-xl bg-red-50/30 dark:bg-red-900/10 border border-red-100/50 dark:border-red-900/20 md:flex md:items-center md:justify-between gap-6 space-y-3 md:space-y-0">
+                                <div className="md:w-1/3">
+                                    <span className="text-sm font-bold text-gray-700 dark:text-gray-200 block">{t('¿Esta tomado algún medicamento?', 'Are you currently taking any medications?')}</span>
+                                </div>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center cursor-pointer group">
+                                        <input type="radio" checked={formData.ant_pat_toma_medicamentos === true} onChange={() => setFormData({ ...formData, ant_pat_toma_medicamentos: true })} className="hidden peer" />
+                                        <div className="w-10 h-6 bg-gray-300 dark:bg-gray-700 rounded-full flex items-center px-1 peer-checked:bg-red-500 transition-all after:w-4 after:h-4 after:bg-white after:rounded-full peer-checked:after:translate-x-4 shadow-inner"></div>
+                                        <span className="ml-2 text-xs font-black text-gray-400 peer-checked:text-red-500">{t('SÍ', 'YES')}</span>
+                                    </label>
+                                    <label className="flex items-center cursor-pointer group">
+                                        <input type="radio" checked={formData.ant_pat_toma_medicamentos === false} onChange={() => setFormData({ ...formData, ant_pat_toma_medicamentos: false, ant_pat_toma_medicamentos_detalle: '' })} className="hidden peer" />
+                                        <div className="w-10 h-6 bg-gray-300 dark:bg-gray-700 rounded-full flex items-center px-1 peer-checked:bg-gray-400 transition-all after:w-4 after:h-4 after:bg-white after:rounded-full shadow-inner"></div>
+                                        <span className="ml-2 text-xs font-black text-gray-400 peer-checked:text-gray-500">{t('NO', 'NO')}</span>
+                                    </label>
+                                </div>
+                                <div className="flex-1">
+                                    {formData.ant_pat_toma_medicamentos && (
+                                        <div className="relative animate-in fade-in slide-in-from-top-1">
+                                            <Edit size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-red-400" />
+                                            <input 
+                                                type="text" 
+                                                name="ant_pat_toma_medicamentos_detalle" 
+                                                value={formData.ant_pat_toma_medicamentos_detalle || ''} 
+                                                onChange={handleChange} 
+                                                placeholder={t('Especifique cuáles y la dosis', 'Specify which ones and dosage')}
+                                                className="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-red-200 dark:border-red-800 bg-white dark:bg-gray-800 text-gray-800 dark:text-white outline-none focus:ring-4 focus:ring-red-500/10 transition-all font-medium" 
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
 
-                    <div className="space-y-4 mt-4">
-                        {/* Cirugías */}
-                        <div className="flex flex-col gap-1 border-t pt-3 border-gray-200">
-                            <label className="flex items-center gap-2 cursor-pointer text-gray-700 font-bold">
-                                <input 
-                                    type="checkbox" 
-                                    name="ant_pat_cirugia" 
-                                    checked={formData.ant_pat_cirugia} 
-                                    onChange={handleChange} 
-                                    className="accent-blue-500 w-4 h-4 cursor-pointer" 
-                                /> 
-                                ¿Tuvo alguna cirugía? / ¿Le realizaron alguna operación?
-                            </label>
-                            {formData.ant_pat_cirugia && (
+                            {/* Hemorragias */}
+                            <div className="p-4 rounded-xl bg-red-50/30 dark:bg-red-900/10 border border-red-100/50 dark:border-red-900/20 md:flex md:items-center md:justify-between gap-6 space-y-3 md:space-y-0">
+                                <div className="md:w-1/3">
+                                    <span className="text-sm font-bold text-gray-700 dark:text-gray-200 block">{t('¿Ha tenido hemorragias post-extracción o heridas?', 'Have you had bleeding after dental extraction or wounds?')}</span>
+                                </div>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center cursor-pointer group">
+                                        <input type="radio" checked={formData.ant_pat_hemorragias === true} onChange={() => setFormData({ ...formData, ant_pat_hemorragias: true })} className="hidden peer" />
+                                        <div className="w-10 h-6 bg-gray-300 dark:bg-gray-700 rounded-full flex items-center px-1 peer-checked:bg-red-500 transition-all after:w-4 after:h-4 after:bg-white after:rounded-full peer-checked:after:translate-x-4 shadow-inner"></div>
+                                        <span className="ml-2 text-xs font-black text-gray-400 peer-checked:text-red-500">{t('SÍ', 'YES')}</span>
+                                    </label>
+                                    <label className="flex items-center cursor-pointer group">
+                                        <input type="radio" checked={formData.ant_pat_hemorragias === false} onChange={() => setFormData({ ...formData, ant_pat_hemorragias: false, ant_pat_hemorragias_tipo: '' })} className="hidden peer" />
+                                        <div className="w-10 h-6 bg-gray-300 dark:bg-gray-700 rounded-full flex items-center px-1 peer-checked:bg-gray-400 transition-all after:w-4 after:h-4 after:bg-white after:rounded-full shadow-inner"></div>
+                                        <span className="ml-2 text-xs font-black text-gray-400 peer-checked:text-gray-500">{t('NO', 'NO')}</span>
+                                    </label>
+                                </div>
+                                <div className="flex-1">
+                                    {formData.ant_pat_hemorragias && (
+                                        <div className="relative animate-in fade-in slide-in-from-top-1">
+                                            <select 
+                                                name="ant_pat_hemorragias_tipo" 
+                                                value={formData.ant_pat_hemorragias_tipo || ''} 
+                                                onChange={handleChange} 
+                                                className="w-full px-4 py-2 text-sm rounded-xl border border-red-200 dark:border-red-800 bg-white dark:bg-gray-800 text-gray-800 dark:text-white outline-none focus:ring-4 focus:ring-red-500/10 transition-all font-medium"
+                                            >
+                                                <option value="">{t('-- Seleccionar tipo --', '-- Select type --')}</option>
+                                                <option value="Inmediata">{t('Inmediata (durante la intervención)', 'Immediate (during procedure)')}</option>
+                                                <option value="Mediata">{t('Mediata (horas después)', 'Delayed (hours after)')}</option>
+                                            </select>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Otros patológicos */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Otros antecedentes patológicos', 'Other medical/pathological history')}</label>
                                 <input 
                                     type="text" 
-                                    name="ant_pat_cirugia_detalle" 
-                                    placeholder="Indique qué tipo de cirugía y hace cuánto tiempo" 
-                                    value={formData.ant_pat_cirugia_detalle} 
+                                    name="ant_pat_otros" 
+                                    value={formData.ant_pat_otros || ''} 
                                     onChange={handleChange} 
-                                    className="w-full px-3 py-1.5 mt-1 text-sm rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" 
+                                    placeholder={t('Detalle de otras cirugías, traumatismos, transfusiones o enfermedades de interés clínico', 'Detail of other surgeries, traumas, transfusions or clinical conditions')} 
+                                    className="w-full px-4 py-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-red-500 outline-none" 
                                 />
-                            )}
+                            </div>
                         </div>
+                    </div>
 
-                        {/* Alergias */}
-                        <div className="flex flex-col gap-1 border-t pt-3 border-gray-200">
-                            <label className="flex items-center gap-2 cursor-pointer text-gray-700 font-bold">
-                                <input 
-                                    type="checkbox" 
-                                    name="ant_pat_alergias" 
-                                    checked={formData.ant_pat_alergias} 
-                                    onChange={handleChange} 
-                                    className="accent-blue-500 w-4 h-4 cursor-pointer" 
-                                /> 
-                                ¿Es alérgico a algún medicamento o sustancia?
-                            </label>
-                            {formData.ant_pat_alergias && (
-                                <input 
-                                    type="text" 
-                                    name="ant_pat_alergias_detalle" 
-                                    placeholder="Indique cuál (ej. Penicilina, Látex, etc.)" 
-                                    value={formData.ant_pat_alergias_detalle} 
-                                    onChange={handleChange} 
-                                    className="w-full px-3 py-1.5 mt-1 text-sm rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" 
-                                />
-                            )}
+                    {/* 3. EXAMEN EXTRA ORAL */}
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <div className="flex items-center mb-6 pb-2 border-b border-blue-500/20">
+                            <Activity size={24} className="text-blue-600 mr-4" />
+                            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wider">{t('Examen Extra Oral', 'Extraoral Examination')}</h2>
                         </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('A.T.M. (Articulación Temporomandibular)', 'T.M.J. (Temporomandibular Joint)')}</label>
+                                <input type="text" name="exam_extra_atm" value={formData.exam_extra_atm || ''} onChange={handleChange} placeholder={t('Ej: Chasquidos, dolor, desviación...', 'e.g. Clicks, pain, deviation...')} className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Ganglios Linfáticos', 'Lymph Nodes')}</label>
+                                <input type="text" name="exam_extra_ganglios" value={formData.exam_extra_ganglios || ''} onChange={handleChange} placeholder={t('Ej: Sin alteraciones, inflamados...', 'e.g. Normal, swollen...')} className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Tipo de Respirador', 'Breathing Type')}</label>
+                                <select name="exam_extra_respirador" value={formData.exam_extra_respirador || ''} onChange={handleChange} className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none">
+                                    <option value="">{t('-- Seleccionar --', '-- Select --')}</option>
+                                    <option value="Bucal">{t('Bucal', 'Mouth')}</option>
+                                    <option value="Nasal">{t('Nasal', 'Nasal')}</option>
+                                    <option value="Mixto">{t('Mixto', 'Mixed')}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Otros hallazgos extraorales', 'Other extraoral findings')}</label>
+                                <input type="text" name="exam_extra_otros" value={formData.exam_extra_otros || ''} onChange={handleChange} placeholder={t('Ej: Asimetría facial, lesiones cutáneas...', 'e.g. Facial asymmetry, skin lesions...')} className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                        </div>
+                    </div>
 
-                        {/* Condicional Embarazo si el género es Femenino */}
-                        {formData.genero === 'F' && (
-                            <div className="flex flex-col gap-1 border-t pt-3 border-gray-200">
-                                <label className="flex items-center gap-2 cursor-pointer text-gray-700 font-bold">
+                    {/* 4. EXAMEN INTRA ORAL */}
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <div className="flex items-center mb-6 pb-2 border-b border-blue-500/20">
+                            <Activity size={24} className="text-blue-600 mr-4" />
+                            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wider">{t('Examen Intra Oral', 'Intraoral Examination')}</h2>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Labios', 'Lips')}</label>
+                                <input type="text" name="exam_intra_labios" value={formData.exam_intra_labios || ''} onChange={handleChange} placeholder={t('Ej: Hidratados, queilitis...', 'e.g. Hydrated, cheilitis...')} className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Lengua', 'Tongue')}</label>
+                                <input type="text" name="exam_intra_lengua" value={formData.exam_intra_lengua || ''} onChange={handleChange} placeholder={t('Ej: Saburral, geográfica, normal...', 'e.g. Coated, geographic, normal...')} className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Paladar', 'Palate')}</label>
+                                <input type="text" name="exam_intra_paladar" value={formData.exam_intra_paladar || ''} onChange={handleChange} placeholder={t('Ej: Ojival, normal, lesiones...', 'e.g. High arched, normal, lesions...')} className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Piso de la boca', 'Floor of Mouth')}</label>
+                                <input type="text" name="exam_intra_piso_boca" value={formData.exam_intra_piso_boca || ''} onChange={handleChange} placeholder={t('Ej: Sin alteraciones, ránula...', 'e.g. Normal, ranula...')} className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Mucosa Yugal', 'Buccal Mucosa')}</label>
+                                <input type="text" name="exam_intra_mucosa_yugal" value={formData.exam_intra_mucosa_yugal || ''} onChange={handleChange} placeholder={t('Ej: Línea alba, mordeduras...', 'e.g. Linea alba, cheek bites...')} className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Encías', 'Gums')}</label>
+                                <input type="text" name="exam_intra_encias" value={formData.exam_intra_encias || ''} onChange={handleChange} placeholder={t('Ej: Gingivitis, inflamadas, sanas...', 'e.g. Gingivitis, inflamed, healthy...')} className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                            <div className="flex items-center pt-6">
+                                <label className="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                                     <input 
                                         type="checkbox" 
-                                        name="ant_pat_embarazo" 
-                                        checked={formData.ant_pat_embarazo} 
-                                        onChange={handleChange} 
-                                        className="accent-blue-500 w-4 h-4 cursor-pointer" 
-                                    /> 
-                                    ¿Existe posibilidad de que esté embarazada?
-                                </label>
-                                {formData.ant_pat_embarazo && (
-                                    <input 
-                                        type="number" 
-                                        name="ant_pat_embarazo_semanas" 
-                                        placeholder="Indique las semanas de gestación (si aplica)" 
-                                        value={formData.ant_pat_embarazo_semanas} 
-                                        onChange={handleChange} 
-                                        min={1}
-                                        max={45}
-                                        className="w-full px-3 py-1.5 mt-1 text-sm rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" 
+                                        name="exam_intra_protesis" 
+                                        checked={!!formData.exam_intra_protesis} 
+                                        onChange={(e) => setFormData(prev => ({ ...prev, exam_intra_protesis: e.target.checked }))} 
+                                        className="w-5 h-5 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:bg-gray-700" 
                                     />
-                                )}
+                                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{t('¿Utiliza Prótesis Dental?', 'Do you use dental dentures/prosthetics?')}</span>
+                                </label>
                             </div>
-                        )}
-
-                        {/* Tratamiento Médico */}
-                        <div className="flex flex-col gap-1 border-t pt-3 border-gray-200">
-                            <label className="flex items-center gap-2 cursor-pointer text-gray-700 font-bold">
-                                <input 
-                                    type="checkbox" 
-                                    name="ant_pat_tratamiento_medico" 
-                                    checked={formData.ant_pat_tratamiento_medico} 
-                                    onChange={handleChange} 
-                                    className="accent-blue-500 w-4 h-4 cursor-pointer" 
-                                /> 
-                                ¿Se encuentra actualmente bajo tratamiento médico?
-                            </label>
-                            {formData.ant_pat_tratamiento_medico && (
-                                <input 
-                                    type="text" 
-                                    name="ant_pat_tratamiento_medico_detalle" 
-                                    placeholder="Indique el motivo y tratamiento" 
-                                    value={formData.ant_pat_tratamiento_medico_detalle} 
-                                    onChange={handleChange} 
-                                    className="w-full px-3 py-1.5 mt-1 text-sm rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" 
-                                />
-                            )}
-                        </div>
-
-                        {/* Toma Medicamentos */}
-                        <div className="flex flex-col gap-1 border-t pt-3 border-gray-200">
-                            <label className="flex items-center gap-2 cursor-pointer text-gray-700 font-bold">
-                                <input 
-                                    type="checkbox" 
-                                    name="ant_pat_toma_medicamentos" 
-                                    checked={formData.ant_pat_toma_medicamentos} 
-                                    onChange={handleChange} 
-                                    className="accent-blue-500 w-4 h-4 cursor-pointer" 
-                                /> 
-                                ¿Esta tomado algún medicamento?
-                            </label>
-                            {formData.ant_pat_toma_medicamentos && (
-                                <input 
-                                    type="text" 
-                                    name="ant_pat_toma_medicamentos_detalle" 
-                                    placeholder="Indique qué medicamento y dosis" 
-                                    value={formData.ant_pat_toma_medicamentos_detalle} 
-                                    onChange={handleChange} 
-                                    className="w-full px-3 py-1.5 mt-1 text-sm rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900" 
-                                />
-                            )}
-                        </div>
-
-                        {/* Hemorragias */}
-                        <div className="flex flex-col gap-1 border-t pt-3 border-gray-200">
-                            <label className="flex items-center gap-2 cursor-pointer text-gray-700 font-bold">
-                                <input 
-                                    type="checkbox" 
-                                    name="ant_pat_hemorragias" 
-                                    checked={formData.ant_pat_hemorragias} 
-                                    onChange={handleChange} 
-                                    className="accent-blue-500 w-4 h-4 cursor-pointer" 
-                                /> 
-                                ¿Ha tenido hemorragias anormales tras extracciones o cortes?
-                            </label>
-                            {formData.ant_pat_hemorragias && (
-                                <select 
-                                    name="ant_pat_hemorragias_tipo" 
-                                    value={formData.ant_pat_hemorragias_tipo} 
-                                    onChange={handleChange} 
-                                    className="w-full px-3 py-2 mt-1 text-sm rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                                >
-                                    <option value="">-- Seleccionar tipo --</option>
-                                    <option value="Inmediata">Inmediata (durante la intervención)</option>
-                                    <option value="Mediata">Mediata (horas después)</option>
-                                </select>
-                            )}
-                        </div>
-
-                        {/* Otros patológicos */}
-                        <div className="flex flex-col gap-1 border-t pt-3 border-gray-200">
-                            <label className="block text-sm font-semibold text-gray-700">Otros antecedentes personales patológicos:</label>
-                            <input 
-                                type="text" 
-                                name="ant_pat_otros" 
-                                value={formData.ant_pat_otros} 
-                                onChange={handleChange} 
-                                placeholder="Especifique cirugías, alergias no listadas u otras enfermedades importantes" 
-                                className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                            />
                         </div>
                     </div>
-                </fieldset>
 
-                {/* 3. ANTECEDENTES BUCODENTALES Y HÁBITOS */}
-                <fieldset className="border border-gray-300 p-4 rounded-lg mt-4">
-                    <legend className="font-bold px-2 text-gray-700">Antecedentes Bucodentales y Hábitos</legend>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                        <div>
-                            <label className="block mb-1 font-medium text-gray-700">Última visita al odontólogo:</label>
-                            <input 
-                                type="text" 
-                                name="ant_buco_ultima_visita" 
-                                value={formData.ant_buco_ultima_visita} 
-                                onChange={handleChange} 
-                                placeholder="Ej: Hace 6 meses, Hace 1 año..." 
-                                className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                            />
+                    {/* 5. ANTECEDENTES BUCODENTALES */}
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-emerald-50 dark:border-emerald-900/30">
+                        <div className="flex items-center mb-6 pb-2 border-b border-emerald-500/20">
+                            <Wind size={24} className="text-emerald-600 mr-4" />
+                            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wider">{t('Antecedentes Bucodentales y Hábitos', 'Dental History & Habits')}</h2>
                         </div>
-                        <div>
-                            <label className="block mb-1 font-medium text-gray-700">Otros hábitos orales:</label>
-                            <input 
-                                type="text" 
-                                name="habito_otros" 
-                                value={formData.habito_otros} 
-                                onChange={handleChange} 
-                                placeholder="Ej: Bruxismo (apretar dientes), comer uñas, morder lapiceros..." 
-                                className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                            />
-                        </div>
-                        <div className="flex gap-6 mt-2 md:col-span-2">
-                            <label className="flex items-center gap-2 cursor-pointer text-gray-700">
-                                <input 
-                                    type="checkbox" 
-                                    name="habito_fuma" 
-                                    checked={formData.habito_fuma} 
-                                    onChange={handleChange} 
-                                    className="accent-blue-500 w-4 h-4 cursor-pointer" 
-                                /> 
-                                ¿Fuma habitualmente?
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer text-gray-700">
-                                <input 
-                                    type="checkbox" 
-                                    name="habito_bebe" 
-                                    checked={formData.habito_bebe} 
-                                    onChange={handleChange} 
-                                    className="accent-blue-500 w-4 h-4 cursor-pointer" 
-                                /> 
-                                ¿Consume bebidas alcohólicas habitualmente?
-                            </label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Última visita al Odontólogo', 'Last Dental Visit')}</label>
+                                <input type="text" name="ant_buco_ultima_visita" value={formData.ant_buco_ultima_visita || ''} onChange={handleChange} placeholder={t('Ej: Hace 6 meses, Hace 1 año...', 'e.g. 6 months ago, 1 year ago...')} className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none" />
+                            </div>
+                            <div className="flex items-center justify-start gap-4 pt-6">
+                                <label className="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <input 
+                                        type="checkbox" 
+                                        name="habito_fuma" 
+                                        checked={!!formData.habito_fuma} 
+                                        onChange={(e) => setFormData(prev => ({ ...prev, habito_fuma: e.target.checked }))} 
+                                        className="w-5 h-5 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:bg-gray-700" 
+                                    />
+                                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{t('Fuma', 'Smokes')}</span>
+                                </label>
+                                <label className="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <input 
+                                        type="checkbox" 
+                                        name="habito_bebe" 
+                                        checked={!!formData.habito_bebe} 
+                                        onChange={(e) => setFormData(prev => ({ ...prev, habito_bebe: e.target.checked }))} 
+                                        className="w-5 h-5 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:bg-gray-700" 
+                                    />
+                                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{t('Bebe alcohol', 'Drinks alcohol')}</span>
+                                </label>
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Otros hábitos orales', 'Other oral habits')}</label>
+                                <input type="text" name="habito_otros" value={formData.habito_otros || ''} onChange={handleChange} placeholder={t('Ej: Onicofagia (comer uñas), succión digital, bruxismo, morder objetos...', 'e.g. Nail biting, thumb sucking, bruxism, object biting...')} className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none" />
+                            </div>
                         </div>
                     </div>
-                </fieldset>
 
-                {/* 4. HIGIENE ORAL */}
-                <fieldset className="border border-gray-300 p-4 rounded-lg mt-4">
-                    <legend className="font-bold px-2 text-gray-700">Higiene Oral</legend>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                        <div>
-                            <label className="block mb-2 font-medium text-gray-700">¿Qué elementos de higiene utiliza?</label>
-                            <div className="flex flex-col gap-2">
-                                <label className="flex items-center gap-2 cursor-pointer text-gray-700">
-                                    <input 
-                                        type="checkbox" 
-                                        name="hig_cepillo" 
-                                        checked={formData.hig_cepillo} 
-                                        onChange={handleChange} 
-                                        className="accent-blue-500 w-4 h-4 cursor-pointer" 
-                                    /> 
-                                    Cepillo Dental
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer text-gray-700">
-                                    <input 
-                                        type="checkbox" 
-                                        name="hig_hilo" 
-                                        checked={formData.hig_hilo} 
-                                        onChange={handleChange} 
-                                        className="accent-blue-500 w-4 h-4 cursor-pointer" 
-                                    /> 
-                                    Hilo / Cinta Dental
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer text-gray-700">
-                                    <input 
-                                        type="checkbox" 
-                                        name="hig_enjuague" 
-                                        checked={formData.hig_enjuague} 
-                                        onChange={handleChange} 
-                                        className="accent-blue-500 w-4 h-4 cursor-pointer" 
-                                    /> 
-                                    Enjuague Bucal
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer text-gray-700">
-                                    <input 
-                                        type="checkbox" 
-                                        name="hig_waterpik" 
-                                        checked={formData.hig_waterpik} 
-                                        onChange={handleChange} 
-                                        className="accent-blue-500 w-4 h-4 cursor-pointer" 
-                                    /> 
-                                    Waterpik
-                                </label>
-                            </div>
+                    {/* 6. HIGIENE ORAL */}
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-emerald-50 dark:border-emerald-900/30">
+                        <div className="flex items-center mb-6 pb-2 border-b border-emerald-500/20">
+                            <Wind size={24} className="text-emerald-600 mr-4" />
+                            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wider">{t('Higiene Oral', 'Oral Hygiene')}</h2>
                         </div>
-
-                        <div className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block mb-1 font-medium text-gray-700">Frecuencia de cepillado:</label>
-                                <input 
-                                    type="text" 
-                                    name="hig_frecuencia_cepillado" 
-                                    value={formData.hig_frecuencia_cepillado} 
-                                    onChange={handleChange} 
-                                    placeholder="Ej: 3 veces al día" 
-                                    className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                                />
+                                <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3">{t('Elementos de higiene que utiliza:', 'Oral hygiene tools used:')}</label>
+                                <div className="flex flex-wrap gap-4">
+                                    <label className="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                        <input 
+                                            type="checkbox" 
+                                            name="hig_cepillo" 
+                                            checked={!!formData.hig_cepillo} 
+                                            onChange={(e) => setFormData(prev => ({ ...prev, hig_cepillo: e.target.checked }))} 
+                                            className="w-5 h-5 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:bg-gray-700" 
+                                        />
+                                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{t('Cepillo', 'Toothbrush')}</span>
+                                    </label>
+                                    <label className="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                        <input 
+                                            type="checkbox" 
+                                            name="hig_hilo" 
+                                            checked={!!formData.hig_hilo} 
+                                            onChange={(e) => setFormData(prev => ({ ...prev, hig_hilo: e.target.checked }))} 
+                                            className="w-5 h-5 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:bg-gray-700" 
+                                        />
+                                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{t('Hilo Dental', 'Dental Floss')}</span>
+                                    </label>
+                                    <label className="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                        <input 
+                                            type="checkbox" 
+                                            name="hig_enjuague" 
+                                            checked={!!formData.hig_enjuague} 
+                                            onChange={(e) => setFormData(prev => ({ ...prev, hig_enjuague: e.target.checked }))} 
+                                            className="w-5 h-5 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:bg-gray-700" 
+                                        />
+                                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{t('Enjuague Bucal', 'Mouthwash')}</span>
+                                    </label>
+                                    <label className="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                        <input 
+                                            type="checkbox" 
+                                            name="hig_waterpik" 
+                                            checked={!!formData.hig_waterpik} 
+                                            onChange={(e) => setFormData(prev => ({ ...prev, hig_waterpik: e.target.checked }))} 
+                                            className="w-5 h-5 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:bg-gray-700" 
+                                        />
+                                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{t('Waterpik', 'Waterpik')}</span>
+                                    </label>
+                                </div>
                             </div>
+                            
                             <div>
-                                <label className="block mb-1 font-medium text-gray-700">Estado de Higiene Percibido:</label>
-                                <select 
-                                    name="hig_bucal_estado" 
-                                    value={formData.hig_bucal_estado} 
-                                    onChange={handleChange} 
-                                    className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">-- Seleccionar --</option>
-                                    <option value="Bueno">Bueno</option>
-                                    <option value="Regular">Regular</option>
-                                    <option value="Malo">Malo</option>
+                                <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Frecuencia de Cepillado', 'Brushing Frequency')}</label>
+                                <input type="text" name="hig_frecuencia_cepillado" value={formData.hig_frecuencia_cepillado || ''} onChange={handleChange} placeholder={t('Ej: 3 veces al día, 2 veces al día...', 'e.g. 3 times a day, 2 times a day...')} className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none" />
+                            </div>
+
+                            <div className="flex items-center pt-6">
+                                <label className="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <input 
+                                        type="checkbox" 
+                                        name="hig_sangrado_encias" 
+                                        checked={!!formData.hig_sangrado_encias} 
+                                        onChange={(e) => setFormData(prev => ({ ...prev, hig_sangrado_encias: e.target.checked }))} 
+                                        className="w-5 h-5 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:bg-gray-700" 
+                                    />
+                                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{t('¿Le sangran las encías al cepillarse?', 'Do your gums bleed when brushing?')}</span>
+                                </label>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">{t('Estado General de Higiene Bucal', 'General Oral Hygiene Condition')}</label>
+                                <select name="hig_bucal_estado" value={formData.hig_bucal_estado || ''} onChange={handleChange} className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none appearance-none">
+                                    <option value="">{t('-- Seleccionar --', '-- Select --')}</option>
+                                    <option value="Bueno">{t('Bueno', 'Good')}</option>
+                                    <option value="Regular">{t('Regular', 'Fair')}</option>
+                                    <option value="Malo">{t('Malo', 'Poor')}</option>
                                 </select>
                             </div>
                         </div>
+                    </div>
 
-                        <div className="md:col-span-2 pt-2">
-                            <label className="flex items-center gap-2 cursor-pointer text-gray-700">
-                                <input 
-                                    type="checkbox" 
-                                    name="hig_sangrado_encias" 
-                                    checked={formData.hig_sangrado_encias} 
-                                    onChange={handleChange} 
-                                    className="accent-blue-500 w-4 h-4 cursor-pointer" 
-                                /> 
-                                ¿Le sangran las encías al realizar el cepillado?
-                            </label>
+                    {/* 7. OBSERVACIONES GENERALES */}
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border border-gray-100 dark:border-gray-700">
+                        <div className="flex items-center mb-6 pb-2 border-b border-gray-500/20">
+                            <Info size={24} className="text-gray-600 mr-4" />
+                            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wider">{t('Observaciones', 'Notes & Observations')}</h2>
+                        </div>
+                        <div>
+                            <textarea 
+                                name="observaciones_ficha" 
+                                value={formData.observaciones_ficha || ''} 
+                                onChange={handleChange} 
+                                rows={3} 
+                                placeholder={t('Observaciones o notas clínicas adicionales sobre la ficha del paciente...', 'Additional clinical notes or observations about patient record...')} 
+                                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none resize-none" 
+                            />
                         </div>
                     </div>
-                </fieldset>
-
-                {/* 5. OBSERVACIONES Y AUDITORÍA */}
-                <div className="mt-4">
-                    <label className="block mb-2 font-medium text-gray-700">Persona que brinda la información:</label>
-                    <div className="relative">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
-                        <input 
-                            type="text" 
-                            name="persona_brinda_informacion" 
-                            value={formData.persona_brinda_informacion} 
-                            onChange={handleChange} 
-                            placeholder="Ej: El mismo paciente, Madre, Padre" 
-                            className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                        />
-                    </div>
                 </div>
 
-                <div className="mt-4">
-                    <label className="block mb-2 font-medium text-gray-700">Observaciones Generales:</label>
-                    <textarea 
-                        name="observaciones_ficha" 
-                        value={formData.observaciones_ficha || ''} 
-                        onChange={handleChange} 
-                        rows={2} 
-                        placeholder="Cualquier aclaración adicional..." 
-                        className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                {/* --- BOTÓN DE ENVÍO FINAL --- */}
+                <div className="pt-6 flex justify-center pb-12">
+                    <button 
+                        type="submit" 
+                        className="w-full max-w-md px-8 py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg flex items-center justify-center gap-3 transform hover:-translate-y-0.5 transition-all shadow-xl active:scale-95 cursor-pointer"
+                    >
+                        <Save size={22} />
+                        {t('Enviar Datos y Completar Registro', 'Submit Data and Complete Registration')}
+                    </button>
                 </div>
-
-                {/* Footer Buttons */}
-                <div className="flex justify-center mt-8 pt-6 border-t border-gray-200">
-    <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-10 rounded-lg text-lg w-full md:w-auto transition-transform hover:-translate-y-1 shadow-md">
-        Enviar Datos y Completar Registro
-    </button>
-</div>
             </form>
-            
-
 
             <CameraModal
                 isOpen={showCameraModal}
                 onClose={() => setShowCameraModal(false)}
                 onCapture={(base64) => setFormData(prev => ({ ...prev, foto: base64 }))}
+                isEnglish={isEnglish}
             />
         </div>
-</div>
     );
 };
 

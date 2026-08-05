@@ -97,6 +97,14 @@ const TrabajosLaboratoriosForm: React.FC = () => {
     const [showManual, setShowManual] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
+    const selectedPrecioObj = React.useMemo(() => {
+        return preciosLaboratorio.find(p => p.id === Number(formData.idprecios_laboratorios));
+    }, [preciosLaboratorio, formData.idprecios_laboratorios]);
+
+    const isPriceVariable = React.useMemo(() => {
+        return Boolean(selectedPrecioObj && Number(selectedPrecioObj.precio) === 0);
+    }, [selectedPrecioObj]);
+
     const manualSections: ManualSection[] = [
         {
             title: 'Orden de Trabajo de Laboratorio Dental',
@@ -541,13 +549,44 @@ const TrabajosLaboratoriosForm: React.FC = () => {
                                 />
                             </div>
                             <div className="w-1/2">
-                                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Total Bs.</label>
-                                <input
-                                    type="text"
-                                    readOnly
-                                    value={`Bs. ${formatNumber(formData.total || 0)}`}
-                                    className="w-full px-3 py-2 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-200 text-xs font-black text-center transition-all shadow-sm"
-                                />
+                                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center justify-between">
+                                    <span>Total Bs.</span>
+                                    {isPriceVariable && (
+                                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-extrabold uppercase animate-pulse">
+                                            (Costo Variable)
+                                        </span>
+                                    )}
+                                </label>
+                                {isPriceVariable ? (
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            name="precio_unitario"
+                                            step="0.01"
+                                            min="0"
+                                            value={formData.precio_unitario || ''}
+                                            onChange={(e) => {
+                                                const val = parseFloat(e.target.value) || 0;
+                                                setFormData(prev => ({ ...prev, precio_unitario: val }));
+                                            }}
+                                            placeholder="Ingrese costo en Bs..."
+                                            className="w-full px-3 py-2 rounded-xl border-2 border-amber-400 dark:border-amber-500 bg-amber-50/60 dark:bg-amber-950/40 text-amber-900 dark:text-amber-100 text-xs font-black text-center focus:ring-2 focus:ring-amber-500 outline-none transition-all shadow-sm"
+                                            required
+                                        />
+                                        {(Number(formData.cantidad) || 1) > 1 && (
+                                            <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 block text-center mt-1">
+                                                Total ({formData.cantidad} uds): Bs. {formatNumber(formData.total || 0)}
+                                            </span>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <input
+                                        type="text"
+                                        readOnly
+                                        value={`Bs. ${formatNumber(formData.total || 0)}`}
+                                        className="w-full px-3 py-2 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-200 text-xs font-black text-center transition-all shadow-sm"
+                                    />
+                                )}
                             </div>
                         </div>
                     </div>
