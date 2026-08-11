@@ -105,20 +105,6 @@ const RecetarioList: React.FC = () => {
         try {
             const response = await api.get(`/firmas/documento/receta/${receta.id}`);
             signatures = response.data;
-
-            // Fallback: Si no hay firma del paciente en la receta, buscar en la historia clínica
-            const patientSigInReceta = signatures.find(s => s.rolFirmante === 'paciente');
-            if (!patientSigInReceta && receta.pacienteId) {
-                try {
-                    const resHC = await api.get(`/firmas/documento/historia_clinica/${receta.pacienteId}`);
-                    const patientSigHC = resHC.data.find((s: any) => s.rolFirmante === 'paciente');
-                    if (patientSigHC) {
-                        signatures.push(patientSigHC);
-                    }
-                } catch (error) {
-                    console.error('Error fetching patient HC signature for recipe:', error);
-                }
-            }
         } catch (error) {
             console.error('Error fetching signatures for print:', error);
         }

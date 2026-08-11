@@ -374,20 +374,6 @@ const PresupuestoList: React.FC = () => {
         try {
             const response = await api.get(`/firmas/documento/presupuesto/${proforma.id}`);
             pdfSignatures = Array.isArray(response.data) ? response.data : [];
-            
-            // Fallback: If no patient signature is found for the proforma, look for the patient's HC signature
-            const patientSignatureInProforma = pdfSignatures.find(s => s.rolFirmante === 'paciente');
-            if (!patientSignatureInProforma) {
-                try {
-                    const resHC = await api.get(`/firmas/documento/historia_clinica/${proforma.pacienteId}`);
-                    const patientSignatureHC = Array.isArray(resHC.data) ? resHC.data.find((s: any) => s.rolFirmante === 'paciente') : undefined;
-                    if (patientSignatureHC) {
-                        pdfSignatures.push(patientSignatureHC);
-                    }
-                } catch (error) {
-                    console.error('Error fetching patient HC signature:', error);
-                }
-            }
         } catch (error) {
             console.error('Error fetching signatures for PDF:', error);
         }

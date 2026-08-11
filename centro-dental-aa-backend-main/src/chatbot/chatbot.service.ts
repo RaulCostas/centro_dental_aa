@@ -569,9 +569,10 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
         const session = this.getSession();
         const message = `¡Hola! 👋 Te damos la bienvenida al Centro Dental A&A. \n\n` +
             `*Menú:*\n` +
-            `*1* Ya soy paciente de la clínica\n` +
+            `*1* Ya soy paciente del Centro Dental A&A\n` +
             `*2* Es mi primera vez aquí / Soy nuevo paciente\n` +
-            `*3* Urgencia\n\n` +
+            `*3* Urgencia\n` +
+            `*4* Salir / No necesito ayuda por ahora\n\n` +
             `Por favor, responde con el número de la opción que desees.\n` +
             `📌 Guarda nuestro número.`;
 
@@ -661,6 +662,9 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
                         `Por favor déjanos tu Nombre Completo y Número de Cédula de Identidad, cuéntanos brevemente cual es tu urgencia.\n\n` +
                         `Puedes llamar al 72030111 Dr. Alfredo D. Antequera V.`
                     );
+                    session.userSessions.delete(remoteJid);
+                    break;
+                case '4':
                     session.userSessions.delete(remoteJid);
                     break;
                 default:

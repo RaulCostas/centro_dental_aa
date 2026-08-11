@@ -88,6 +88,8 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
 
     // Form state for new item
     const [selectedArancelId, setSelectedArancelId] = useState<number>(0);
+    const [unitPrice, setUnitPrice] = useState<number>(0);
+    const [precioTotalInput, setPrecioTotalInput] = useState<number | string>(0);
     const [piezas, setPiezas] = useState('');
     const [cantidad, setCantidad] = useState(1);
     const [descuentoItem, setDescuentoItem] = useState(0);
@@ -95,6 +97,12 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
     const [posible, setPosible] = useState(false);
     const [showManual, setShowManual] = useState(false);
     const [isArancelModalOpen, setIsArancelModalOpen] = useState(false);
+
+    const calculateLinePrecio = (uPrice: number, qty: number, desc: number) => {
+        const base = uPrice * qty;
+        const net = base * (1 - desc / 100);
+        return Number(net.toFixed(2));
+    };
 
     const arancelOptions = React.useMemo(() => {
         return aranceles.map(a => ({
@@ -310,15 +318,16 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
             setDetalles(updatedDetalles);
         } else {
             // Create new row
+            const uPrice = unitPrice > 0 ? unitPrice : Number(arancel.precio);
             const newItem: DetalleItem = {
                 arancelId: arancel.id,
                 codigo: arancel.id.toString(),
                 tratamiento: arancel.detalle,
-                precioUnitario: Number(arancel.precio),
+                precioUnitario: uPrice,
                 piezas: pieceStr,
                 cantidad: 1,
                 descuento: 0,
-                total: Number(arancel.precio),
+                total: uPrice,
                 posible: false
             };
             setDetalles([...detalles, newItem]);
@@ -431,25 +440,43 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
     // Empty replacement content, moving these functions up
 
     const handleAddItem = () => {
-        if (!selectedArancelId) return;
+        if (!selectedArancelId || selectedArancelId === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Selección requerida',
+                text: 'Por favor, selecciona un tratamiento antes de agregarlo.',
+                background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
+            });
+            return;
+        }
+
+        if (precioTotalInput === '' || precioTotalInput === null || precioTotalInput === undefined || isNaN(Number(precioTotalInput)) || Number(precioTotalInput) <= 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Precio requerido',
+                text: 'La caja de precio no puede estar vacía ni tener un monto de 0 Bs. Por favor, ingresa un precio válido.',
+                background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
+            });
+            return;
+        }
 
         const arancel = aranceles.find(a => a.id === Number(selectedArancelId));
         if (!arancel) return;
 
-        const precioUsar = Number(arancel.precio);
-            
-        const total = (precioUsar * cantidad) * (1 - descuentoItem / 100);
+        const precioFinalNeto = Number(precioTotalInput);
 
         const newItem: DetalleItem = {
             id: editingIndex !== null ? detalles[editingIndex].id : undefined,
             arancelId: arancel.id,
             codigo: arancel.id.toString(),
             tratamiento: arancel.detalle,
-            precioUnitario: precioUsar,
+            precioUnitario: unitPrice,
             piezas,
             cantidad,
             descuento: descuentoItem,
-            total,
+            total: precioFinalNeto,
             posible
         };
 
@@ -463,6 +490,8 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
         }
 
         setSelectedArancelId(0);
+        setUnitPrice(0);
+        setPrecioTotalInput(0);
         setPiezas('');
         setCantidad(1);
         setDescuentoItem(0);
@@ -486,15 +515,22 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
         setEditingIndex(index);
 
         setSelectedArancelId(item.arancelId);
+        const uPrice = item.precioUnitario;
+        const qty = item.cantidad;
+        const desc = item.descuento || 0;
+        setUnitPrice(uPrice);
+        setCantidad(qty);
+        setDescuentoItem(desc);
+        setPrecioTotalInput(calculateLinePrecio(uPrice, qty, desc));
         setPiezas(item.piezas || '');
-        setCantidad(item.cantidad);
-        setDescuentoItem(item.descuento || 0);
         setPosible(item.posible);
     };
 
     const cancelEdit = () => {
         setEditingIndex(null);
         setSelectedArancelId(0);
+        setUnitPrice(0);
+        setPrecioTotalInput(0);
         setPiezas('');
         setCantidad(1);
         setDescuentoItem(0);
@@ -721,14 +757,23 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
                             )}
                         </h4>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                            <div className="md:col-span-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
+                            <div className="col-span-full">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tratamiento</label>
                                 <div className="flex gap-2 w-full">
                                     <SearchableSelect
                                         options={arancelOptions}
                                         value={selectedArancelId || ''}
-                                        onChange={(val) => setSelectedArancelId(Number(val))}
+                                        onChange={(val) => {
+                                            const aId = Number(val);
+                                            setSelectedArancelId(aId);
+                                            const selectedArancel = aranceles.find(a => a.id === aId);
+                                            if (selectedArancel) {
+                                                const uPrice = Number(selectedArancel.precio);
+                                                setUnitPrice(uPrice);
+                                                setPrecioTotalInput(Number((uPrice * cantidad).toFixed(2)));
+                                            }
+                                        }}
                                         disabled={editingIndex !== null && detalles[editingIndex] && isItemCompleted(detalles[editingIndex])}
                                         placeholder="Buscar y seleccionar tratamiento..."
                                         className="flex-grow"
@@ -753,7 +798,7 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
                             </div>
                             
 
-
+                            {/* 1. Pieza */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nº Pieza(s)</label>
                                 <div className="relative">
@@ -772,6 +817,7 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
                                 </div>
                             </div>
 
+                            {/* 2. Cantidad */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cantidad</label>
                                 <div className="relative">
@@ -782,13 +828,20 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
                                         type="number"
                                         min="1"
                                         value={cantidad}
-                                        onChange={(e) => setCantidad(Number(e.target.value))}
+                                        onChange={(e) => {
+                                            const newQty = Number(e.target.value);
+                                            setCantidad(newQty);
+                                            if (newQty > 0 && unitPrice > 0) {
+                                                setPrecioTotalInput(calculateLinePrecio(unitPrice, newQty, descuentoItem));
+                                            }
+                                        }}
                                         placeholder="1"
                                         className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 transition-all"
                                     />
                                 </div>
                             </div>
 
+                            {/* 3. Descuento */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Desc. (%)</label>
                                 <div className="relative">
@@ -800,9 +853,52 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
                                         min="0"
                                         max="100"
                                         value={descuentoItem}
-                                        onChange={(e) => setDescuentoItem(Number(e.target.value))}
+                                        onChange={(e) => {
+                                            const newDesc = Number(e.target.value);
+                                            setDescuentoItem(newDesc);
+                                            if (cantidad > 0 && unitPrice > 0) {
+                                                setPrecioTotalInput(calculateLinePrecio(unitPrice, cantidad, newDesc));
+                                            }
+                                        }}
                                         placeholder="0"
                                         className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* 4. Precio */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Precio (Bs.)</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span className="text-gray-400 font-bold text-xs">Bs</span>
+                                    </div>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={precioTotalInput}
+                                        onChange={(e) => {
+                                            const rawVal = e.target.value;
+                                            setPrecioTotalInput(rawVal === '' ? '' : Number(rawVal));
+                                            if (rawVal !== '' && !isNaN(Number(rawVal)) && cantidad > 0) {
+                                                const newPrecioNeto = Number(rawVal);
+                                                const baseTotal = unitPrice * cantidad;
+                                                if (baseTotal > 0) {
+                                                    if (newPrecioNeto <= baseTotal) {
+                                                        const calcDesc = ((baseTotal - newPrecioNeto) / baseTotal) * 100;
+                                                        setDescuentoItem(Number(Math.max(0, calcDesc).toFixed(2)));
+                                                    } else {
+                                                        setUnitPrice(newPrecioNeto / cantidad);
+                                                        setDescuentoItem(0);
+                                                    }
+                                                } else {
+                                                    setUnitPrice(newPrecioNeto / cantidad);
+                                                }
+                                            }
+                                        }}
+                                        placeholder="0.00"
+                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 transition-all font-semibold"
                                     />
                                 </div>
                             </div>
@@ -1053,46 +1149,7 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
                                             {formatCurrency(calculateTotal(), 'Bs')}
                                         </div>
 
-                                        {(() => {
-                                            const historiaWithSignature = historiaClinica.slice().reverse().find(h => 
-                                                h.firmaPaciente && 
-                                                h.estadoPresupuesto === 'terminado' &&
-                                                (proformaId && h.proformaId === Number(proformaId))
-                                            );
-                                            if (historiaWithSignature && historiaWithSignature.firmaPaciente) {
-                                                return (
-                                                    <div className="w-full mt-2 mb-6 flex flex-col items-center animate-fade-in-up">
-                                                        <div className="bg-white dark:bg-gray-800/80 p-5 rounded-xl border-2 border-dashed border-green-400/50 dark:border-green-500/30 w-full flex flex-col items-center shadow-sm relative overflow-hidden group hover:border-green-500 transition-all">
-                                                            <div className="absolute top-0 right-0 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-[10px] font-bold px-2 py-1 rounded-bl-lg flex items-center gap-1">
-                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                                                                VERIFICADO
-                                                            </div>
-                                                            <span className="text-gray-800 dark:text-gray-200 font-black uppercase text-sm tracking-widest mb-4 flex items-center gap-2 text-center">
-                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                                PLAN DE TRATAMIENTO CUMPLIDO
-                                                            </span>
-                                                            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-2 w-full flex justify-center border border-gray-100 dark:border-gray-700/50">
-                                                                <img 
-                                                                    src={getImageUrl(historiaWithSignature.firmaPaciente)} 
-                                                                    alt="Firma del Paciente" 
-                                                                    className="max-h-24 w-auto object-contain signature-image invert dark:invert-0" 
-                                                                    style={{ filter: 'var(--signature-filter, none)' }}
-                                                                />
-                                                            </div>
-                                                            <div className="w-full border-t border-gray-200 dark:border-gray-700 mt-4 pt-3 text-center flex flex-col gap-0.5">
-                                                                <span className="text-gray-600 dark:text-gray-400 text-xs font-semibold">Firma de Conformidad del Paciente</span>
-                                                                <span className="text-gray-400 dark:text-gray-500 text-[10px] uppercase font-medium">Registrado el {formatDate(historiaWithSignature.fecha)}</span>
-                                                            </div>
-                                                        </div>
-                                                        <style>{`
-                                                            html.dark .signature-image { --signature-filter: invert(1) hue-rotate(180deg) brightness(1.5); }
-                                                            html:not(.dark) .signature-image { --signature-filter: none; }
-                                                        `}</style>
-                                                    </div>
-                                                );
-                                            }
-                                            return null;
-                                        })()}
+
 
                                         <div className="flex gap-3 w-full justify-end">
                                             {!isReadOnly && (
