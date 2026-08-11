@@ -402,7 +402,24 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
     }
 
     async handleMessage(msg: any) {
+        if (msg.key?.fromMe) {
+            return;
+        }
+
         const session = this.getSession();
+
+        // Proteccion: Ignorar mensajes dirigidos o creados desde el propio número del chatbot
+        if (session.sock?.user?.id) {
+            const botNumber = session.sock.user.id.split('@')[0].split(':')[0];
+            const msgRemoteNumber = msg.key?.remoteJid?.split('@')[0].split(':')[0];
+            const msgParticipantNumber = msg.key?.participant?.split('@')[0].split(':')[0];
+
+            if (botNumber && (msgRemoteNumber === botNumber || msgParticipantNumber === botNumber)) {
+                console.log(`[Chatbot] [CENTRO DENTAL A&A] Ignorando mensaje originado en el propio número del bot (${botNumber}).`);
+                return;
+            }
+        }
+
         let remoteJid = msg.key?.remoteJid;
 
         // NEW: Normalize JID if the message comes from a Linked Device (@lid)
