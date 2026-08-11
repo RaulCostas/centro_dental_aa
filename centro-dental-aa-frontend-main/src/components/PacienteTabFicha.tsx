@@ -8,6 +8,8 @@ import Swal from 'sweetalert2';
 import { Heart, User, Stethoscope, Shield, Info, Printer } from 'lucide-react';
 import ManualModal, { type ManualSection } from './ManualModal';
 import OdontogramaInicialModal from './OdontogramaInicialModal';
+import { printOdontogramaPDF } from '../utils/odontogramaPdfGenerator';
+import { mergeOdontogramaWithTratamientos } from '../utils/odontogramMerger';
 
 const PacienteTabFicha: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -505,12 +507,57 @@ const PacienteTabFicha: React.FC = () => {
                         <span>Odontograma Inicial</span>
                     </button>
                     <button
+                        onClick={async () => {
+                            if (!paciente) return;
+                            Swal.fire({
+                                title: 'Generando Odontograma...',
+                                text: 'Cargando registros clínicos del paciente...',
+                                allowOutsideClick: false,
+                                didOpen: () => { Swal.showLoading(); }
+                            });
+
+                            try {
+                                const [resCentro, odontoRes, historiaRes, arancelRes] = await Promise.all([
+                                    api.get('/datos-centro-dental').catch(() => ({ data: [] })),
+                                    api.get(`/odontogramas/inicial/${paciente.id}`).catch(() => ({ data: null })),
+                                    api.get(`/historia-clinica/paciente/${paciente.id}`).catch(() => ({ data: [] })),
+                                    api.get('/arancel?limit=500').catch(() => ({ data: [] }))
+                                ]);
+
+                                const centroDentalData = resCentro.data && resCentro.data.length > 0 ? resCentro.data[0] : null;
+                                const rawMapa = odontoRes.data?.mapa_dientes || (paciente as any).odontograma_mapa || (paciente as any).odontograma_inicial?.mapa_dientes || {};
+                                const historiaList = Array.isArray(historiaRes.data) ? historiaRes.data : [];
+                                const allAranceles = Array.isArray(arancelRes.data) ? arancelRes.data : (arancelRes.data?.data || []);
+
+                                const fusedMap = mergeOdontogramaWithTratamientos(rawMapa, historiaList, allAranceles);
+
+                                await printOdontogramaPDF({
+                                    paciente,
+                                    centroDental: centroDentalData,
+                                    odontogramaMapa: fusedMap,
+                                    aranceles: allAranceles,
+                                    action: 'print'
+                                });
+
+                                Swal.close();
+                            } catch (err: any) {
+                                console.error('Error al imprimir odontograma:', err);
+                                Swal.fire('Error', 'No se pudo generar la impresión del odontograma', 'error');
+                            }
+                        }}
+                        className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-4 rounded-xl transition-all shadow-md transform hover:-translate-y-0.5 active:scale-95 text-xs sm:text-sm"
+                        title="Imprimir Odontograma del Paciente"
+                    >
+                        <Printer size={18} />
+                        <span>Imprimir Odontograma</span>
+                    </button>
+                    <button
                         onClick={() => paciente && handlePrintPaciente(paciente)}
                         className="flex items-center justify-center gap-2 bg-gray-500 hover:bg-gray-600 text-white font-bold py-1.5 px-4 rounded-xl transition-all shadow-md transform hover:-translate-y-0.5 active:scale-95 text-xs sm:text-sm"
                         title="Imprimir Ficha"
                     >
                         <Printer size={18} />
-                        <span className="hidden sm:inline">Imprimir</span>
+                        <span className="hidden sm:inline">Imprimir Ficha</span>
                     </button>
                 </div>
             </div>

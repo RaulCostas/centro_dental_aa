@@ -5,8 +5,9 @@ import SingleTooth, { type FigureDef } from './SingleTooth';
 import { getDynamicFigures, getFigureUrlByKey, type DynamicFigure } from '../utils/figureRegistry';
 import { mergeOdontogramaWithTratamientos } from '../utils/odontogramMerger';
 import ManualModal, { type ManualSection } from './ManualModal';
-import { Shield, Save, X, AlertTriangle, FileText, Sparkles, HelpCircle } from 'lucide-react';
+import { Shield, Save, X, AlertTriangle, FileText, Sparkles, HelpCircle, Printer } from 'lucide-react';
 import type { Arancel } from '../types';
+import { printOdontogramaPDF } from '../utils/odontogramaPdfGenerator';
 
 interface OdontogramaInicialModalProps {
     isOpen: boolean;
@@ -612,6 +613,45 @@ const OdontogramaInicialModal: React.FC<OdontogramaInicialModalProps> = ({
                     >
                         <Save size={18} />
                         {saving ? 'Guardando...' : (isExistingRecord ? 'Actualizar Odontograma Inicial' : 'Guardar Odontograma Inicial')}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={async () => {
+                            Swal.fire({
+                                title: 'Generando Odontograma...',
+                                text: 'Preparando documento para impresión...',
+                                allowOutsideClick: false,
+                                didOpen: () => { Swal.showLoading(); }
+                            });
+
+                            try {
+                                const resCentro = await api.get('/datos-centro-dental').catch(() => ({ data: [] }));
+                                const centroDentalData = resCentro.data && resCentro.data.length > 0 ? resCentro.data[0] : null;
+
+                                let pacienteData: any = null;
+                                try {
+                                    const resPac = await api.get(`/pacientes/${pacienteId}`);
+                                    pacienteData = resPac.data;
+                                } catch (err) {}
+
+                                await printOdontogramaPDF({
+                                    paciente: pacienteData || { nombre: pacienteNombre, paterno: '' },
+                                    centroDental: centroDentalData,
+                                    odontogramaMapa: mapaDientes,
+                                    aranceles,
+                                    action: 'print'
+                                });
+
+                                Swal.close();
+                            } catch (err: any) {
+                                console.error('Error al imprimir odontograma inicial:', err);
+                                Swal.fire('Error', 'No se pudo generar la impresión del odontograma inicial', 'error');
+                            }
+                        }}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-5 rounded-xl flex items-center gap-2 transform hover:-translate-y-0.5 transition-all shadow-md text-sm"
+                    >
+                        <Printer size={18} />
+                        Imprimir Odontograma
                     </button>
                     <button
                         type="button"

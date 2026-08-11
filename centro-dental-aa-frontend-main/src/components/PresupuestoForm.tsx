@@ -9,6 +9,8 @@ import Odontogram from './Odontogram';
 import SearchableSelect from './SearchableSelect';
 import { formatDate } from '../utils/dateUtils';
 import { formatFullName, formatNumber, formatCurrency, getImageUrl } from '../utils/formatters';
+import { Printer } from 'lucide-react';
+import { printOdontogramaPDF } from '../utils/odontogramaPdfGenerator';
 
 
 interface DetalleItem {
@@ -668,6 +670,34 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
                     <div className="flex gap-2 items-center">
                         <button
                             type="button"
+                            onClick={async () => {
+                                let centroDentalData: any = null;
+                                try {
+                                    const resCentro = await api.get('/datos-centro-dental');
+                                    if (resCentro.data && resCentro.data.length > 0) {
+                                        centroDentalData = resCentro.data[0];
+                                    }
+                                } catch (err) {}
+
+                                await printOdontogramaPDF({
+                                    paciente,
+                                    centroDental: centroDentalData,
+                                    odontogramaMapa: odontogramaPreexistente,
+                                    detalles,
+                                    aranceles,
+                                    numeroPlan: numero ?? undefined,
+                                    fecha,
+                                    action: 'print'
+                                });
+                            }}
+                            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-3 rounded-lg text-xs shadow-md transition-all transform hover:-translate-y-0.5 active:scale-95 h-[34px]"
+                            title="Imprimir solo el Odontograma"
+                        >
+                            <Printer size={16} />
+                            Imprimir Odontograma
+                        </button>
+                        <button
+                            type="button"
                             onClick={() => setShowOdontograma(!showOdontograma)}
                             className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-1.5 px-3 rounded-lg text-xs shadow-md transition-all transform hover:-translate-y-0.5 active:scale-95 h-[34px]"
                         >
@@ -713,16 +743,16 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
                                         </div>
                                     )}
                                 </div>
-                                {!isReadOnly && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setActiveTool(activeTool?.code === 0 ? null : { code: 0, isSurface: false })}
-                                        className={`ml-4 flex items-center gap-2 font-bold py-2 px-4 rounded-xl text-xs shadow-sm transition-all border ${activeTool?.code === 0 ? 'bg-red-500 text-white border-red-600 hover:bg-red-600 shadow-red-500/20' : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600'}`}
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" /><path d="M22 21H7" /><path d="m5 11 9 9" /></svg>
-                                        {activeTool?.code === 0 ? 'Desactivar Borrador' : 'Borrar / Limpiar'}
-                                    </button>
-                                )}
+                                    {!isReadOnly && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveTool(activeTool?.code === 0 ? null : { code: 0, isSurface: false })}
+                                            className={`flex items-center gap-2 font-bold py-2 px-4 rounded-xl text-xs shadow-sm transition-all border ${activeTool?.code === 0 ? 'bg-red-500 text-white border-red-600 hover:bg-red-600 shadow-red-500/20' : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600'}`}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" /><path d="M22 21H7" /><path d="m5 11 9 9" /></svg>
+                                            {activeTool?.code === 0 ? 'Desactivar Borrador' : 'Borrar / Limpiar'}
+                                        </button>
+                                    )}
                             </div>
 
                             <div className={`${activeTool ? 'cursor-crosshair ring-2 ring-blue-500/20 rounded-2xl p-1' : ''}`}>
