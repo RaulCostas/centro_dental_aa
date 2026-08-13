@@ -228,6 +228,53 @@ const AgendaView: React.FC<AgendaViewProps> = ({ defaultPacienteId, isEmbedded =
         }
     };
 
+    const handleNotificarAusenciaIndividual = async (id: number, e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        try {
+            const result = await Swal.fire({
+                title: '¿Avisar ausencia?',
+                text: 'Se enviará un mensaje al paciente indicando que no asistió a su cita.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, enviar',
+                cancelButtonText: 'Cancelar'
+            });
+
+            if (!result.isConfirmed) return;
+
+            Swal.fire({
+                title: 'Enviando notificación...',
+                text: 'Por favor, espere un momento.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                },
+                background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
+            });
+
+            const response = await api.post(`/agenda/${id}/ausencia`);
+
+            if (response.data.success) {
+                Swal.fire({
+                    title: '¡Enviado!',
+                    text: response.data.message || 'La notificación se envió con éxito.',
+                    icon: 'success',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                    color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
+                });
+            } else {
+                Swal.fire('Error', response.data.message || 'No se pudo enviar la notificación', 'error');
+            }
+        } catch (error: any) {
+            console.error('Error sending ausencia reminder:', error);
+            Swal.fire('Error', error.response?.data?.message || 'Error al conectar con el servidor', 'error');
+        }
+    };
+
     const fetchMonthAppointments = async () => {
         try {
             const date = new Date(currentDate + 'T00:00:00');
@@ -373,8 +420,8 @@ const AgendaView: React.FC<AgendaViewProps> = ({ defaultPacienteId, isEmbedded =
     const getAppointmentForSlot = (time: string, consultorio: number) => {
         return appointments.find(app => {
             const appTime = app.hora.substring(0, 5);
-            // Exclude cancelled appointments from blocking the slot, but show "no asistio"
-            return appTime === time && app.consultorio === consultorio && app.estado !== 'cancelado';
+            // Mostrar citas canceladas en la grilla para que el usuario pueda interactuar con ellas
+            return appTime === time && app.consultorio === consultorio;
         });
     };
 
@@ -383,8 +430,8 @@ const AgendaView: React.FC<AgendaViewProps> = ({ defaultPacienteId, isEmbedded =
     // Calculate which cells to skip rendering because they are covered by a rowspan
     const skipCells = new Set<string>();
     appointments.forEach(app => {
-        // Skip cancelled appointments - they don't block time slots. Show "no asistio"
-        if (app.estado === 'cancelado') return;
+        // Ya no saltamos las canceladas, se mostrarán visualmente
+        // if (app.estado === 'cancelado') return;
 
         const duration = app.duracion || 30;
         const rowSpan = Math.ceil(duration / 30);
@@ -428,7 +475,7 @@ const AgendaView: React.FC<AgendaViewProps> = ({ defaultPacienteId, isEmbedded =
         // Current month days
         for (let i = 1; i <= daysInMonth; i++) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-            const dayAppointments = monthAppointments.filter(app => app.fecha === dateStr && app.estado !== 'cancelado');
+            const dayAppointments = monthAppointments.filter(app => app.fecha === dateStr);
             days.push({ day: i, currentMonth: true, date: dateStr, appointments: dayAppointments });
         }
         
@@ -758,8 +805,10 @@ const AgendaView: React.FC<AgendaViewProps> = ({ defaultPacienteId, isEmbedded =
                                                                 </div>
                                                                 <div className="truncate opacity-90">{appointment.doctor ? `Dr. ${formatFullName(appointment.doctor)}` : ''}</div>
                                                                 {appointment.paciente && appointment.tratamiento && (
-                                                                    <div className="text-[9px] italic mt-0.5 truncate opacity-80 decoration-white/30 decoration-1">
-                                                                        {appointment.tratamiento}
+                                                                    <div className="text-[9px] italic mt-0.5 opacity-80 decoration-white/30 decoration-1 flex flex-col">
+                                                                        {Array.from(new Set(appointment.tratamiento.split('\n').map(t => t.split(' - Piezas:')[0].trim()))).map((t, i) => (
+                                                                            <div key={i} className="truncate">• {t}</div>
+                                                                        ))}
                                                                     </div>
                                                                 )}
                                                                 <div className="text-[9px] mt-0.5 font-bold uppercase opacity-80 flex items-center gap-1">
@@ -780,6 +829,17 @@ const AgendaView: React.FC<AgendaViewProps> = ({ defaultPacienteId, isEmbedded =
                                                                             onClick={(e) => handleEnviarRecordatorioIndividual(appointment.id, e)}
                                                                             className="ml-1 flex-shrink-0 bg-green-500 hover:bg-green-600 text-white p-1 rounded-full transition-all shadow-sm flex items-center justify-center"
                                                                             title="Enviar recordatorio por WhatsApp"
+                                                                        >
+                                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                                                            </svg>
+                                                                        </button>
+                                                                    )}
+                                                                    {(appointment.paciente || appointment.pacienteSeguro) && appointment.estado === 'no asistio' && (
+                                                                        <button
+                                                                            onClick={(e) => handleNotificarAusenciaIndividual(appointment.id, e)}
+                                                                            className="ml-1 flex-shrink-0 bg-red-500 hover:bg-red-600 text-white p-1 rounded-full transition-all shadow-sm flex items-center justify-center"
+                                                                            title="Avisar ausencia por WhatsApp"
                                                                         >
                                                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />

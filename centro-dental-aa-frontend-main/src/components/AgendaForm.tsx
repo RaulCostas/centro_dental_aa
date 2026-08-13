@@ -75,7 +75,6 @@ const AgendaForm: React.FC<AgendaFormProps> = ({
         const dayAppointments = existingAppointments.filter(app =>
             app.consultorio === consultorio &&
             app.id !== initialData?.id &&
-            app.estado !== 'cancelado' &&
             app.estado !== 'no asistio' &&
             app.estado !== 'eliminado'
         );
@@ -171,6 +170,9 @@ const AgendaForm: React.FC<AgendaFormProps> = ({
                 if (patId) {
                     fetchProformasByPaciente(patId);
                     fetchHistoriaClinica(patId);
+                }
+                if (initialData.proformaId && initialData.proformaId > 0) {
+                    fetchTratamientosByProforma(initialData.proformaId);
                 }
             }
         }
@@ -319,6 +321,16 @@ const AgendaForm: React.FC<AgendaFormProps> = ({
                 ...prev,
                 [name]: (name.includes('Id') || name === 'duracion' || name === 'consultorio') && name !== 'pacienteIdCombined' ? Number(value) : value
             }));
+        }
+    };
+
+    const handleNotificarAusencia = async () => {
+        if (!initialData?.id) return;
+        try {
+            await api.post(`/agenda/${initialData.id}/notificar-ausencia`);
+            Swal.fire('Éxito', 'Se ha notificado la ausencia al paciente', 'success');
+        } catch (error) {
+            Swal.fire('Error', 'No se pudo enviar la notificación', 'error');
         }
     };
 
@@ -761,13 +773,7 @@ const AgendaForm: React.FC<AgendaFormProps> = ({
 
                                         />
                                     ) : (
-                                        <select
-                                            name="tratamiento"
-                                            value={formData.tratamiento}
-                                            onChange={handleChange}
-                                            className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none"
-                                        >
-                                            <option value="">-- Seleccione Tratamiento --</option>
+                                        <div className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white max-h-48 overflow-y-auto">
                                             {tratamientos.map((detalle, index) => {
                                                 let isCompleted = false;
 
@@ -792,21 +798,46 @@ const AgendaForm: React.FC<AgendaFormProps> = ({
 
                                                 const tratamientoText = detalle.arancel?.detalle || `Tratamiento ${index + 1}`;
                                                 const piezasText = detalle.piezas ? ` - Piezas: ${detalle.piezas}` : '';
+                                                const fullText = `${tratamientoText}${piezasText}`;
+                                                const isChecked = formData.tratamiento.includes(fullText);
 
                                                 return (
-                                                    <option
+                                                    <label
                                                         key={index}
-                                                        value={tratamientoText}
-                                                        style={isCompleted ? {
-                                                            color: '#16a34a',
-                                                            fontWeight: 'bold'
-                                                        } : undefined}
+                                                        className={`flex items-start gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-600 rounded cursor-pointer ${isCompleted ? 'opacity-60' : ''}`}
                                                     >
-                                                        {tratamientoText}{piezasText} {isCompleted ? '(Completado)' : ''}
-                                                    </option>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isChecked}
+                                                            onChange={(e) => {
+                                                                const checked = e.target.checked;
+                                                                let currentTratamientos = formData.tratamiento.split('\n').map(t => t.trim()).filter(t => t);
+                                                                
+                                                                if (currentTratamientos.length === 1 && currentTratamientos[0].includes(', ')) {
+                                                                    currentTratamientos = currentTratamientos[0].split(', ').map(t => t.trim()).filter(t => t);
+                                                                }
+
+                                                                if (checked) {
+                                                                    if (!currentTratamientos.includes(fullText)) {
+                                                                        currentTratamientos.push(fullText);
+                                                                    }
+                                                                } else {
+                                                                    currentTratamientos = currentTratamientos.filter(t => t !== fullText);
+                                                                }
+                                                                setFormData({ ...formData, tratamiento: currentTratamientos.join('\n') });
+                                                            }}
+                                                            className="mt-1"
+                                                        />
+                                                        <span style={isCompleted ? { color: '#16a34a', fontWeight: 'bold' } : undefined} className="text-sm">
+                                                            {fullText} {isCompleted ? '(Completado)' : ''}
+                                                        </span>
+                                                    </label>
                                                 );
                                             })}
-                                        </select>
+                                            {tratamientos.length === 0 && (
+                                                <div className="text-sm text-gray-500 italic p-2">No hay tratamientos en este presupuesto.</div>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -885,6 +916,26 @@ const AgendaForm: React.FC<AgendaFormProps> = ({
                             </svg>
                             Cancelar
                         </button>
+
+                        {initialData && formData.estado === 'no asistio' && (
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    if (!initialData?.id) return;
+                                    try {
+                                        await api.post(`/agenda/${initialData.id}/ausencia`);
+                                        Swal.fire('¡Enviado!', 'Se ha notificado al paciente de su inasistencia.', 'success');
+                                    } catch (error) {
+                                        Swal.fire('Error', 'No se pudo enviar el mensaje.', 'error');
+                                    }
+                                }}
+                                className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-xl shadow-md transition-all transform hover:-translate-y-0.5 flex items-center gap-2"
+                                title="Enviar mensaje de inasistencia por WhatsApp"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                                Avisar Ausencia
+                            </button>
+                        )}
 
                         {initialData && (
                             <button
