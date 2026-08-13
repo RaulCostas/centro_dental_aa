@@ -567,14 +567,7 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
 
         const isSessionValid = menuSession && (Date.now() - menuSession.timestamp < 300000);
 
-        // Palabras clave que activan el saludo / menú de bienvenida
-        const GREETING_KEYWORDS = ['hola', 'buenos dias', 'buenos días', 'buenas tardes', 'buenas noches'];
-        const isGreeting = GREETING_KEYWORDS.some(kw => normalizedText.trim() === kw);
-
-        if (isGreeting) {
-            await this.sendMenu(remoteJid);
-            return;
-        }
+        // isGreeting is no longer hardcoded here to respect the DB configuration
 
         if (isOption && isSessionValid && menuSession.type) {
             await this.handleMenuOption(remoteJid, currentOption, actor, menuSession.type);
@@ -609,13 +602,8 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
                 console.error('[Chatbot] Error in matchedIntent:', error);
             }
         } else {
-            // Sin intent reconocido: solo responder si el paciente escribió un saludo.
-            // Cualquier otro texto (números, preguntas, etc.) se ignora silenciosamente.
-            if (isGreeting) {
-                await this.sendMenu(remoteJid);
-            } else {
-                console.log(`[Chatbot] [CENTRO DENTAL A&A] Texto sin intent ni saludo de "${senderJid}": "${text}". Ignorando.`);
-            }
+            // Sin intent reconocido
+            console.log(`[Chatbot] [CENTRO DENTAL A&A] Texto sin intent de "${senderJid}": "${text}". Ignorando.`);
         }
     }
 
@@ -626,7 +614,7 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
             `*1* Ya soy paciente del Centro Dental A&A\n` +
             `*2* Es mi primera vez aquí / Soy nuevo paciente\n` +
             `*3* Urgencia\n` +
-            `*4* Salir / No necesito ayuda por ahora\n\n` +
+            `*4* Requiero otro tipo de consulta\n\n` +
             `Por favor, responde con el número de la opción que desees.\n` +
             `📌 Guarda nuestro número.`;
 
@@ -719,6 +707,7 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
                     session.userSessions.delete(remoteJid);
                     break;
                 case '4':
+                    await this.sendMessage(remoteJid, 'Entendido. Por favor déjanos tu consulta, en breve nuestro personal te atenderá.');
                     session.userSessions.delete(remoteJid);
                     break;
                 default:

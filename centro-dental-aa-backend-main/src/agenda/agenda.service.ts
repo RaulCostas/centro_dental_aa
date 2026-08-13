@@ -81,6 +81,42 @@ export class AgendaService {
         }
     }
 
+    async notificarAusencia(id: number): Promise<{ success: boolean; message: string }> {
+        const cita = await this.findOne(id);
+        const p: any = cita.paciente;
+
+        if (!p) {
+            throw new BadRequestException('La cita no tiene un paciente asociado.');
+        }
+
+        let celular = (p.telefono_celular || p.celular || '').replace(/\D/g, '');
+        if (!celular) {
+            throw new BadRequestException('El paciente no tiene un número de celular registrado.');
+        }
+
+        if (celular.length === 8 && /^[67]/.test(celular)) {
+            celular = '591' + celular;
+        }
+
+        const jid = `${celular}@s.whatsapp.net`;
+        const nombrePaciente = p.nombre;
+        const nomClinica = 'CENTRO DENTAL A&A';
+        const horaStr = cita.hora ? cita.hora.substring(0, 5) : 'la hora acordada';
+
+        const mensaje = `Hola *${nombrePaciente}*, ${nomClinica} lamenta que no hayas podido asistir a tu cita de hoy a las *${horaStr}*. Te recordamos la importancia de tu tratamiento dental. Por favor contáctate con nosotros a la brevedad posible para reprogramar tu cita.`;
+
+        try {
+            await this.chatbotService.sendMessage(jid, mensaje);
+            return {
+                success: true,
+                message: `Notificación de inasistencia enviada a ${nombrePaciente}.`
+            };
+        } catch (error) {
+            console.error(`Error enviando notificación de ausencia a ${celular}:`, error);
+            throw new InternalServerErrorException(`No se pudo enviar la notificación: ${error.message}`);
+        }
+    }
+
     /**
      * Notifica a todo el personal registrado (con celular) que no hay citas para el día dado.
      */

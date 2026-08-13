@@ -27,6 +27,11 @@ export class AgendaController {
         return await this.agendaService.enviarRecordatorioIndividual(+id);
     }
 
+    @Post(':id/ausencia')
+    async notificarAusencia(@Param('id') id: string) {
+        return await this.agendaService.notificarAusencia(+id);
+    }
+
     @Get()
     findAll(
         @Query('date') date?: string,
