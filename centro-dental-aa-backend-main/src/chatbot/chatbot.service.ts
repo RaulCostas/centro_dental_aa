@@ -215,6 +215,13 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
                     fs.appendFileSync(`chatbot-poll-upsert-clinica-dental.log`, `\n[${new Date().toISOString()}] messages.upsert: ${JSON.stringify(m)}\n`);
                 } catch (e) { }
 
+                // FIX #3: Solo procesar mensajes en tiempo real.
+                // Tipo 'append' = mensajes históricos/pendientes que llegan al reconectar → ignorar.
+                if (m.type !== 'notify') {
+                    console.log(`[Chatbot] [CENTRO DENTAL A&A] Ignorando upsert tipo '${m.type}' (no es tiempo real).`);
+                    return;
+                }
+
                 for (const msg of m.messages) {
                     const pollUpdateMessage = msg.message?.pollUpdateMessage || msg.message?.messageContextInfo?.message?.pollUpdateMessage;
                     if (pollUpdateMessage) {
@@ -269,6 +276,19 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
                     }
 
                     if (!msg.key.fromMe) {
+                        // FIX #2: Ignorar mensajes viejos (más de 2 minutos) para evitar
+                        // re-procesar mensajes pendientes que llegan al reconectar.
+                        const msgTimestamp = msg.messageTimestamp
+                            ? (typeof msg.messageTimestamp === 'object'
+                                ? Number(msg.messageTimestamp.low ?? msg.messageTimestamp)
+                                : Number(msg.messageTimestamp))
+                            : 0;
+                        const ageSeconds = msgTimestamp > 0 ? (Date.now() / 1000) - msgTimestamp : 0;
+                        if (msgTimestamp > 0 && ageSeconds > 120) {
+                            console.log(`[Chatbot] [CENTRO DENTAL A&A] Ignorando mensaje antiguo (${Math.round(ageSeconds)}s) de ${msg.key?.remoteJid}.`);
+                            continue;
+                        }
+
                         console.log(`[Chatbot] [CENTRO DENTAL A&A] New message received:`, JSON.stringify(msg, null, 2));
                         await this.handleMessage(msg);
                     }
@@ -447,6 +467,13 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
         const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
         const normalizedText = text.toLowerCase();
 
+        // FIX #1: Ignorar mensajes sin texto (stickers, audios, imágenes, reacciones, etc.)
+        // para evitar que disparen el menú de bienvenida sin que el paciente haya escrito nada.
+        if (!text.trim()) {
+            console.log(`[Chatbot] [CENTRO DENTAL A&A] Ignorando mensaje sin texto (sticker/audio/imagen/reacción) de ${senderJid}.`);
+            return;
+        }
+
         console.log(`[Chatbot] [CENTRO DENTAL A&A] New message from ${senderJid} in ${remoteJid}: "${text}"`);
 
         // ─── PRIORIDAD 1: Sesiones de espera activas ─────
@@ -540,7 +567,11 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
 
         const isSessionValid = menuSession && (Date.now() - menuSession.timestamp < 300000);
 
-        if (currentOption === '0' || currentOption === 'menu' || currentOption === 'inicio') {
+        // Palabras clave que activan el saludo / menú de bienvenida
+        const GREETING_KEYWORDS = ['hola', 'buenos dias', 'buenos días', 'buenas tardes', 'buenas noches'];
+        const isGreeting = GREETING_KEYWORDS.some(kw => normalizedText.trim() === kw);
+
+        if (isGreeting) {
             await this.sendMenu(remoteJid);
             return;
         }
@@ -570,15 +601,21 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
                         await this.handleConsultarInventario(remoteJid, normalizedText);
                         break;
                     default:
-                        await this.sendMenu(remoteJid);
+                        // Intent encontrado pero sin acción reconocida: no responder nada.
+                        console.log(`[Chatbot] [CENTRO DENTAL A&A] Intent sin acción reconocida: ${matchedIntent?.action}. Ignorando.`);
                         break;
                 }
             } catch (error) {
                 console.error('[Chatbot] Error in matchedIntent:', error);
             }
         } else {
-            // Default action if text is unrecognized
-            await this.sendMenu(remoteJid);
+            // Sin intent reconocido: solo responder si el paciente escribió un saludo.
+            // Cualquier otro texto (números, preguntas, etc.) se ignora silenciosamente.
+            if (isGreeting) {
+                await this.sendMenu(remoteJid);
+            } else {
+                console.log(`[Chatbot] [CENTRO DENTAL A&A] Texto sin intent ni saludo de "${senderJid}": "${text}". Ignorando.`);
+            }
         }
     }
 
