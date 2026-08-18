@@ -280,12 +280,37 @@ const PacienteTabInformes: React.FC = () => {
         return tmp.textContent || tmp.innerText || "";
     };
 
-    const loadImage = (src: string): Promise<HTMLImageElement> => {
+        const loadImage = (src: string): Promise<{img: HTMLImageElement, dataUrl: string, width: number, height: number}> => {
         return new Promise((resolve, reject) => {
             const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                    resolve({
+                        img,
+                        dataUrl: canvas.toDataURL('image/jpeg', 0.95),
+                        width: img.width,
+                        height: img.height
+                    });
+                } else {
+                    reject(new Error('Canvas ctx null'));
+                }
+            };
+            img.onerror = (e) => {
+                console.warn('CORS or load error for', src, e);
+                reject(e);
+            };
+            if (src.startsWith('data:')) {
+                img.crossOrigin = '';
+            }
             img.src = src;
-            img.onload = () => resolve(img);
-            img.onerror = (e) => reject(e);
         });
     };
 
@@ -322,7 +347,7 @@ const PacienteTabInformes: React.FC = () => {
             const logo = await loadImage("/logo-clinica-dental.jpg");
             const targetHeight = 15;
             const targetWidth = (logo.width / logo.height) * targetHeight;
-            doc.addImage(logo, 'JPEG', 14, cursorY, targetWidth, targetHeight);
+            doc.addImage(logo.dataUrl, 'JPEG', 14, cursorY, targetWidth, targetHeight);
             cursorY += targetHeight + 5;
         } catch (e) {
             console.warn('Logo could not be loaded');
@@ -456,10 +481,7 @@ const PacienteTabInformes: React.FC = () => {
                             // Center horizontally in the cell
                             const cellXOffset = xOffset + (cellWidth - finalW) / 2;
                             
-                            const extension = imgs[i].src.split('.').pop()?.toLowerCase();
-                            const format = extension === 'png' ? 'PNG' : 'JPEG';
-                            
-                            doc.addImage(image, format, cellXOffset, cursorY, finalW, finalH);
+                            doc.addImage(image.dataUrl, 'JPEG', cellXOffset, cursorY, finalW, finalH);
                             
                             if (i % 2 === 1 || i === imgs.length - 1) {
                                 cursorY += rowHeight + gap;
