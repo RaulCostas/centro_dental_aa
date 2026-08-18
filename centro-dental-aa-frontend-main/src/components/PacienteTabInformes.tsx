@@ -183,7 +183,7 @@ const PacienteTabInformes: React.FC = () => {
         txt += `<p class="ql-align-center">`;
         for (let i = 0; i < selectedImages.length; i++) {
             const img = selectedImages[i];
-            const imgUrl = img?.ruta?.startsWith('http') ? img.ruta : baseUrl + (img?.ruta || '');
+            const imgUrl = getImageUrl(img?.ruta);
             
             txt += `<img src="${imgUrl}" alt="${img.descripcion || ''}" />`;
         }
@@ -1103,7 +1103,7 @@ const PacienteTabInformes: React.FC = () => {
                                         <h4 className="font-bold mb-3 text-gray-700 dark:text-gray-300">Imágenes Generales</h4>
                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                                             {generalImages.map(img => {
-                                                const imgUrl = img?.ruta?.startsWith('http') ? img.ruta : (api.defaults.baseURL?.replace('/api', '') || '') + (img?.ruta || '');
+                                                const imgUrl = getImageUrl(img?.ruta);
                                                 const isSelected = selectedImages.find(i => i.id === img.id);
                                                 return (
                                                     <div key={img.id} className="relative group cursor-pointer" onClick={() => toggleImageSelection(img)}>
@@ -1129,7 +1129,7 @@ const PacienteTabInformes: React.FC = () => {
                                             <h4 className="font-bold mb-3 text-gray-700 dark:text-gray-300">Plan de Tratamiento #{pNum}</h4>
                                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                                                 {validImgs.map(img => {
-                                                    const imgUrl = img?.ruta?.startsWith('http') ? img.ruta : (api.defaults.baseURL?.replace('/api', '') || '') + (img?.ruta || '');
+                                                    const imgUrl = getImageUrl(img?.ruta);
                                                     const isSelected = selectedImages.find(i => i.id === img.id);
                                                     return (
                                                         <div key={img.id} className="relative group cursor-pointer" onClick={() => toggleImageSelection(img)}>
