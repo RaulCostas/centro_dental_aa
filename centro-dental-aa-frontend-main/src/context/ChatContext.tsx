@@ -37,10 +37,9 @@ const getSocketConfig = () => {
     let url = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:3000`;
     let path = '/socket.io';
 
-    if (url.includes('/api')) {
-        path = '/api/socket.io';
-        url = url.replace(/\/api\/?$/, '');
-    }
+    // Remove any trailing '/api' from the base URL since NestJS WebSockets 
+    // bind to the root domain by default, not the HTTP global prefix.
+    url = url.replace(/\/api\/?$/, '');
 
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
         url = window.location.origin;
@@ -76,7 +75,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
             socketRef.current = null;
         }
 
-        const newSocket = io(SOCKET_CONFIG.url, { path: SOCKET_CONFIG.path });
+        const newSocket = io(SOCKET_CONFIG.url, { 
+            path: SOCKET_CONFIG.path,
+            transports: ['websocket', 'polling']
+        });
         socketRef.current = newSocket;
         setSocket(newSocket); // Sync state
 
