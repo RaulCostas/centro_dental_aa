@@ -8,14 +8,19 @@ import { Plus } from 'lucide-react';
 interface CorreosFormProps {
     currentUser: User | null;
     onClose: () => void;
+    initialData?: {
+        destinatarioId?: number;
+        asunto?: string;
+        mensaje?: string;
+    };
 }
 
-const CorreosForm: React.FC<CorreosFormProps> = ({ currentUser, onClose }) => {
+const CorreosForm: React.FC<CorreosFormProps> = ({ currentUser, onClose, initialData }) => {
     const [users, setUsers] = useState<User[]>([]);
-    const [destinatarioId, setDestinatarioId] = useState<number | ''>('');
+    const [destinatarioId, setDestinatarioId] = useState<number | ''>(initialData?.destinatarioId || '');
     const [copiaId, setCopiaId] = useState<number | ''>('');
-    const [asunto, setAsunto] = useState('');
-    const [mensaje, setMensaje] = useState('');
+    const [asunto, setAsunto] = useState(initialData?.asunto || '');
+    const [mensaje, setMensaje] = useState(initialData?.mensaje || '');
     const [sending, setSending] = useState(false);
 
     useEffect(() => {

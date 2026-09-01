@@ -8,6 +8,7 @@ import ChatWidget from './Chat/ChatWidget';
 import { useChat } from '../context/ChatContext';
 import { useCorreos } from '../context/CorreosContext';
 import { ThemeToggle } from './ThemeToggle';
+import QuickSwitchModal from './QuickSwitchModal';
 
 
 const Layout: React.FC = () => {
@@ -24,6 +25,7 @@ const Layout: React.FC = () => {
     const [isStatsOpen, setIsStatsOpen] = useState(false);
     const [isGestionOpen, setIsGestionOpen] = useState(false);
     const [isSeguroOpen, setIsSeguroOpen] = useState(false);
+    const [isQuickSwitchOpen, setIsQuickSwitchOpen] = useState(false);
 
     // Permission Logic
     const [permisos, setPermisos] = useState<string[]>([]);
@@ -846,7 +848,11 @@ const Layout: React.FC = () => {
 
                     <div className="header-actions">
                         {currentUser && (
-                            <div className="user-profile-header">
+                            <button 
+                                className="user-profile-header flex items-center hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors cursor-pointer border-none bg-transparent"
+                                onClick={() => setIsQuickSwitchOpen(true)}
+                                title="Cambiar de usuario"
+                            >
                                 {currentUser.foto ? (
                                     <img src={getImageUrl(currentUser.foto)} alt={currentUser.name} className="user-avatar" />
                                 ) : (
@@ -854,8 +860,13 @@ const Layout: React.FC = () => {
                                         {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
                                     </div>
                                 )}
-                                <span className="user-name dark:text-white">{formatFullName(currentUser)}</span>
-                            </div>
+                                <span className="user-name dark:text-white flex items-center gap-1">
+                                    {formatFullName(currentUser)}
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </span>
+                            </button>
                         )}
                         <div className="header-buttons">
                             {/* Selector Modificado: Modalidad Clínica Única (CENTRO DENTAL A&A) */}
@@ -863,7 +874,7 @@ const Layout: React.FC = () => {
 
                             <button
                                 onClick={() => navigate('/correos')}
-                                className="header-icon-btn relative dark:text-white"
+                                className="header-icon-btn dark:text-white"
                                 title="Correos"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -871,7 +882,7 @@ const Layout: React.FC = () => {
                                     <polyline points="22,6 12,13 2,6"></polyline>
                                 </svg>
                                 {unreadCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-white">
+                                    <span className="absolute -top-1 -right-1 z-10 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-white dark:border-gray-800">
                                         {unreadCount > 9 ? '9+' : unreadCount}
                                     </span>
                                 )}
@@ -905,6 +916,16 @@ const Layout: React.FC = () => {
                 </main>
             </div>
             <ChatWidget />
+            <QuickSwitchModal 
+                isOpen={isQuickSwitchOpen}
+                onClose={() => setIsQuickSwitchOpen(false)}
+                onSwitchComplete={() => {
+                    setIsQuickSwitchOpen(false);
+                    // Just reload to completely wipe React state and ensure clean mounting
+                    window.location.reload();
+                }}
+                currentUser={currentUser}
+            />
         </div>
     );
 };

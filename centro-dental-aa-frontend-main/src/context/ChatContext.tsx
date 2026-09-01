@@ -33,16 +33,24 @@ interface ChatProviderProps {
     children: ReactNode;
 }
 
-const getSocketUrl = () => {
-    let url = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const getSocketConfig = () => {
+    let url = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:3000`;
+    let path = '/socket.io';
+
+    if (url.includes('/api')) {
+        path = '/api/socket.io';
+        url = url.replace(/\/api\/?$/, '');
+    }
+
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
         url = window.location.origin;
     }
-    // Remove trailing /api or / if present so Socket.io uses root /socket.io path
-    return url.replace(/\/api\/?$/, '').replace(/\/+$/, '');
+    
+    url = url.replace(/\/+$/, '');
+    return { url, path };
 };
 
-const SOCKET_URL = getSocketUrl();
+const SOCKET_CONFIG = getSocketConfig();
 
 export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     const [socket, setSocket] = useState<Socket | null>(null);
@@ -68,7 +76,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
             socketRef.current = null;
         }
 
-        const newSocket = io(SOCKET_URL);
+        const newSocket = io(SOCKET_CONFIG.url, { path: SOCKET_CONFIG.path });
         socketRef.current = newSocket;
         setSocket(newSocket); // Sync state
 

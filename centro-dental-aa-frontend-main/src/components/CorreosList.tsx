@@ -16,6 +16,7 @@ const CorreosList: React.FC<CorreosListProps> = () => {
     const [correos, setCorreos] = useState<Correo[]>([]);
     const [selectedCorreo, setSelectedCorreo] = useState<Correo | null>(null);
     const [showForm, setShowForm] = useState(false);
+    const [replyData, setReplyData] = useState<{ destinatarioId?: number; asunto?: string; mensaje?: string }>();
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [showManual, setShowManual] = useState(false);
     const { decrementUnreadCount } = useCorreos();
@@ -219,6 +220,26 @@ const CorreosList: React.FC<CorreosListProps> = () => {
                                     <span className="font-semibold text-gray-700 dark:text-gray-300">CC:</span> {selectedCorreo.copia.name} &lt;{selectedCorreo.copia.email}&gt;
                                 </div>
                             )}
+                            {activeTab === 'inbox' && (
+                                <div className="mt-4">
+                                    <button
+                                        onClick={() => {
+                                            setReplyData({
+                                                destinatarioId: selectedCorreo.remitente?.id,
+                                                asunto: selectedCorreo.asunto.startsWith('Re:') ? selectedCorreo.asunto : `Re: ${selectedCorreo.asunto}`,
+                                                mensaje: `\n\n--- En respuesta a ---\n${selectedCorreo.mensaje}`
+                                            });
+                                            setShowForm(true);
+                                        }}
+                                        className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                        </svg>
+                                        Responder
+                                    </button>
+                                </div>
+                            )}
                         </div>
                         <div className="prose dark:prose-invert max-w-none text-gray-800 dark:text-gray-300 whitespace-pre-wrap">
                             {selectedCorreo.mensaje}
@@ -238,8 +259,10 @@ const CorreosList: React.FC<CorreosListProps> = () => {
             {showForm && (
                 <CorreosForm
                     currentUser={currentUser}
+                    initialData={replyData}
                     onClose={() => {
                         setShowForm(false);
+                        setReplyData(undefined);
                         fetchCorreos(); // Refresh list after sending
                     }}
                 />

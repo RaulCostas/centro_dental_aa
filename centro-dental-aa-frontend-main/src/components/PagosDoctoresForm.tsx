@@ -54,6 +54,7 @@ interface RowDetail {
     costoLaboratorio: string | number;
     descuento: number; // Percentage
     comision: string | number; // Percentage
+    aplicaFactura?: boolean;
 }
 
 const PagosDoctoresForm = () => {
@@ -178,14 +179,16 @@ const PagosDoctoresForm = () => {
                 detailsMap[d.historiaClinica.id] = {
                     costoLaboratorio: Number(d.costo_laboratorio),
                     descuento: Number(d.descuento),
-                    comision: Number(d.comision)
+                    comision: Number(d.comision),
+                    aplicaFactura: Boolean(d.aplica_factura)
                 };
             });
             pendingItems.forEach(p => {
                 detailsMap[p.id] = {
                     costoLaboratorio: p.costoLaboratorioAuto || 0,
                     descuento: p.proformaDetalle?.descuento || 0,
-                    comision: p.comisionDefault || 0
+                    comision: p.comisionDefault || 0,
+                    aplicaFactura: false
                 };
             });
             setRowDetails(detailsMap);
@@ -233,15 +236,15 @@ const PagosDoctoresForm = () => {
     };
 
     const calculateRowNeto = (item: HistoriaClinica) => {
-        const details = rowDetails[item.id] || { costoLaboratorio: 0, descuento: 0, comision: 0 };
+        const details = rowDetails[item.id] || { costoLaboratorio: 0, descuento: 0, comision: 0, aplicaFactura: false };
         const base = Number(item.precio) || 0;
 
         // 1. Discount from Budget
         const discountAmount = (base * (details.descuento || 0)) / 100;
         let taxableBase = base - discountAmount;
 
-        // 2. Tax Deduction (16%) if patient paid with invoice
-        if (item.ultimoPagoPaciente?.factura) {
+        // 2. Tax Deduction (16%) if toggle is ON
+        if (details.aplicaFactura) {
             taxableBase = taxableBase * 0.84; // Deduct 16% (leaving 84%)
         }
 
@@ -252,7 +255,7 @@ const PagosDoctoresForm = () => {
 
     const calculateRowTotal = (item: HistoriaClinica) => {
         const afterLab = calculateRowNeto(item);
-        const details = rowDetails[item.id] || { costoLaboratorio: 0, descuento: 0, comision: 0 };
+        const details = rowDetails[item.id] || { costoLaboratorio: 0, descuento: 0, comision: 0, aplicaFactura: false };
 
         // 4. Apply Physician Commission
         const comisionAmount = (afterLab * (Number(details.comision) || 0)) / 100;
@@ -356,7 +359,8 @@ const PagosDoctoresForm = () => {
                     fecha_pago_paciente: p.ultimoPagoPaciente?.fecha || null,
                     forma_pago_paciente: p.ultimoPagoPaciente?.forma_pago || null,
                     descuento: Number(rd.descuento) || 0,
-                    comision: Number(rd.comision) || 0
+                    comision: Number(rd.comision) || 0,
+                    aplica_factura: Boolean(rd.aplicaFactura)
                 };
             });
 
@@ -510,21 +514,50 @@ const PagosDoctoresForm = () => {
                                                 <td className="p-3 text-center text-gray-500 dark:text-gray-400">{p.cantidad}</td>
                                                 <td className="p-3 text-right font-bold text-gray-800 dark:text-white">{formatNumber(p.precio)}</td>
 
-                                                <td className="p-3 text-right font-medium text-gray-700 dark:text-gray-300">
-                                                    {isSelected ? formatNumber(details.costoLaboratorio) : '-'}
+                                                <td className="p-2">
+                                                    {isSelected ? (
+                                                        <input
+                                                            type="text"
+                                                            value={details.costoLaboratorio === 0 ? '' : details.costoLaboratorio}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value.replace(',', '.');
+                                                                if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                                                    handleDetailChange(p.id, 'costoLaboratorio', val);
+                                                                }
+                                                            }}
+                                                            className="w-full min-w-[60px] p-1 border border-gray-300 dark:border-gray-600 rounded text-right focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                            placeholder="0.00"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        />
+                                                    ) : <div className="text-right p-1 text-gray-500">-</div>}
                                                 </td>
                                                 <td className="p-3 text-center">
-                                                    {isSelected && p.ultimoPagoPaciente?.factura ? (
-                                                        <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded text-[10px] font-bold border border-yellow-200 dark:border-yellow-800">
-                                                            SI
-                                                        </span>
-                                                    ) : (
-                                                        isSelected && <span className="text-gray-400">NO</span>
-                                                    )}
+                                                    {isSelected ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setRowDetails(prev => ({
+                                                                    ...prev,
+                                                                    [p.id]: {
+                                                                        ...details,
+                                                                        aplicaFactura: !details.aplicaFactura
+                                                                    }
+                                                                }));
+                                                            }}
+                                                            className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
+                                                                details.aplicaFactura
+                                                                    ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800'
+                                                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-200'
+                                                            }`}
+                                                        >
+                                                            {details.aplicaFactura ? 'SI' : 'NO'}
+                                                        </button>
+                                                    ) : '-'}
                                                 </td>
 
                                                 <td className="p-3 text-right text-red-500 dark:text-red-400 font-medium">
-                                                    {isSelected && p.ultimoPagoPaciente?.factura ? (
+                                                    {isSelected && details.aplicaFactura ? (
                                                         (() => {
                                                             const base = Number(p.precio) || 0;
                                                             const discountAmount = (base * (details.descuento || 0)) / 100;
@@ -549,8 +582,9 @@ const PagosDoctoresForm = () => {
                                                                     handleDetailChange(p.id, 'comision', val);
                                                                 }
                                                             }}
-                                                            className="w-full p-1 border border-blue-300 dark:border-blue-600 rounded text-right focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                            className="w-full min-w-[60px] p-1 border border-blue-300 dark:border-blue-600 rounded text-right focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                                             placeholder="0%"
+                                                            onClick={(e) => e.stopPropagation()}
                                                         />
                                                     )}
                                                 </td>
