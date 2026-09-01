@@ -119,7 +119,7 @@ const QuickSwitchModal: React.FC<QuickSwitchModalProps> = ({ isOpen, onClose, on
                                         )}
                                         <div className="text-left flex-1">
                                             <div className="font-semibold text-gray-900 dark:text-white">{formatFullName(user)}</div>
-                                            <div className="text-xs text-gray-500 dark:text-gray-400">{user.rol}</div>
+                                            <div className="text-xs text-gray-500 dark:text-gray-400">{(user as any).rol || 'Usuario'}</div>
                                         </div>
                                         {user.id === currentUser?.id && (
                                             <span className="text-xs font-bold text-blue-500 dark:text-blue-400">Actual</span>
