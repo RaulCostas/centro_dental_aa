@@ -629,6 +629,7 @@ export interface Propuesta {
     usuario?: User;
     detalles: PropuestaDetalle[];
     descuentos?: Record<string, number>;
+    plan_pagos?: Record<string, any>;
 }
 
 export interface Calificacion {
@@ -850,6 +851,7 @@ export interface Propuesta {
     usuario?: User;
     detalles: PropuestaDetalle[];
     descuentos?: Record<string, number>;
+    plan_pagos?: Record<string, any>;
 }
 
 export interface Calificacion {

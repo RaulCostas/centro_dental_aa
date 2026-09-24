@@ -90,7 +90,8 @@ const PersonalForm: React.FC<PersonalFormProps> = ({ isOpen, onClose, id, onSave
                             fecha_nacimiento: data.fecha_nacimiento ? data.fecha_nacimiento.split('T')[0] : '',
                             fecha_ingreso: data.fecha_ingreso ? data.fecha_ingreso.split('T')[0] : '',
                             fecha_baja: data.fecha_baja ? data.fecha_baja.split('T')[0] : '',
-                            personalTipoId: data.personal_tipo_id || ''
+                            personalTipoId: data.personal_tipo_id || '',
+                            sueldo: data.sueldo ? data.sueldo.toString() : ''
                         });
                     })
                     .catch(error => {
