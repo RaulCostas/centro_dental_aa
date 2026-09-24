@@ -389,6 +389,8 @@ export interface HistoriaClinica {
     pagado: string;
     precio?: number;
     firmaPaciente?: string;
+    usuarioId?: number;
+    usuario?: User;
     createdAt: string;
     updatedAt: string;
 }
@@ -410,6 +412,8 @@ export interface Pago {
     comisionTarjeta?: ComisionTarjeta;
     observaciones?: string;
     formaPagoRel?: FormaPago;
+    usuarioId?: number;
+    usuario?: User;
     createdAt: string;
     updatedAt: string;
 }
