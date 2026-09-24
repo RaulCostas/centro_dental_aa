@@ -49,6 +49,13 @@ export class Agenda {
     @Column({ type: 'text', nullable: true })
     tratamiento: string;
 
+    @Column({ type: 'int', nullable: true })
+    asistenteId: number;
+
+    @ManyToOne(() => Personal, { nullable: true })
+    @JoinColumn({ name: 'asistenteId' })
+    asistente: Personal;
+
     @Column({ type: 'int' })
     usuarioId: number; // Quien agendó
 

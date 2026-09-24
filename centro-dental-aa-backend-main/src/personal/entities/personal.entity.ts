@@ -47,6 +47,9 @@ export class Personal {
     @Column({ type: 'date', nullable: true })
     fecha_baja: Date;
 
+    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+    sueldo: number;
+
     
 
     

@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import type { Personal } from '../types';
 import * as XLSX from 'xlsx';
@@ -456,6 +456,7 @@ const response = await api.get<PaginatedResponse>(`/personal?${params}`);
                                 <th>Área</th>
                                 <th>F. Nac.</th>
                                 <th>F. Ingreso</th>
+                                <th>Sueldo</th>
                                 <th>Estado</th>
                                 <th>F. Baja</th>
                             </tr>
@@ -472,6 +473,7 @@ const response = await api.get<PaginatedResponse>(`/personal?${params}`);
                                     <td>${p.personalTipo?.area || '-'}</td>
                                     <td>${formatDate(p.fecha_nacimiento)}</td>
                                     <td>${formatDate(p.fecha_ingreso)}</td>
+                                    <td>${p.sueldo ? p.sueldo : '-'}</td>
                                     <td class="${p.estado === 'activo' ? 'status-active' : 'status-inactive'}">
                                         ${p.estado.charAt(0).toUpperCase() + p.estado.slice(1)}
                                     </td>
@@ -614,6 +616,7 @@ const response = await api.get<PaginatedResponse>(`/personal?${params}`);
                             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Área</th>
                             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">F. Nacimiento</th>
                             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">F. Ingreso</th>
+                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Sueldo</th>
                             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Estado</th>
                             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">F. Baja</th>
                             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
@@ -631,6 +634,7 @@ const response = await api.get<PaginatedResponse>(`/personal?${params}`);
                                 <td className="p-3 text-gray-800 dark:text-gray-300">{p.personalTipo?.area || '-'}</td>
                                 <td className="p-3 text-gray-800 dark:text-gray-300">{formatDate(p.fecha_nacimiento)}</td>
                                 <td className="p-3 text-gray-800 dark:text-gray-300">{formatDate(p.fecha_ingreso)}</td>
+                                <td className="p-3 text-gray-800 dark:text-gray-300">{p.sueldo ? p.sueldo : '-'}</td>
                                 <td className="p-3">
                                     <span className={`px-2 py-1 rounded text-sm ${p.estado === 'activo' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'}`}>
                                         {p.estado}

@@ -40,5 +40,7 @@ export class CreatePersonalDto {
     @IsOptional()
     fecha_baja?: string;
 
-    
+    @IsOptional()
+    @IsNumber()
+    sueldo?: number;
 }

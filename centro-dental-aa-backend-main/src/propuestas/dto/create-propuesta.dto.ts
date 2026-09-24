@@ -59,6 +59,9 @@ export class CreatePropuestaDto {
     @IsNumber()
     total: number;
 
+    @IsOptional()
+    plan_pagos?: any;
+
     @IsNotEmpty()
     @ValidateNested({ each: true })
     @Type(() => CreatePropuestaDetalleDto)

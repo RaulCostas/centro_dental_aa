@@ -49,5 +49,7 @@ export class CreateAgendaDto {
     @IsString()
     motivoCancelacion?: string;
 
-    
+    @IsOptional()
+    @IsNumber()
+    asistenteId?: number;
 }

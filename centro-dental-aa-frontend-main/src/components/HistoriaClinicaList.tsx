@@ -157,6 +157,7 @@ const HistoriaClinicaList: React.FC<HistoriaClinicaListProps> = ({ historia, onD
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Especialidad</th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Doctor</th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Diagnóstico</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Registrado por</th>
                             <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Est. Trat.</th>
                             <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Est. Plan</th>
                             <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
@@ -178,6 +179,9 @@ const HistoriaClinicaList: React.FC<HistoriaClinicaListProps> = ({ historia, onD
                                 </td>
                                 <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 max-w-xs truncate" title={item.diagnostico}>
                                     {item.diagnostico || '-'}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300 font-medium">
+                                    {item.usuario?.name || 'Sistema'}
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap text-center">
                                     <span className={`px-2 py-1 rounded text-sm ${item.estadoTratamiento === 'terminado'
@@ -248,7 +252,7 @@ const HistoriaClinicaList: React.FC<HistoriaClinicaListProps> = ({ historia, onD
                         ))}
                         {paginatedHistoria.length === 0 && (
                             <tr>
-                                <td colSpan={11} className="px-6 py-10 text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
+                                <td colSpan={12} className="px-6 py-10 text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
                                     <div className="flex flex-col items-center justify-center">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-2 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

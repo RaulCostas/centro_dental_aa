@@ -413,17 +413,18 @@ const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClos
         doc.setFont('helvetica', 'bold');
 
         const subtotal = filteredDetalles.reduce((acc, curr) => acc + Number(curr.total), 0);
-        const discount = (letra && propuesta.descuentos && propuesta.descuentos[letra]) ? Number(propuesta.descuentos[letra]) : 0;
-        const totalAmount = subtotal - discount;
+        const discountPct = (letra && propuesta.descuentos && propuesta.descuentos[letra]) ? Number(propuesta.descuentos[letra]) : 0;
+        const discountAmount = subtotal * (discountPct / 100);
+        const totalAmount = subtotal - discountAmount;
 
         // Draw Subtotal and Discount if exists
-        if (discount > 0) {
+        if (discountPct > 0) {
             doc.text('SUBTOTAL Bs.', penultColX + penultColWidth - 2, finalY, { align: 'right' });
             doc.text(formatNumber(subtotal), lastColX + lastColWidth - 2, finalY, { align: 'right' });
             finalY += 6;
 
-            doc.text('DESCUENTO (Bs.)', penultColX + penultColWidth - 2, finalY, { align: 'right' });
-            doc.text(`-${formatNumber(discount)}`, lastColX + lastColWidth - 2, finalY, { align: 'right' });
+            doc.text(`DESCUENTO (${discountPct}%)`, penultColX + penultColWidth - 2, finalY, { align: 'right' });
+            doc.text(`-${formatNumber(discountAmount)}`, lastColX + lastColWidth - 2, finalY, { align: 'right' });
             finalY += 6;
         }
 
@@ -463,9 +464,57 @@ const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClos
         doc.text('SISTEMA DE PAGO', 14, finalY + 3.5);
 
         doc.setFont('helvetica', 'normal');
-        doc.text('- Cancelación del 50% al inicio. 30% durante el tratamiento. 20% antes de finalizado el mismo.', 14, finalY + 9.5, { align: 'justify', maxWidth: 180 });
+        
+        const planPagos = letra && propuesta.plan_pagos ? propuesta.plan_pagos[letra] : null;
 
-        finalY += 15;
+        if (planPagos?.activo) {
+            const meses = planPagos.meses;
+            const dia = planPagos.diaPago;
+            const cuotaInicial = planPagos.cuotaInicial || 0;
+            const montoParaCuotas = Math.max(0, totalAmount - cuotaInicial);
+            
+            const cuota = formatNumber(montoParaCuotas / meses);
+
+            doc.text('Plan de Pagos Activo:', 14, finalY + 9.5);
+            
+            let tableBody = [];
+            let fechaActual = new Date(planPagos.fechaInicio || propuesta.fecha || new Date());
+            
+            if (cuotaInicial > 0) {
+                tableBody.push([
+                    'Cuota Inicial', 
+                    `${formatNumber(cuotaInicial)} Bs.`, 
+                    fechaActual.toLocaleDateString('en-GB')
+                ]);
+            }
+
+            for (let i = 1; i <= meses; i++) {
+                let nextMonth = new Date(fechaActual.getFullYear(), fechaActual.getMonth() + i, dia);
+                if (nextMonth.getMonth() !== (fechaActual.getMonth() + i) % 12) {
+                    nextMonth = new Date(fechaActual.getFullYear(), fechaActual.getMonth() + i + 1, 0);
+                }
+                tableBody.push([
+                    `Cuota ${i}`, 
+                    `${cuota} Bs.`, 
+                    nextMonth.toLocaleDateString('en-GB')
+                ]);
+            }
+
+            autoTable(doc, {
+                startY: finalY + 12,
+                head: [['Detalle', 'Monto', 'Fecha Vencimiento']],
+                body: tableBody,
+                theme: 'grid',
+                styles: { fontSize: 9, cellPadding: 2, halign: 'center', textColor: [0, 0, 0], lineColor: [200, 200, 200], lineWidth: 0.1 },
+                headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', lineWidth: 0.1, lineColor: [200, 200, 200] },
+                margin: { left: 14, right: 14 }
+            });
+
+            finalY = (doc as any).lastAutoTable.finalY + 5;
+        } else {
+            doc.text('- Cancelación del 50% al inicio. 30% durante el tratamiento. 20% antes de finalizado el mismo.', 14, finalY + 9.5, { align: 'justify', maxWidth: 180 });
+            finalY += 15;
+        }
 
         // 8. Note
         doc.setFont('helvetica', 'bold');
@@ -661,8 +710,8 @@ const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClos
                                 const subtotal = propuesta.detalles
                                     .filter(d => d.letra === letra)
                                     .reduce((acc, curr) => acc + Number(curr.total), 0);
-                                const discount = (propuesta.descuentos && propuesta.descuentos[letra]) ? Number(propuesta.descuentos[letra]) : 0;
-                                return subtotal - discount;
+                                const discountPct = (propuesta.descuentos && propuesta.descuentos[letra]) ? Number(propuesta.descuentos[letra]) : 0;
+                                return subtotal * (1 - discountPct / 100);
                             };
 
                             return (

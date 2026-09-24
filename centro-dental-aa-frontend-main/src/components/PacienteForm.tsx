@@ -292,8 +292,11 @@ const PacienteForm: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        const fullCelular = `${countryCode}${localCelular}`;
-        const fullTutorCelular = tutorLocalCelular ? `${tutorCountryCode}${tutorLocalCelular}` : '';
+        const localCelularClean = localCelular.replace(/\D/g, '');
+        const fullCelular = localCelularClean ? `${countryCode}${localCelularClean}` : '';
+        
+        const tutorCelularClean = tutorLocalCelular.replace(/\D/g, '');
+        const fullTutorCelular = tutorCelularClean ? `${tutorCountryCode}${tutorCelularClean}` : '';
 
         const payload: any = { ...formData };
         Object.entries(payload).forEach(([key, value]) => {

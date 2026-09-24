@@ -788,13 +788,14 @@ const PacienteTabPagos: React.FC = () => {
                                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Moneda</th>
                                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Forma de Pago</th>
                                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Recibo / Factura</th>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Registrado por</th>
                                     <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                 {pagosFiltrados.length === 0 ? (
                                     <tr>
-                                        <td colSpan={7} className="p-8 text-center text-gray-500 dark:text-gray-400 italic">
+                                        <td colSpan={8} className="p-8 text-center text-gray-500 dark:text-gray-400 italic">
                                             No hay pagos registrados para este presupuesto.
                                         </td>
                                     </tr>
@@ -833,6 +834,9 @@ const PacienteTabPagos: React.FC = () => {
                                                 {p.recibo ? <span className="block font-medium">R: {p.recibo}</span> : null}
                                                 {p.factura ? <span className="block font-medium">F: {p.factura}</span> : null}
                                                 {!p.recibo && !p.factura ? <span className="text-gray-300 dark:text-gray-600 italic">—</span> : null}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400 font-medium">
+                                                {p.usuario?.name || 'Sistema'}
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <div className="flex justify-center gap-2">

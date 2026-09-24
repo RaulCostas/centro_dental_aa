@@ -42,6 +42,9 @@ export class Propuesta {
     @JoinColumn({ name: 'usuarioId' })
     usuario: User;
 
+    @Column({ type: 'jsonb', nullable: true })
+    plan_pagos: any;
+
     @OneToMany(() => PropuestaDetalle, (detalle) => detalle.propuesta, { cascade: true })
     detalles: PropuestaDetalle[];
 }

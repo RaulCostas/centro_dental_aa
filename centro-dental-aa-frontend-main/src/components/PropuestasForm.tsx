@@ -78,6 +78,7 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
     });
     // const [numero, setNumero] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState('A'); // Default tab
+    const [tabPlanPagos, setTabPlanPagos] = useState<Record<string, any>>({});
 
     // Form state for new item
     const [selectedArancelId, setSelectedArancelId] = useState<number>(0);
@@ -136,6 +137,9 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
             // Load global tab discounts if they exist
             if (data.descuentos) {
                 setTabDiscounts(prev => ({ ...prev, ...data.descuentos }));
+            }
+            if (data.plan_pagos) {
+                setTabPlanPagos(data.plan_pagos);
             }
 
             // setNumero(data.numero);
@@ -302,6 +306,7 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                 fecha: new Date(fecha).toISOString(),
                 total: calculateGrandTotal(),
                 descuentos: tabDiscounts,
+                plan_pagos: tabPlanPagos,
                 detalles: detalles.map(d => ({
                     id: d.id,
                     letra: d.letra,
@@ -357,6 +362,95 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
     };
 
 
+    const handleTogglePaymentPlan = () => {
+        if (!propuestaId) return;
+
+        const currentTabPlan = tabPlanPagos[activeTab] || null;
+        const isActivo = currentTabPlan?.activo;
+
+        Swal.fire({
+            title: isActivo ? `Editar Plan de Pagos (Opción ${activeTab})` : `Configurar Plan de Pagos (Opción ${activeTab})`,
+            html: `
+                <div class="space-y-4 text-left">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Cuota Inicial (Opcional)</label>
+                        <input type="number" id="swal-cuota-inicial" class="swal2-input w-full mx-0 mt-1 !text-lg" placeholder="Ej: 5000" value="${currentTabPlan?.cuotaInicial || ''}" min="0">
+                        <div class="text-xs text-gray-500 mt-1">El monto restante se dividirá en cuotas.</div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Duración en meses</label>
+                        <input type="number" id="swal-meses" class="swal2-input w-full mx-0 mt-1 !text-lg" value="${currentTabPlan?.meses || 6}" min="1" max="60">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Día de pago (del mes)</label>
+                        <input type="number" id="swal-dia" class="swal2-input w-full mx-0 mt-1 !text-lg" value="${currentTabPlan?.diaPago || 15}" min="1" max="31">
+                    </div>
+                    <div class="pt-2 text-xs text-gray-500 dark:text-gray-400">
+                        La cuota se calculará dividiendo el total de la propuesta (menos la cuota inicial) entre los meses.
+                    </div>
+                </div>
+            `,
+            focusConfirm: false,
+            showCancelButton: true,
+            showDenyButton: isActivo,
+            confirmButtonText: 'Guardar Plan',
+            cancelButtonText: 'Cancelar',
+            denyButtonText: 'Eliminar Plan',
+            preConfirm: () => {
+                const cuotaInicial = (document.getElementById('swal-cuota-inicial') as HTMLInputElement).value;
+                const meses = (document.getElementById('swal-meses') as HTMLInputElement).value;
+                const dia = (document.getElementById('swal-dia') as HTMLInputElement).value;
+                if (!meses || Number(meses) < 1) {
+                    Swal.showValidationMessage('Ingrese una cantidad válida de meses');
+                    return false;
+                }
+                if (!dia || Number(dia) < 1 || Number(dia) > 31) {
+                    Swal.showValidationMessage('El día debe estar entre 1 y 31');
+                    return false;
+                }
+
+                const cuotaInicialNum = cuotaInicial ? Number(cuotaInicial) : undefined;
+
+                return { meses: Number(meses), diaPago: Number(dia), cuotaInicial: cuotaInicialNum };
+            }
+        }).then(async (result) => {
+            if (result.isConfirmed && result.value) {
+                try {
+                    const newPlan = {
+                        activo: true,
+                        meses: result.value.meses,
+                        diaPago: result.value.diaPago,
+                        cuotaInicial: result.value.cuotaInicial,
+                        fechaInicio: fecha || new Date().toISOString()
+                    };
+                    const updatedTabPlanPagos = { ...tabPlanPagos, [activeTab]: newPlan };
+                    await api.patch(`/propuestas/${propuestaId}`, { plan_pagos: updatedTabPlanPagos });
+                    setTabPlanPagos(updatedTabPlanPagos);
+                    Swal.fire({
+                        title: 'Guardado',
+                        text: 'Plan de pagos configurado',
+                        icon: 'success',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                } catch (error) {
+                    console.error(error);
+                    Swal.fire('Error', 'No se pudo guardar el plan', 'error');
+                }
+            } else if (result.isDenied) {
+                try {
+                    const updatedTabPlanPagos = { ...tabPlanPagos };
+                    delete updatedTabPlanPagos[activeTab];
+                    await api.patch(`/propuestas/${propuestaId}`, { plan_pagos: updatedTabPlanPagos });
+                    setTabPlanPagos(updatedTabPlanPagos);
+                    Swal.fire('Eliminado', 'El plan de pagos fue eliminado', 'success');
+                } catch (error) {
+                    Swal.fire('Error', 'No se pudo eliminar el plan', 'error');
+                }
+            }
+        });
+    };
+
     return (
         <div className="content-card max-w-[1400px] mx-auto text-gray-800 dark:text-white bg-white dark:bg-gray-800">
             <div className="flex items-center justify-between mb-6">
@@ -368,13 +462,24 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                     </span>
                     {propuestaId ? (isReadOnly ? 'Ver Propuesta' : 'Editar Propuesta') : 'Nueva Propuesta'}
                 </h2>
-                <button
-                    onClick={() => setShowManual(true)}
-                    className="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 p-1.5 rounded-full flex items-center justify-center w-[30px] h-[30px] text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
-                    title="Ayuda / Manual"
-                >
-                    ?
-                </button>
+                <div className="flex gap-2">
+                    {isReadOnly && propuestaId && (
+                        <button
+                            onClick={handleTogglePaymentPlan}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-sm transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm border ${tabPlanPagos[activeTab]?.activo ? 'bg-indigo-100 text-indigo-700 border-indigo-200 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'}`}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                            {tabPlanPagos[activeTab]?.activo ? 'Plan Activo' : 'Crear Plan'}
+                        </button>
+                    )}
+                    <button
+                        onClick={() => setShowManual(true)}
+                        className="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 p-1.5 rounded-full flex items-center justify-center w-[30px] h-[30px] text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
+                        title="Ayuda / Manual"
+                    >
+                        ?
+                    </button>
+                </div>
             </div>
 
             {/* Header: Patient Info */}

@@ -29,6 +29,7 @@ const AgendaForm: React.FC<AgendaFormProps> = ({
     const [doctors, setDoctors] = useState<Doctor[]>([]);
     const [proformas, setProformas] = useState<Proforma[]>([]);
     const [pacientes, setPacientes] = useState<Paciente[]>([]);
+    const [personalList, setPersonalList] = useState<any[]>([]);
     
     const [historiaClinica, setHistoriaClinica] = useState<any[]>([]);
     const [tratamientos, setTratamientos] = useState<any[]>([]);
@@ -47,7 +48,8 @@ const AgendaForm: React.FC<AgendaFormProps> = ({
         estado: 'agendado',
         usuarioId: 0,
         tratamiento: '',
-        motivoCancelacion: ''
+        motivoCancelacion: '',
+        asistenteId: 0
     });
 
     const [maxDuration, setMaxDuration] = useState(120); // Default max
@@ -152,21 +154,23 @@ const AgendaForm: React.FC<AgendaFormProps> = ({
                 hora: initialData.hora,
                 duracion: initialData.duracion,
                 consultorio: initialData.consultorio,
-                pacienteId: initialData.pacienteId || 0,
+                pacienteId: initialData.pacienteId || (initialData.paciente?.id) || 0,
                 pacienteSeguroId: (initialData as any).pacienteSeguroId || 0,
                 doctorId: initialData.doctorId,
                 proformaId: initialData.proformaId || 0,
                 estado: initialData.estado,
                 usuarioId: initialData.usuarioId,
                 tratamiento: initialData.tratamiento || '',
-                motivoCancelacion: initialData.motivoCancelacion || ''
+                motivoCancelacion: initialData.motivoCancelacion || '',
+                asistenteId: (initialData as any).asistenteId || 0
             });
 
-            if ((!initialData.pacienteId || initialData.pacienteId === 0) && (!(initialData as any).pacienteSeguroId || (initialData as any).pacienteSeguroId === 0)) {
+            const pId = initialData.pacienteId || (initialData.paciente?.id) || 0;
+            if (pId === 0 && (!(initialData as any).pacienteSeguroId || (initialData as any).pacienteSeguroId === 0)) {
                 setIsNonPatientEvent(true);
             } else {
                 setIsNonPatientEvent(false);
-                const patId = initialData.pacienteId || (initialData as any).pacienteSeguroId;
+                const patId = pId || (initialData as any).pacienteSeguroId;
                 if (patId) {
                     fetchProformasByPaciente(patId);
                     fetchHistoriaClinica(patId);
@@ -180,15 +184,19 @@ const AgendaForm: React.FC<AgendaFormProps> = ({
 
     const fetchCatalogs = async () => {
         try {
-            const [doctorsRes, pacientesRes] = await Promise.all([
+            const [doctorsRes, pacientesRes, personalRes] = await Promise.all([
                 api.get('/doctors?limit=1000'),
-                api.get('/pacientes?limit=2000')
+                api.get('/pacientes?limit=2000'),
+                api.get('/personal?limit=1000')
             ]);
             const activeDoctors = (doctorsRes.data.data || []).filter((doctor: any) => doctor.estado === 'activo');
             setDoctors(activeDoctors);
 
             const activePatients = (pacientesRes.data.data || []).filter((patient: any) => patient.estado === 'activo');
             setPacientes(activePatients);
+
+            const activePersonal = (personalRes.data.data || []).filter((p: any) => p.estado === 'activo');
+            setPersonalList(activePersonal);
         } catch (error) {
             console.error('Error fetching catalogs:', error);
         }
@@ -379,7 +387,8 @@ const AgendaForm: React.FC<AgendaFormProps> = ({
             pacienteId: formData.pacienteId > 0 ? formData.pacienteId : null,
             pacienteSeguroId: formData.pacienteSeguroId > 0 ? formData.pacienteSeguroId : null,
             proformaId: formData.proformaId > 0 ? formData.proformaId : null,
-            tratamiento: formData.tratamiento || (isNonPatientEvent ? 'Bloqueo / Evento' : '')
+            tratamiento: formData.tratamiento || (isNonPatientEvent ? 'Bloqueo / Evento' : ''),
+            asistenteId: formData.asistenteId > 0 ? formData.asistenteId : null
         };
 
         // Validate user
@@ -845,8 +854,34 @@ const AgendaForm: React.FC<AgendaFormProps> = ({
 
 
 
+                        {/* Asistente */}
+                        <div className="col-span-1 md:col-span-2">
+                            <label className="block mb-1 font-bold text-sm">Asistente (Opcional):</label>
+                            <div className="relative">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                </svg>
+                                <select
+                                    name="asistenteId"
+                                    value={formData.asistenteId}
+                                    onChange={(e) => setFormData({ ...formData, asistenteId: Number(e.target.value) })}
+                                    className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none"
+                                >
+                                    <option value={0}>-- Sin asistente --</option>
+                                    {personalList.map(personal => (
+                                        <option key={personal.id} value={personal.id}>
+                                            {personal.nombre} {personal.paterno}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
                         {/* Estado */}
-                        <div>
+                        <div className="col-span-1 md:col-span-2">
                             <label className="block mb-1 font-bold text-sm">Estado:</label>
                             <div className="relative">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">

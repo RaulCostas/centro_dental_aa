@@ -642,7 +642,8 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
         const message = `¡Bienvenido al Centro Dental A&A! 🦷 Nos encantará cuidar de tu salud bucodental. ¿En qué te podemos ayudar?\n\n` +
             `*Menú:*\n` +
             `*1* 📋 Agendar una cita\n` +
-            `*2* 📍 Ubicación y Horarios\n\n` +
+            `*2* 📍 Ubicación y Horarios\n` +
+            `*3* 📝 Registrar mis datos (Nuevo Paciente)\n\n` +
             `Por favor, responde con el número de la opción elegida.`;
 
         await this.sendMessage(remoteJid, message);
@@ -751,16 +752,22 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
                 case '1':
                     await this.sendMessage(
                         remoteJid,
-                        `¡Excelente elección! Para agendar tu primera consulta, por favor envíanos los siguientes datos:\n` +
-                        `👤 Nombre y Apellido:\n` +
-                        `📱 Nº de Celular de contacto:\n` +
-                        `🦷 Motivo de consulta:\n` +
-                        `⏰ Turno de preferencia (Mañana o Tarde):\n\n` +
-                        `ℹ️ Nota: El costo de la consulta clínica es de 300 Bs.`
+                        `¡Excelente elección! Para agendar tu primera consulta necesitamos registrar tus datos. Puedes hacerlo de manera rápida en el siguiente enlace:\n\n` +
+                        `👉 https://centrodentalaa.cloud/registro-paciente\n\n` +
+                        `Una vez completado el registro, respóndenos por aquí indicando tu *Motivo de consulta* y *Turno de preferencia* (Mañana o Tarde).\n\n` +
+                        `ℹ️ Nota: El costo de la consulta clínica de diagnóstico es de 300 Bs.`
                     );
                     break;
                 case '2':
                     await this.sendUbicacionYHorarios(remoteJid);
+                    break;
+                case '3':
+                    await this.sendMessage(
+                        remoteJid,
+                        `¡Genial! Puedes registrarte en nuestro sistema de manera rápida y segura haciendo clic en el siguiente enlace:\n\n` +
+                        `👉 https://centrodentalaa.cloud/registro-paciente\n\n` +
+                        `Una vez que completes tu registro, avísanos por este medio para agendar tu cita.`
+                    );
                     break;
                 default:
                     await this.sendSubmenuNew(remoteJid);

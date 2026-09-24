@@ -30,13 +30,15 @@ export class PropuestasService {
             throw new NotFoundException(`No hay items en la Propuesta ${letra}`);
         }
 
-        // Fetch the global discount for this specific tab, default to 0
-        const globalDiscount = propuesta.descuentos?.[letra] || 0;
+        // Fetch the global discount percentage for this specific tab, default to 0
+        const globalDiscountPct = propuesta.descuentos?.[letra] || 0;
 
         // Calculate sub-total across all selected items (using item.total since subTotal is gone)
         const sub_total = activeDetails.reduce((sum, d) => sum + Number(d.total), 0);
-        // Apply the global discount
-        const total = sub_total - globalDiscount;
+        
+        // Apply the global discount (percentage to flat amount)
+        const flatDiscount = sub_total * (globalDiscountPct / 100);
+        const total = sub_total - flatDiscount;
 
         const createProformaDto: CreateProformaDto = {
             pacienteId: propuesta.pacienteId,
@@ -44,7 +46,7 @@ export class PropuestasService {
             nota: `Generado desde Propuesta #${propuesta.numero} (Opción ${letra}). ${propuesta.nota || ''}`,
             fecha: getLocalDateString(),
             sub_total: sub_total,
-            descuento: globalDiscount,
+            descuento: globalDiscountPct,
             total: total,
             detalles: activeDetails.map(d => ({
                 arancelId: d.arancelId,
@@ -56,7 +58,8 @@ export class PropuestasService {
                 descuento: 0, // Individual discounts are cleared in favor of the global one
                 total: d.total, // Before global discount, individual total is just subtotal
                 posible: d.posible
-            }))
+            })),
+            plan_pagos: propuesta.plan_pagos?.[letra] || null
         };
 
         return this.proformasService.create(createProformaDto);
@@ -86,6 +89,7 @@ export class PropuestasService {
                 ? createPropuestaDto.fecha.split('T')[0]
                 : getLocalDateString();
             propuesta.descuentos = createPropuestaDto.descuentos || {};
+            propuesta.plan_pagos = createPropuestaDto.plan_pagos || null;
 
             // Calculate total from details just in case
             propuesta.total = createPropuestaDto.detalles.reduce((sum, item) => sum + Number(item.total), 0);
@@ -162,6 +166,7 @@ export class PropuestasService {
             if (updatePropuestaDto.fecha) propuesta.fecha = updatePropuestaDto.fecha.split('T')[0];
             if (updatePropuestaDto.usuarioId) propuesta.usuarioId = updatePropuestaDto.usuarioId;
             if (updatePropuestaDto.descuentos !== undefined) propuesta.descuentos = updatePropuestaDto.descuentos;
+            if (updatePropuestaDto.plan_pagos !== undefined) propuesta.plan_pagos = updatePropuestaDto.plan_pagos;
 
 
             // Recalculate total if details are provided

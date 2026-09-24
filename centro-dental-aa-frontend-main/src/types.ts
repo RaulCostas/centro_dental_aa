@@ -115,6 +115,7 @@ export interface Personal {
     personal_tipo_id?: number;
     personalTipo?: PersonalTipo;
     estado: string;
+    sueldo?: number;
     fecha_baja?: string;
 }
 
