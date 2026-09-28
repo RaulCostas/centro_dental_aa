@@ -108,7 +108,14 @@ const FirmaModal: React.FC<FirmaModalProps> = ({ isOpen, onClose, onSign }) => {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
             <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col items-center">
-                <div className="p-5 border-b border-gray-100 dark:border-gray-700 w-full text-center">
+                <div className="p-5 border-b border-gray-100 dark:border-gray-700 w-full text-center relative">
+                    <button 
+                        onClick={onClose}
+                        className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                        title="Cancelar acción"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
                     <h3 className="text-xl font-bold text-gray-800 dark:text-white">Conformidad de Tratamiento</h3>
                     <p className="text-sm text-gray-500 mt-1">Firme a continuación para confirmar la finalización del Plan de Tratamiento.</p>
                 </div>
@@ -141,11 +148,11 @@ const FirmaModal: React.FC<FirmaModalProps> = ({ isOpen, onClose, onSign }) => {
                     </button>
                     <div className="flex gap-3">
                         <button
-                            onClick={onClose}
+                            onClick={() => onSign('')}
                             className="px-4 py-2 flex items-center justify-center gap-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-semibold rounded-lg shadow-sm transition-all transform hover:-translate-y-0.5"
                         >
                             <X className="w-4 h-4" />
-                            Cancelar
+                            Guardar sin firma
                         </button>
                         <button
                             onClick={handleSave}

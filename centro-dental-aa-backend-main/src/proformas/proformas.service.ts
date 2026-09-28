@@ -440,7 +440,7 @@ export class ProformasService {
 
     // Clean phone number
     let phone = paciente.telefono_celular.replace(/\D/g, '');
-    if (!phone.startsWith('591')) {
+    if (!phone.startsWith('591') && phone.length === 8) {
       phone = '591' + phone;
     }
     const jid = `${phone}@s.whatsapp.net`;

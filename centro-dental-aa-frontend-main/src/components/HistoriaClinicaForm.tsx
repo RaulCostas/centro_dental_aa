@@ -298,6 +298,7 @@ const HistoriaClinicaForm: React.FC<HistoriaClinicaFormProps> = ({
     };
 
     const handleSave = async (firmaData?: string) => {
+        setShowFirmaModal(false);
         try {
             const payload: any = {
                 ...formData,
