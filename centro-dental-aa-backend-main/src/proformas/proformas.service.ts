@@ -364,6 +364,18 @@ export class ProformasService {
       console.warn(`Error cleaning up physical files for proforma ${id}:`, error);
     }
 
+    try {
+      // 3. Unlink from Agenda to avoid FK constraint error
+      const agendaRepo = this.dataSource.getRepository('Agenda');
+      await agendaRepo.update({ proformaId: id }, { proformaId: null });
+
+      // 4. Delete related RecordatorioPlan to avoid FK constraint error
+      const recordatorioPlanRepo = this.dataSource.getRepository('RecordatorioPlan');
+      await recordatorioPlanRepo.delete({ proformaId: id });
+    } catch (error) {
+      console.warn(`Error cleaning up relations for proforma ${id}:`, error);
+    }
+
     return this.proformaRepository.remove(proforma);
   }
 
