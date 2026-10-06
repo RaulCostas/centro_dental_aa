@@ -541,7 +541,11 @@ const HistoriaClinicaForm: React.FC<HistoriaClinicaFormProps> = ({
                                         );
                                     })
                                 ) : (
-                                    <option value="" hidden>Seleccione un Plan de Tratamiento primero</option>
+                                    allTreatments.map(t => (
+                                        <option key={t.id} value={t.id}>
+                                            {t.detalle}
+                                        </option>
+                                    ))
                                 )}
                             </select>
                         </div>

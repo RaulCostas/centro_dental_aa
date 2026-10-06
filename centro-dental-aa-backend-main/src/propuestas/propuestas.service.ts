@@ -33,8 +33,11 @@ export class PropuestasService {
         // Fetch the global discount percentage for this specific tab, default to 0
         const globalDiscountPct = propuesta.descuentos?.[letra] || 0;
 
-        // Calculate sub-total across all selected items (using item.total since subTotal is gone)
-        const sub_total = activeDetails.reduce((sum, d) => sum + Number(d.total), 0);
+        // Calculate sub-total across all selected items (using item.total since subTotal is gone, with fallback to calculation)
+        const sub_total = activeDetails.reduce((sum, d) => {
+            const itemTotal = Number(d.total) || (Number(d.precioUnitario) * Number(d.cantidad));
+            return sum + itemTotal;
+        }, 0);
         
         // Apply the global discount (percentage to flat amount)
         const flatDiscount = sub_total * (globalDiscountPct / 100);
@@ -48,17 +51,20 @@ export class PropuestasService {
             sub_total: sub_total,
             descuento: globalDiscountPct,
             total: total,
-            detalles: activeDetails.map(d => ({
-                arancelId: d.arancelId,
-                precioUnitario: d.precioUnitario,
-                tc: 1, // Static fallback for ProformaDetalle
-                piezas: d.piezas,
-                cantidad: d.cantidad,
-                subTotal: d.total, // Static mapping for ProformaDetalle
-                descuento: 0, // Individual discounts are cleared in favor of the global one
-                total: d.total, // Before global discount, individual total is just subtotal
-                posible: d.posible
-            })),
+            detalles: activeDetails.map(d => {
+                const itemTotal = Number(d.total) || (Number(d.precioUnitario) * Number(d.cantidad));
+                return {
+                    arancelId: d.arancelId,
+                    precioUnitario: Number(d.precioUnitario),
+                    tc: 1, // Static fallback for ProformaDetalle
+                    piezas: d.piezas,
+                    cantidad: Number(d.cantidad),
+                    subTotal: itemTotal, // Static mapping for ProformaDetalle
+                    descuento: 0, // Individual discounts are cleared in favor of the global one
+                    total: itemTotal, // Before global discount, individual total is just subtotal
+                    posible: Boolean(d.posible)
+                };
+            }),
             plan_pagos: propuesta.plan_pagos?.[letra] || null
         };
 
