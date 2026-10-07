@@ -29,6 +29,7 @@ const PacienteTabPagos: React.FC = () => {
     const [editingPagoId, setEditingPagoId] = useState<number | null>(null);
     const [isFormaPagoFormOpen, setIsFormaPagoFormOpen] = useState(false);
     const [formasPago, setFormasPago] = useState<FormaPago[]>([]);
+    const [comisiones, setComisiones] = useState<any[]>([]);
     const [paymentFormData, setPaymentFormData] = useState({
         fecha: getLocalDateString(),
         monto: '',
@@ -37,6 +38,7 @@ const PacienteTabPagos: React.FC = () => {
         recibo: '',
         factura: '',
         formaPagoId: 0,
+        comisionTarjetaId: '',
         observaciones: ''
     });
     const [showManual, setShowManual] = useState(false);
@@ -95,6 +97,15 @@ const PacienteTabPagos: React.FC = () => {
                     setPaymentFormData(prev => ({ ...prev, formaPagoId: data[0].id }));
                 }
             }
+            // Fetch comisiones as well
+            try {
+                const comRes = await api.get('/comision-tarjeta');
+                const activeComisiones = (comRes.data.data || comRes.data || []).filter((com: any) => com.estado === 'activo');
+                setComisiones(activeComisiones);
+            } catch (e) {
+                console.error('Error fetching comisiones:', e);
+            }
+
         } catch (error) {
             console.error('Error fetching formas pago:', error);
         }
@@ -145,7 +156,8 @@ const PacienteTabPagos: React.FC = () => {
                 tc: Number(pago.tc) || 6.96,
                 recibo: pago.recibo || '',
                 factura: pago.factura || '',
-                formaPagoId: pago.formaPagoRel?.id || 0,
+                formaPagoId: pago.formaPagoRel?.id || pago.formaPagoId || 0,
+                comisionTarjetaId: pago.comisionTarjetaId || '',
                 observaciones: pago.observaciones || ''
             });
         } else {
@@ -216,6 +228,10 @@ const PacienteTabPagos: React.FC = () => {
                 recibo: paymentFormData.recibo,
                 factura: paymentFormData.factura,
                 formaPagoId: paymentFormData.formaPagoId,
+                comisionTarjetaId:
+                    paymentFormData.formaPagoId && formasPago.find(fp => Number(fp.id) === Number(paymentFormData.formaPagoId))?.forma_pago?.toLowerCase().includes('tarjeta') && Number(paymentFormData.comisionTarjetaId) > 0
+                        ? Number(paymentFormData.comisionTarjetaId)
+                        : null,
                 observaciones: paymentFormData.observaciones,
                 usuarioId: (() => {
                     const userStr = localStorage.getItem('user');
@@ -828,6 +844,7 @@ const PacienteTabPagos: React.FC = () => {
                                                     : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
                                                 }`}>
                                                     {p.formaPagoRel?.forma_pago || 'Efectivo'}
+                                                    {p.formaPagoRel?.forma_pago?.toLowerCase().includes('tarjeta') && p.comisionTarjeta && ` (${p.comisionTarjeta.redBanco})`}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-xs text-gray-500 dark:text-gray-400">
@@ -990,6 +1007,39 @@ const PacienteTabPagos: React.FC = () => {
                                         </div>
                                     </div>
                                 </div>
+
+                                {(() => {
+                                    const selectedFormaPago = formasPago.find(fp => Number(fp.id) === Number(paymentFormData.formaPagoId));
+                                    const isTarjeta = selectedFormaPago && String(selectedFormaPago.forma_pago).toLowerCase().includes('tarjeta');
+                                    
+                                    return isTarjeta && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo de Tarjeta (Comisión) <span className="text-red-500">*</span></label>
+                                            <div className="relative">
+                                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                    <CreditCard size={18} className="text-gray-400 dark:text-gray-500" />
+                                                </div>
+                                                <select
+                                                    name="comisionTarjetaId"
+                                                    value={paymentFormData.comisionTarjetaId}
+                                                    onChange={handleFormChange}
+                                                    required
+                                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors appearance-none"
+                                                >
+                                                    <option value="">-- Seleccione Tarjeta --</option>
+                                                    {comisiones.map(comision => (
+                                                        <option key={comision.id} value={comision.id}>
+                                                            {comision.redBanco} - {comision.monto}%
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-400 dark:text-gray-500">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
 
                                 {paymentFormData.moneda === 'Dólares' && (
                                     <div>
