@@ -408,6 +408,7 @@ export interface Pago {
     recibo?: string;
     factura?: string;
     formaPago: 'Efectivo' | 'QR' | 'Tarjeta';
+    formaPagoId?: number;
     comisionTarjetaId?: number;
     comisionTarjeta?: ComisionTarjeta;
     observaciones?: string;
