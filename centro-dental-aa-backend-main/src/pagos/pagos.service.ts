@@ -63,7 +63,7 @@ export class PagosService {
 
         return await this.pagoRepository.find({
             where,
-            relations: ['paciente', 'proforma', 'comisionTarjeta', 'formaPagoRel'],
+            relations: ['paciente', 'proforma', 'comisionTarjeta', 'formaPagoRel', 'usuario'],
             order: { id: 'DESC' }
         });
     }
@@ -71,7 +71,7 @@ export class PagosService {
     async findAllByPaciente(pacienteId: number): Promise<Pago[]> {
         return await this.pagoRepository.find({
             where: { pacienteId },
-            relations: ['paciente', 'proforma', 'comisionTarjeta', 'formaPagoRel'],
+            relations: ['paciente', 'proforma', 'comisionTarjeta', 'formaPagoRel', 'usuario'],
             order: { fecha: 'DESC' }
         });
     }
@@ -79,7 +79,7 @@ export class PagosService {
     async findOne(id: number): Promise<Pago> {
         const pago = await this.pagoRepository.findOne({
             where: { id },
-            relations: ['paciente', 'proforma', 'comisionTarjeta', 'formaPagoRel']
+            relations: ['paciente', 'proforma', 'comisionTarjeta', 'formaPagoRel', 'usuario']
         });
         if (!pago) {
             throw new NotFoundException(`Pago #${id} not found`);

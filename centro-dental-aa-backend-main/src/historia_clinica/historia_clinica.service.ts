@@ -40,7 +40,7 @@ export class HistoriaClinicaService {
 
     async findAll(): Promise<HistoriaClinica[]> {
         return await this.historiaClinicaRepository.find({
-            relations: ['paciente', 'doctor', 'especialidad', 'proforma', 'proformaDetalle', 'proformaDetalle.arancel'],
+            relations: ['paciente', 'doctor', 'especialidad', 'proforma', 'proformaDetalle', 'proformaDetalle.arancel', 'usuario'],
             order: { fecha: 'DESC' }
         });
     }
@@ -48,7 +48,7 @@ export class HistoriaClinicaService {
     async findAllByPaciente(pacienteId: number): Promise<HistoriaClinica[]> {
         return await this.historiaClinicaRepository.find({
             where: { pacienteId },
-            relations: ['paciente', 'doctor', 'especialidad', 'proforma', 'proformaDetalle'],
+            relations: ['paciente', 'doctor', 'especialidad', 'proforma', 'proformaDetalle', 'usuario'],
             order: { fecha: 'ASC', id: 'ASC' }
         });
     }
@@ -61,6 +61,7 @@ export class HistoriaClinicaService {
             .leftJoinAndSelect('hc.proforma', 'proforma')
             .leftJoinAndSelect('hc.proformaDetalle', 'proformaDetalle')
             .leftJoinAndSelect('proformaDetalle.arancel', 'arancel')
+            .leftJoinAndSelect('hc.usuario', 'usuario')
             .where('hc.doctorId = :doctorId', { doctorId })
             .andWhere('hc.pagado = :pagado', { pagado: 'NO' });
 
@@ -133,6 +134,7 @@ export class HistoriaClinicaService {
             .leftJoinAndSelect('hc.proformaDetalle', 'detalle')
             .leftJoinAndSelect('hc.pagosDetalleDoctores', 'pagosDetalleDoctores') // Join with doctor payment details
             .leftJoinAndSelect('pagosDetalleDoctores.pago', 'pagoDoctor') // Join to get the doctor payment header
+            .leftJoinAndSelect('hc.usuario', 'usuario')
             .where('hc.pagado = :pagado', { pagado: 'SI' })
             .orderBy('hc.fecha', 'DESC')
             .getMany();
@@ -165,7 +167,7 @@ export class HistoriaClinicaService {
     async findOne(id: number): Promise<HistoriaClinica> {
         const historia = await this.historiaClinicaRepository.findOne({
             where: { id },
-            relations: ['paciente', 'doctor', 'especialidad', 'proforma', 'proformaDetalle']
+            relations: ['paciente', 'doctor', 'especialidad', 'proforma', 'proformaDetalle', 'usuario']
         });
         if (!historia) {
             throw new NotFoundException(`HistoriaClinica Clínica #${id} not found`);

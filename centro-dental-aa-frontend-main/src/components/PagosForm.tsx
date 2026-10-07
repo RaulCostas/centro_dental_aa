@@ -527,11 +527,11 @@ const PagosForm: React.FC = () => {
                 observaciones: finalObservaciones,
                 proformaId: formData.proformaId > 0 ? formData.proformaId : undefined,
                 comisionTarjetaId:
-                    formData.formaPagoId && formasPago.find(fp => fp.id === formData.formaPagoId)?.forma_pago?.toLowerCase() === 'tarjeta' && Number(formData.comisionTarjetaId) > 0
+                    formData.formaPagoId && formasPago.find(fp => fp.id === formData.formaPagoId)?.forma_pago?.toLowerCase() .includes('tarjeta') && Number(formData.comisionTarjetaId) > 0
                         ? Number(formData.comisionTarjetaId)
                         : undefined,
                 monto_comision:
-                    formData.formaPagoId && formasPago.find(fp => fp.id === formData.formaPagoId)?.forma_pago?.toLowerCase() === 'tarjeta' && Number(formData.comisionTarjetaId) > 0
+                    formData.formaPagoId && formasPago.find(fp => fp.id === formData.formaPagoId)?.forma_pago?.toLowerCase() .includes('tarjeta') && Number(formData.comisionTarjetaId) > 0
                         ? (finalMonto * (comisiones.find(c => c.id === Number(formData.comisionTarjetaId))?.monto || 0)) / 100
                         : undefined,
                 usuarioId: (() => {
@@ -938,7 +938,7 @@ const PagosForm: React.FC = () => {
                         {/* Helper logic for Tarjeta check */}
                         {(() => {
                             const selectedFormaPago = formasPago.find(fp => fp.id === formData.formaPagoId);
-                            const isTarjeta = selectedFormaPago && selectedFormaPago.forma_pago.toLowerCase() === 'tarjeta';
+                            const isTarjeta = selectedFormaPago && selectedFormaPago.forma_pago.toLowerCase() .includes('tarjeta');
 
                             return isTarjeta && (
                                 <div>
@@ -1169,7 +1169,7 @@ const PagosForm: React.FC = () => {
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         {pago.formaPagoRel ? pago.formaPagoRel.forma_pago : ''}
-                                                        {pago.formaPagoRel?.forma_pago?.toLowerCase() === 'tarjeta' && pago.comisionTarjeta && ` (${pago.comisionTarjeta.redBanco})`}
+                                                        {pago.formaPagoRel?.forma_pago?.toLowerCase() .includes('tarjeta') && pago.comisionTarjeta && ` (${pago.comisionTarjeta.redBanco})`}
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         {pago.recibo ? `R: ${pago.recibo}` : ''}
