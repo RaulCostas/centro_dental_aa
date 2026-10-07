@@ -157,7 +157,7 @@ const PacienteTabPagos: React.FC = () => {
                 recibo: pago.recibo || '',
                 factura: pago.factura || '',
                 formaPagoId: pago.formaPagoRel?.id || pago.formaPagoId || 0,
-                comisionTarjetaId: pago.comisionTarjetaId || '',
+                comisionTarjetaId: pago.comisionTarjetaId ? String(pago.comisionTarjetaId) : '',
                 observaciones: pago.observaciones || ''
             });
         } else {
@@ -168,6 +168,7 @@ const PacienteTabPagos: React.FC = () => {
                 monto: '',
                 recibo: '',
                 factura: '',
+                comisionTarjetaId: '',
                 observaciones: ''
             }));
             // Ensure default payment method if none set
@@ -229,7 +230,7 @@ const PacienteTabPagos: React.FC = () => {
                 factura: paymentFormData.factura,
                 formaPagoId: paymentFormData.formaPagoId,
                 comisionTarjetaId:
-                    paymentFormData.formaPagoId && formasPago.find(fp => Number(fp.id) === Number(paymentFormData.formaPagoId))?.forma_pago?.toLowerCase().includes('tarjeta') && Number(paymentFormData.comisionTarjetaId) > 0
+                    paymentFormData.formaPagoId && formasPago.find(fp => Number(fp.id) === Number(paymentFormData.formaPagoId))?.forma_pago?.toLowerCase()?.includes('tarjeta') && Number(paymentFormData.comisionTarjetaId) > 0
                         ? Number(paymentFormData.comisionTarjetaId)
                         : null,
                 observaciones: paymentFormData.observaciones,
@@ -844,7 +845,7 @@ const PacienteTabPagos: React.FC = () => {
                                                     : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
                                                 }`}>
                                                     {p.formaPagoRel?.forma_pago || 'Efectivo'}
-                                                    {p.formaPagoRel?.forma_pago?.toLowerCase().includes('tarjeta') && p.comisionTarjeta && ` (${p.comisionTarjeta.redBanco})`}
+                                                    {p.formaPagoRel?.forma_pago?.toLowerCase()?.includes('tarjeta') && p.comisionTarjeta && ` (${p.comisionTarjeta.redBanco})`}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-xs text-gray-500 dark:text-gray-400">
@@ -1010,7 +1011,7 @@ const PacienteTabPagos: React.FC = () => {
 
                                 {(() => {
                                     const selectedFormaPago = formasPago.find(fp => Number(fp.id) === Number(paymentFormData.formaPagoId));
-                                    const isTarjeta = selectedFormaPago && String(selectedFormaPago.forma_pago).toLowerCase().includes('tarjeta');
+                                    const isTarjeta = selectedFormaPago && String(selectedFormaPago.forma_pago)?.toLowerCase()?.includes('tarjeta');
                                     
                                     return isTarjeta && (
                                         <div>
