@@ -573,19 +573,24 @@ const PagosDoctoresForm = () => {
 
                                                 <td className="p-2">
                                                     {isSelected && (
-                                                        <input
-                                                            type="text"
-                                                            value={details.comision}
-                                                            onChange={(e) => {
-                                                                const val = e.target.value.replace(',', '.');
-                                                                if (val === '' || /^\d*\.?\d*$/.test(val)) {
-                                                                    handleDetailChange(p.id, 'comision', val);
-                                                                }
-                                                            }}
-                                                            className="w-full min-w-[60px] p-1 border border-blue-300 dark:border-blue-600 rounded text-right focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                                                            placeholder="0%"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        />
+                                                        <div className="relative">
+                                                            <input
+                                                                type="text"
+                                                                value={details.comision}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value.replace(',', '.');
+                                                                    if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                                                        if (val === '' || Number(val) <= 100) {
+                                                                            handleDetailChange(p.id, 'comision', val);
+                                                                        }
+                                                                    }
+                                                                }}
+                                                                className="w-full min-w-[65px] p-1 pr-4 border border-blue-300 dark:border-blue-600 rounded text-right focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                                                placeholder="0"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            />
+                                                            <span className="absolute right-1.5 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs font-bold pointer-events-none">%</span>
+                                                        </div>
                                                     )}
                                                 </td>
 
