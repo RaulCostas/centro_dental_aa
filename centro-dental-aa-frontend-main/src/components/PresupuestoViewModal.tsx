@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import { formatDate } from '../utils/dateUtils';
 import { formatNumber } from '../utils/formatters';
-import { X, FileText, Calendar, User, DollarSign, CheckCircle, Clock } from 'lucide-react';
+import { X, FileText, Calendar, User, DollarSign, CheckCircle, Clock, Edit } from 'lucide-react';
 import Swal from 'sweetalert2';
 import type { HistoriaClinica } from '../types';
 
@@ -100,7 +100,7 @@ const PresupuestoViewModal: React.FC<Props> = ({ isOpen, onClose, id, proformaId
                 <div class="space-y-4 text-left">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Cuota Inicial (Opcional)</label>
-                        <input type="number" id="swal-cuota-inicial" class="swal2-input w-full mx-0 mt-1 !text-lg" placeholder="Ej: 5000" value="${proforma.plan_pagos?.cuotaInicial || ''}" min="0">
+                        <input type="number" id="swal-cuota-inicial" class="swal2-input w-full mx-0 mt-1 !text-lg" placeholder="Ej: 5000" value="${proforma.plan_pagos?.cuotaInicial ?? ''}" min="0">
                         <div class="text-xs text-gray-500 mt-1">El monto restante se dividirá en cuotas.</div>
                     </div>
                     <div>
@@ -118,7 +118,7 @@ const PresupuestoViewModal: React.FC<Props> = ({ isOpen, onClose, id, proformaId
             `,
             focusConfirm: false,
             showCancelButton: true,
-            showDenyButton: isActivo,
+            showDenyButton: Boolean(isActivo),
             confirmButtonText: 'Guardar Plan',
             cancelButtonText: 'Cancelar',
             denyButtonText: 'Eliminar Plan',
@@ -135,7 +135,7 @@ const PresupuestoViewModal: React.FC<Props> = ({ isOpen, onClose, id, proformaId
                     return false;
                 }
                 
-                const cuotaInicialNum = cuotaInicial ? Number(cuotaInicial) : undefined;
+                const cuotaInicialNum = cuotaInicial !== '' ? Number(cuotaInicial) : 0;
                 
                 return { meses: Number(meses), diaPago: Number(dia), cuotaInicial: cuotaInicialNum };
             }
@@ -227,13 +227,15 @@ const PresupuestoViewModal: React.FC<Props> = ({ isOpen, onClose, id, proformaId
                                 </div>
                             </h2>
                             <div className="flex gap-2">
-                                <button
-                                    onClick={handleTogglePaymentPlan}
-                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm border ${proforma.plan_pagos?.activo ? 'bg-indigo-100 text-indigo-700 border-indigo-200 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'}`}
-                                >
-                                    <Calendar size={14} />
-                                    {proforma.plan_pagos?.activo ? 'Plan Activo' : 'Crear Plan'}
-                                </button>
+                                {!proforma.plan_pagos?.activo && (
+                                    <button
+                                        onClick={handleTogglePaymentPlan}
+                                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm border bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
+                                    >
+                                        <Calendar size={14} />
+                                        Crear Plan de Pagos
+                                    </button>
+                                )}
                                 <button
                                     onClick={handleToggleCurrency}
                                     className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm border ${proforma.moneda === 'USD' ? 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'}`}
@@ -247,7 +249,7 @@ const PresupuestoViewModal: React.FC<Props> = ({ isOpen, onClose, id, proformaId
                         {/* Content */}
                         <div className="p-5 overflow-y-auto custom-scrollbar bg-gray-50/50 dark:bg-gray-900/20">
                             {/* Info Cards - More Compact & Standard */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
                                 <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 rounded-xl flex flex-col gap-0.5 shadow-sm">
                                     <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Plan #</span>
                                     <span className="text-lg font-bold text-gray-800 dark:text-white">{proforma.numero.toString().padStart(2, '0')}</span>
@@ -260,7 +262,21 @@ const PresupuestoViewModal: React.FC<Props> = ({ isOpen, onClose, id, proformaId
                                     <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Registrado</span>
                                     <span className="text-sm font-bold text-gray-800 dark:text-white truncate">{proforma.usuario?.name?.split(' ')[0] || 'Sistema'}</span>
                                 </div>
-                                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30 p-3 rounded-xl flex flex-col gap-0.5 shadow-sm">
+                                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 rounded-xl flex flex-col gap-0.5 shadow-sm">
+                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Aprobación</span>
+                                    <span 
+                                        className={`inline-block px-2 py-0.5 rounded text-xs font-bold w-fit ${proforma.aprobado ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'}`}
+                                        title={proforma.aprobado && proforma.usuarioAprobado ? `Aprobado por: ${proforma.usuarioAprobado.name}\nFecha: ${formatDate(proforma.fecha_aprobado)}` : ''}
+                                    >
+                                        {proforma.aprobado ? 'Aprobado' : 'Pendiente'}
+                                    </span>
+                                    {proforma.aprobado && proforma.fecha_aprobado && (
+                                        <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 font-medium">
+                                            {formatDate(proforma.fecha_aprobado)}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30 p-3 rounded-xl flex flex-col gap-0.5 shadow-sm col-span-2 md:col-span-1">
                                     <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Total</span>
                                     <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
                                         {formatNumber((proforma.descuento > 0 ? proforma.sub_total * (1 - proforma.descuento / 100) : (proforma.total || proforma.sub_total)) / (proforma.tipoCambio || 1))} <span className="text-[9px]">{proforma.moneda === 'USD' ? '$' : 'Bs.'}</span>
@@ -356,6 +372,96 @@ const PresupuestoViewModal: React.FC<Props> = ({ isOpen, onClose, id, proformaId
                                     </table>
                                 </div>
                             </div>
+
+                            {/* Plan de Pagos Section */}
+                            {proforma.plan_pagos?.activo && (() => {
+                                const tc = proforma.tipoCambio || 1;
+                                const isUSD = proforma.moneda === 'USD';
+                                const sym = isUSD ? '$' : 'Bs.';
+                                const totalNeto = (proforma.descuento > 0 ? proforma.sub_total * (1 - proforma.descuento / 100) : (proforma.total || proforma.sub_total)) / tc;
+                                const cuotaInicial = Number(proforma.plan_pagos.cuotaInicial || 0) / (isUSD ? tc : 1);
+                                const meses = Number(proforma.plan_pagos.meses || 1);
+                                const dia = Number(proforma.plan_pagos.diaPago || 15);
+                                const montoParaCuotas = Math.max(0, totalNeto - cuotaInicial);
+                                const cuotaMensual = meses > 0 ? montoParaCuotas / meses : 0;
+                                const baseDateStr = (proforma.plan_pagos.fechaInicio || proforma.fecha || new Date().toISOString()).split('T')[0];
+                                const [baseYear, baseMonth, baseDay] = baseDateStr.split('-').map(Number);
+                                const fechaInicialDate = new Date(baseYear || new Date().getFullYear(), (baseMonth || 1) - 1, baseDay || 1);
+
+                                const cuotasRows: { detalle: string; monto: number; vencimiento: string }[] = [];
+                                if (cuotaInicial > 0) {
+                                    cuotasRows.push({
+                                        detalle: 'Pago / Cuota Inicial',
+                                        monto: cuotaInicial,
+                                        vencimiento: fechaInicialDate.toLocaleDateString('es-BO')
+                                    });
+                                }
+                                for (let i = 1; i <= meses; i++) {
+                                    let nextMonth = new Date(fechaInicialDate.getFullYear(), fechaInicialDate.getMonth() + i, dia);
+                                    if (nextMonth.getMonth() !== (fechaInicialDate.getMonth() + i) % 12) {
+                                        nextMonth = new Date(fechaInicialDate.getFullYear(), fechaInicialDate.getMonth() + i + 1, 0);
+                                    }
+                                    cuotasRows.push({
+                                        detalle: `Cuota ${i}`,
+                                        monto: cuotaMensual,
+                                        vencimiento: nextMonth.toLocaleDateString('es-BO')
+                                    });
+                                }
+
+                                return (
+                                    <div className="mt-4 bg-indigo-50/40 dark:bg-indigo-900/10 rounded-xl border border-indigo-200 dark:border-indigo-800/50 p-4 shadow-sm">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 border-b border-indigo-100 dark:border-indigo-800/50 pb-2">
+                                            <div className="flex items-center gap-2.5">
+                                                <h4 className="text-xs font-bold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                                                    <Calendar size={14} className="text-indigo-600 dark:text-indigo-400" />
+                                                    Plan de Pagos Configurado
+                                                </h4>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleTogglePaymentPlan}
+                                                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] shadow-sm transition-all transform hover:-translate-y-0.5 active:scale-95"
+                                                    title="Editar Plan de Pagos"
+                                                >
+                                                    <Edit size={12} />
+                                                    Editar Plan de Pagos
+                                                </button>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
+                                                <span className="px-2.5 py-0.5 rounded-lg bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-700 text-gray-700 dark:text-gray-200">
+                                                    Pago Inicial: <strong className="text-indigo-600 dark:text-indigo-400">{sym} {formatNumber(cuotaInicial)}</strong>
+                                                </span>
+                                                <span className="px-2.5 py-0.5 rounded-lg bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-700 text-gray-700 dark:text-gray-200">
+                                                    Plazo: <strong className="text-indigo-600 dark:text-indigo-400">{meses} {meses === 1 ? 'mes' : 'meses'}</strong> (Día {dia})
+                                                </span>
+                                                <span className="px-2.5 py-0.5 rounded-lg bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-700 text-gray-700 dark:text-gray-200">
+                                                    Cuota Mensual: <strong className="text-indigo-600 dark:text-indigo-400">{sym} {formatNumber(cuotaMensual)}</strong>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="overflow-x-auto rounded-lg border border-indigo-100 dark:border-indigo-800/50 bg-white dark:bg-gray-800">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="bg-indigo-50/70 dark:bg-gray-700/70 text-gray-600 dark:text-gray-300 text-[9px] font-bold uppercase tracking-wider">
+                                                        <th className="px-3 py-2 text-center">Detalle</th>
+                                                        <th className="px-3 py-2 text-center">Monto</th>
+                                                        <th className="px-3 py-2 text-center">Fecha Vencimiento</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                                                    {cuotasRows.map((row, idx) => (
+                                                        <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                                                            <td className="px-3 py-1.5 text-center text-xs font-medium text-gray-800 dark:text-gray-200">{row.detalle}</td>
+                                                            <td className="px-3 py-1.5 text-center text-xs font-bold text-indigo-600 dark:text-indigo-400">{sym} {formatNumber(row.monto)}</td>
+                                                            <td className="px-3 py-1.5 text-center text-xs text-gray-600 dark:text-gray-300">{row.vencimiento}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 
                             {/* Total Box - Native Style */}
                             <div className="flex flex-col items-end mt-4 gap-2">

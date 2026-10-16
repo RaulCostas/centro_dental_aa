@@ -23,13 +23,13 @@ export class AgendaController {
 
 
     @Post(':id/recordatorio')
-    async enviarRecordatorioIndividual(@Param('id') id: string) {
-        return await this.agendaService.enviarRecordatorioIndividual(+id);
+    async enviarRecordatorioIndividual(@Param('id') id: string, @Body('celular') customCelular?: string) {
+        return await this.agendaService.enviarRecordatorioIndividual(+id, customCelular);
     }
 
     @Post(':id/ausencia')
-    async notificarAusencia(@Param('id') id: string) {
-        return await this.agendaService.notificarAusencia(+id);
+    async notificarAusencia(@Param('id') id: string, @Body('celular') customCelular?: string) {
+        return await this.agendaService.notificarAusencia(+id, customCelular);
     }
 
     @Get()

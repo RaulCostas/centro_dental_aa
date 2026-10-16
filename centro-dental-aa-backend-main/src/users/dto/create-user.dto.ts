@@ -1,4 +1,4 @@
-import { IsString, IsEmail, IsOptional, IsArray } from 'class-validator';
+import { IsString, IsEmail, IsOptional, IsArray, IsNumber } from 'class-validator';
 
 export class CreateUserDto {
     @IsString()
@@ -18,6 +18,9 @@ export class CreateUserDto {
     @IsOptional()
     foto?: string;
 
+    @IsNumber()
+    @IsOptional()
+    codigo_proforma?: number;
 
     @IsArray()
     @IsOptional()

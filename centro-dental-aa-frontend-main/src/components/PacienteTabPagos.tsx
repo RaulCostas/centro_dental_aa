@@ -38,6 +38,7 @@ const PacienteTabPagos: React.FC = () => {
         recibo: '',
         factura: '',
         formaPagoId: 0,
+        numero_transaccion: '',
         comisionTarjetaId: '',
         observaciones: ''
     });
@@ -157,6 +158,7 @@ const PacienteTabPagos: React.FC = () => {
                 recibo: pago.recibo || '',
                 factura: pago.factura || '',
                 formaPagoId: pago.formaPagoRel?.id || pago.formaPagoId || 0,
+                numero_transaccion: pago.numero_transaccion || '',
                 comisionTarjetaId: pago.comisionTarjetaId ? String(pago.comisionTarjetaId) : '',
                 observaciones: pago.observaciones || ''
             });
@@ -168,6 +170,7 @@ const PacienteTabPagos: React.FC = () => {
                 monto: '',
                 recibo: '',
                 factura: '',
+                numero_transaccion: '',
                 comisionTarjetaId: '',
                 observaciones: ''
             }));
@@ -229,6 +232,7 @@ const PacienteTabPagos: React.FC = () => {
                 recibo: paymentFormData.recibo,
                 factura: paymentFormData.factura,
                 formaPagoId: paymentFormData.formaPagoId,
+                numero_transaccion: paymentFormData.numero_transaccion || null,
                 comisionTarjetaId:
                     paymentFormData.formaPagoId && formasPago.find(fp => Number(fp.id) === Number(paymentFormData.formaPagoId))?.forma_pago?.toLowerCase()?.includes('tarjeta') && Number(paymentFormData.comisionTarjetaId) > 0
                         ? Number(paymentFormData.comisionTarjetaId)
@@ -1006,6 +1010,23 @@ const PacienteTabPagos: React.FC = () => {
                                                 <Plus size={20} />
                                             </button>
                                         </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">No. Transacción</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <Hash size={18} className="text-gray-400 dark:text-gray-500" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            name="numero_transaccion"
+                                            value={paymentFormData.numero_transaccion}
+                                            onChange={handleFormChange}
+                                            placeholder="No. Transacción / Transferencia"
+                                            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+                                        />
                                     </div>
                                 </div>
 

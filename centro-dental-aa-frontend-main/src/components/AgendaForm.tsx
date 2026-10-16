@@ -19,6 +19,7 @@ interface AgendaFormProps {
 import QuickPacienteForm from './QuickPacienteForm';
 import SearchableSelect from './SearchableSelect';
 import Swal from 'sweetalert2';
+import { promptWhatsAppNumber } from '../utils/whatsappHelper';
 
 
 
@@ -334,9 +335,28 @@ const AgendaForm: React.FC<AgendaFormProps> = ({
 
     const handleNotificarAusencia = async () => {
         if (!initialData?.id) return;
+        const patient = (initialData as any)?.paciente || (initialData as any)?.pacienteSeguro || pacientes.find(p => p.id === formData.pacienteId);
+        const patientName = patient ? formatFullName(patient) : undefined;
+
+        const celular = await promptWhatsAppNumber({
+            defaultPhone: patient?.celular || patient?.telefono_celular,
+            title: 'Avisar Ausencia por WhatsApp',
+            subtitle: patient ? `Paciente: ${formatFullName(patient)}` : 'Se notificará al paciente de su inasistencia.'
+        });
+        if (!celular) return;
+
+        Swal.fire({
+            title: 'Enviando notificación...',
+            text: 'Por favor, espere un momento.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
         try {
-            await api.post(`/agenda/${initialData.id}/notificar-ausencia`);
-            Swal.fire('Éxito', 'Se ha notificado la ausencia al paciente', 'success');
+            await api.post(`/agenda/${initialData.id}/ausencia`, { celular });
+            Swal.fire('¡Éxito!', 'Se ha notificado la ausencia al paciente', 'success');
         } catch (error) {
             Swal.fire('Error', 'No se pudo enviar la notificación', 'error');
         }
@@ -955,15 +975,7 @@ const AgendaForm: React.FC<AgendaFormProps> = ({
                         {initialData && formData.estado === 'no asistio' && (
                             <button
                                 type="button"
-                                onClick={async () => {
-                                    if (!initialData?.id) return;
-                                    try {
-                                        await api.post(`/agenda/${initialData.id}/ausencia`);
-                                        Swal.fire('¡Enviado!', 'Se ha notificado al paciente de su inasistencia.', 'success');
-                                    } catch (error) {
-                                        Swal.fire('Error', 'No se pudo enviar el mensaje.', 'error');
-                                    }
-                                }}
+                                onClick={handleNotificarAusencia}
                                 className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-xl shadow-md transition-all transform hover:-translate-y-0.5 flex items-center gap-2"
                                 title="Enviar mensaje de inasistencia por WhatsApp"
                             >

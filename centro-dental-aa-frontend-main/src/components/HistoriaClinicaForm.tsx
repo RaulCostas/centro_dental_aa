@@ -11,7 +11,7 @@ import FirmaModal from './FirmaModal';
 
 interface HistoriaClinicaFormProps {
     pacienteId: number;
-    onSuccess: () => void;
+    onSuccess: (options?: { estadoPresupuesto?: string; proformaId?: number }) => void;
     historiaToEdit: HistoriaClinica | null;
     onCancelEdit: () => void;
     // historiaList: HistoriaClinica[]; // Unused
@@ -325,30 +325,40 @@ const HistoriaClinicaForm: React.FC<HistoriaClinicaFormProps> = ({
                 payload.firmaPaciente = firmaData;
             }
 
+            const isPresupuestoTerminado = formData.estadoPresupuesto === 'terminado';
+            const savedProformaId = payload.proformaId || selectedProformaId;
+
             if (historiaToEdit) {
                 await api.patch(`/historia-clinica/${historiaToEdit.id}`, payload);
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Seguimiento Actualizado',
-                    text: 'Seguimiento Clínico actualizado exitosamente',
-                    timer: 1500,
-                    showConfirmButton: false,
-                    background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
-                    color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
-                });
+                if (!isPresupuestoTerminado) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Seguimiento Actualizado',
+                        text: 'Seguimiento Clínico actualizado exitosamente',
+                        timer: 1500,
+                        showConfirmButton: false,
+                        background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                        color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
+                    });
+                }
             } else {
                 await api.post('/historia-clinica', payload);
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Seguimiento Guardado',
-                    text: 'Seguimiento Clínico guardado exitosamente',
-                    timer: 1500,
-                    showConfirmButton: false,
-                    background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
-                    color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
-                });
+                if (!isPresupuestoTerminado) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Seguimiento Guardado',
+                        text: 'Seguimiento Clínico guardado exitosamente',
+                        timer: 1500,
+                        showConfirmButton: false,
+                        background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                        color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
+                    });
+                }
             }
-            onSuccess();
+            onSuccess({
+                estadoPresupuesto: formData.estadoPresupuesto,
+                proformaId: savedProformaId,
+            });
             onCancelEdit();
             resetForm();
         } catch (error) {
@@ -477,8 +487,7 @@ const HistoriaClinicaForm: React.FC<HistoriaClinicaFormProps> = ({
                                 name="fecha"
                                 value={formData.fecha}
                                 onChange={handleChange}
-                                disabled={formData.pagado === 'SI'}
-                                className={`w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 ${formData.pagado === 'SI' ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100"
                                 required
                             />
                         </div>

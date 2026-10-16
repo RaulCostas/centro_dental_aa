@@ -82,7 +82,7 @@ export class TrabajosLaboratoriosController {
 
     @Post(':id/send-whatsapp')
     @UseInterceptors(FileInterceptor('file'))
-    async sendWhatsApp(@Param('id') id: string, @UploadedFile() file?: any) {
+    async sendWhatsApp(@Param('id') id: string, @UploadedFile() file?: any, @Body('celular') customCelular?: string) {
         try {
             const trabajo = await this.trabajosService.findOne(+id);
 
@@ -94,8 +94,10 @@ export class TrabajosLaboratoriosController {
                 throw new HttpException('El trabajo no tiene un laboratorio asignado.', HttpStatus.BAD_REQUEST);
             }
 
-            if (!trabajo.laboratorio.celular) {
-                return { message: 'El laboratorio no tiene un número de celular registrado.' };
+            let phone = customCelular ? customCelular.replace(/\D/g, '') : (trabajo.laboratorio.celular ? trabajo.laboratorio.celular.replace(/\D/g, '') : '');
+
+            if (!phone) {
+                throw new HttpException('No se proporcionó un número de celular', HttpStatus.BAD_REQUEST);
             }
 
             const chatbotStatus = this.chatbotService.getStatus();
@@ -103,7 +105,6 @@ export class TrabajosLaboratoriosController {
                 throw new HttpException('El chatbot no está conectado. Por favor, conecte el chatbot primero.', HttpStatus.SERVICE_UNAVAILABLE);
             }
 
-            let phone = trabajo.laboratorio.celular.replace(/\D/g, '');
             if (phone.length === 8) {
                 phone = '591' + phone;
             }

@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Proforma, HistoriaClinica } from '../types';
+import { formatDate } from '../utils/dateUtils';
 
 interface PlanTratamientoModalProps {
     isOpen: boolean;
@@ -28,9 +29,21 @@ const PlanTratamientoModal: React.FC<PlanTratamientoModalProps> = ({ isOpen, onC
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800 mb-6 flex justify-between items-center">
                         <div>
                             <p className="text-sm text-gray-600 dark:text-gray-300">Fecha del Plan:</p>
-                            <p className="font-bold text-gray-800 dark:text-white">{proforma.fecha}</p>
+                            <p className="font-bold text-gray-800 dark:text-white">{formatDate(proforma.fecha)}</p>
                         </div>
-
+                        <div>
+                            <span className="text-gray-500 dark:text-gray-400 font-medium block text-xs">Estado Aprobado:</span>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold ${proforma.aprobado ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'}`}>
+                                    {proforma.aprobado ? 'Aprobado' : 'Pendiente'}
+                                </span>
+                                {proforma.aprobado && proforma.fecha_aprobado && (
+                                    <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">
+                                        ({formatDate(proforma.fecha_aprobado)})
+                                    </span>
+                                )}
+                            </div>
+                        </div>
                     </div>
 
                     <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">

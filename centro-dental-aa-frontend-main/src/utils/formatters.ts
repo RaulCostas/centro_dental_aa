@@ -147,3 +147,78 @@ export const getImageUrl = (url?: string): string => {
     const cleanPath = url.startsWith('/') ? url : `/${url}`;
     return origin ? `${origin}${cleanPath}` : url;
 };
+
+/**
+ * Limpia y normaliza el HTML de consentimientos informados:
+ * - Une guiones o viñetas que quedaron en párrafos aislados (<p>-</p>) al inicio del párrafo de texto siguiente.
+ * - Une líneas de introducción partidas ("Yo ...") con la continuación del párrafo ("con CI...").
+ */
+export const cleanConsentimientoHtml = (rawHtml: string): string => {
+    if (!rawHtml) return '';
+    try {
+        // 1. Reemplazar espacios de no-separación (&nbsp; / \u00a0) por espacios normales para evitar que Chromium corte palabras por la mitad
+        let sanitized = rawHtml
+            .replace(/&nbsp;/g, ' ')
+            .replace(/\u00a0/g, ' ')
+            // Limpiar glifos corruptos de fuentes de viñetas Word (Wingdings/Webdings, ej. Ø=Üæ, Ø=ÜÈ, º™mb, etc.)
+            .replace(/[Øø]\s*=\s*[Üü][^\s<]*/g, '')
+            .replace(/[Øø][=][^\s<]*/g, '')
+            .replace(/[º°]™[a-zA-Z0-9]*/g, '')
+            .replace(/[\uE000-\uF8FF]/g, '')
+            .replace(/\uFFFD/g, '');
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(sanitized, 'text/html');
+        const elements = Array.from(doc.body.children) as HTMLElement[];
+
+        for (let i = 0; i < elements.length; i++) {
+            const el = elements[i];
+            if (!el) continue;
+            const text = (el.textContent || '').trim();
+
+            // 2. Detectar si el elemento solo contiene un guión, viñeta o punto aislado
+            if (/^[-–—•\*\.]+$/.test(text)) {
+                let nextIdx = i + 1;
+                while (nextIdx < elements.length && !(elements[nextIdx]?.textContent || '').trim()) {
+                    elements[nextIdx]?.remove();
+                    nextIdx++;
+                }
+                const nextEl = elements[nextIdx];
+                if (nextEl) {
+                    const nextClean = nextEl.innerHTML.trim().replace(/^[-–—•\*]\s*/, '');
+                    nextEl.innerHTML = `- ${nextClean}`;
+                    el.remove();
+                } else {
+                    el.remove();
+                }
+                continue;
+            }
+
+            // 3. Normalizar párrafos que empiezan pegados al guión ej: "-Declaro" -> "- Declaro"
+            if (/^[-–—•\*][^\s<]/.test(text)) {
+                el.innerHTML = el.innerHTML.replace(/^([-–—•\*])\s*/, '$1 ');
+            }
+
+            // 4. Detectar si el elemento empieza con "Yo" y se cortó antes de "con CI..." o del apellido
+            if (/^Yo\b/i.test(text) && !/[.:;]$/.test(text)) {
+                const nextEl = elements[i + 1];
+                if (nextEl) {
+                    const nextText = (nextEl.textContent || '').trim();
+                    if (/^(?:con\s+CI|[a-záéíóúñ]|,|por\s+medio|[A-ZÁÉÍÓÚÑ\s]+\s+con\s+CI)/i.test(nextText)) {
+                        el.innerHTML = `${el.innerHTML.trim()} ${nextEl.innerHTML.trim()}`;
+                        nextEl.remove();
+                        i--;
+                    }
+                }
+            }
+        }
+
+        // Convertir espacios dobles no deseados pero conservar etiquetas HTML
+        return doc.body.innerHTML
+            .replace(/&nbsp;/g, ' ')
+            .replace(/\u00a0/g, ' ');
+    } catch (e) {
+        console.error('cleanConsentimientoHtml error:', e);
+        return rawHtml.replace(/&nbsp;/g, ' ').replace(/\u00a0/g, ' ');
+    }
+};

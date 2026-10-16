@@ -52,6 +52,9 @@ export class Pago {
     formaPagoRel: FormaPago;
 
     @Column({ type: 'text', nullable: true })
+    numero_transaccion: string;
+
+    @Column({ type: 'text', nullable: true })
     observaciones: string;
 
     @Column({

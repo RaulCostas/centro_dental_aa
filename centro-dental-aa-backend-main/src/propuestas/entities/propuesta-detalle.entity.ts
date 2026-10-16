@@ -33,6 +33,9 @@ export class PropuestaDetalle {
     @Column({ type: 'int' })
     cantidad: number;
 
+    @Column({ type: 'decimal', precision: 5, scale: 2, default: 0 })
+    descuento: number;
+
     @Column({ type: 'decimal', precision: 12, scale: 2 })
     total: number;
 

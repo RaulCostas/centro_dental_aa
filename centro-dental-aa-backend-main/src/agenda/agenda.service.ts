@@ -18,17 +18,17 @@ export class AgendaService {
     ) { }
 
 
-    async enviarRecordatorioIndividual(id: number): Promise<{ success: boolean; message: string }> {
+    async enviarRecordatorioIndividual(id: number, customCelular?: string): Promise<{ success: boolean; message: string }> {
         const cita = await this.findOne(id);
         const p: any = cita.paciente;
 
-        if (!p) {
+        if (!p && !customCelular) {
             throw new BadRequestException('La cita no tiene un paciente asociado.');
         }
 
-        let celular = (p.telefono_celular || p.celular || '').replace(/\D/g, '');
+        let celular = customCelular ? customCelular.replace(/\D/g, '') : ((p?.telefono_celular || p?.celular || '').replace(/\D/g, ''));
         if (!celular) {
-            throw new BadRequestException('El paciente no tiene un número de celular registrado.');
+            throw new BadRequestException('No se proporcionó un número de celular.');
         }
 
         // Automatically prepend country code 591 if it's a Bolivian number missing it
@@ -38,7 +38,7 @@ export class AgendaService {
 
         const jid = `${celular}@s.whatsapp.net`;
         const horaStr = cita.hora ? cita.hora.substring(0, 5) : 'la hora acordada';
-        const nombrePaciente = p.nombre;
+        const nombrePaciente = p?.nombre || 'Paciente';
         const nomClinica = 'CENTRO DENTAL A&A';
 
         // Calculate relative date text (today, tomorrow, or specific date)
@@ -76,22 +76,22 @@ export class AgendaService {
                 message: `Recordatorio enviado con éxito a ${nombrePaciente}.`
             };
         } catch (error) {
-            console.error(`Error enviando recordatorio individual a ${p?.telefono_celular || p?.celular || 'sin numero'}:`, error);
+            console.error(`Error enviando recordatorio individual a ${celular}:`, error);
             throw new InternalServerErrorException(`No se pudo enviar el recordatorio: ${error.message}`);
         }
     }
 
-    async notificarAusencia(id: number): Promise<{ success: boolean; message: string }> {
+    async notificarAusencia(id: number, customCelular?: string): Promise<{ success: boolean; message: string }> {
         const cita = await this.findOne(id);
         const p: any = cita.paciente;
 
-        if (!p) {
+        if (!p && !customCelular) {
             throw new BadRequestException('La cita no tiene un paciente asociado.');
         }
 
-        let celular = (p.telefono_celular || p.celular || '').replace(/\D/g, '');
+        let celular = customCelular ? customCelular.replace(/\D/g, '') : ((p?.telefono_celular || p?.celular || '').replace(/\D/g, ''));
         if (!celular) {
-            throw new BadRequestException('El paciente no tiene un número de celular registrado.');
+            throw new BadRequestException('No se proporcionó un número de celular.');
         }
 
         if (celular.length === 8 && /^[67]/.test(celular)) {
@@ -99,7 +99,7 @@ export class AgendaService {
         }
 
         const jid = `${celular}@s.whatsapp.net`;
-        const nombrePaciente = p.nombre;
+        const nombrePaciente = p?.nombre || 'Paciente';
         const nomClinica = 'CENTRO DENTAL A&A';
         const horaStr = cita.hora ? cita.hora.substring(0, 5) : 'la hora acordada';
 

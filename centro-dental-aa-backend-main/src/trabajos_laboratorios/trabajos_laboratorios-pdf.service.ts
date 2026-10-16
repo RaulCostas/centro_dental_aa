@@ -118,83 +118,148 @@ export class TrabajosLaboratoriosPdfService {
                 margin: [0, 0, 0, 8]
             });
 
-            // ─── 2. RESTAURACIÓN | 3. DIENTES | 4. MATERIAL | 5. COLOR ───
+            // ─── 2. RESTAURACIÓN & 3. DIENTES INVOLUCRADOS & PREPARACIÓN ───
             content.push({
                 columns: [
                     {
-                        width: '*',
+                        width: '60%',
                         stack: [
                             { text: '2. TIPO DE RESTAURACIÓN', fontSize: 7.5, bold: true, color: 'white', fillColor: '#102a6b', alignment: 'center' },
                             {
-                                text: [
-                                    `${check(Boolean(d?.tipo_restauracion?.corona))} Corona\n`,
-                                    `${check(Boolean(d?.tipo_restauracion?.puente))} Puente\n`,
-                                    `${check(Boolean(d?.tipo_restauracion?.carilla))} Carilla\n`,
-                                    `${check(Boolean(d?.tipo_restauracion?.incrustacion))} Incrustación\n`,
-                                    `${check(Boolean(d?.tipo_restauracion?.protesis_total))} Prótesis Total\n`,
-                                    `${check(Boolean(d?.tipo_restauracion?.protesis_removible))} Prótesis Removible\n`,
-                                    `${check(Boolean(d?.tipo_restauracion?.protesis_hibrida))} Prótesis Híbrida\n`,
-                                    `${check(Boolean(d?.tipo_restauracion?.placa_miorrelajante))} Placa Miorrelajante`
+                                columns: [
+                                    {
+                                        width: '50%',
+                                        text: [
+                                            `${check(Boolean(d?.tipo_restauracion?.corona))} Corona\n`,
+                                            `${check(Boolean(d?.tipo_restauracion?.puente))} Puente\n`,
+                                            `${check(Boolean(d?.tipo_restauracion?.carilla))} Carilla\n`,
+                                            `${check(Boolean(d?.tipo_restauracion?.inlay))} Inlay\n`,
+                                            `${check(Boolean(d?.tipo_restauracion?.onlay))} Onlay\n`,
+                                            `${check(Boolean(d?.tipo_restauracion?.protesis_parcial || d?.tipo_restauracion?.protesis_removible))} Prótesis Parcial Rem.\n`,
+                                            `${check(Boolean(d?.tipo_restauracion?.protesis_total))} Prótesis Total\n`,
+                                            `${check(Boolean(d?.tipo_restauracion?.sobredentadura))} Sobredentadura`
+                                        ],
+                                        fontSize: 7
+                                    },
+                                    {
+                                        width: '50%',
+                                        text: [
+                                            `${check(Boolean(d?.tipo_restauracion?.barra_implantes))} Barra sobre Implantes\n`,
+                                            `${check(Boolean(d?.tipo_restauracion?.hibrida_fija))} Híbrida Fija\n`,
+                                            `${check(Boolean(d?.tipo_restauracion?.provisional))} Provisional\n`,
+                                            `${check(Boolean(d?.tipo_restauracion?.ferula))} Férula\n`,
+                                            `${check(Boolean(d?.tipo_restauracion?.guarda_oclusal))} Guarda Oclusal\n`,
+                                            `${check(Boolean(d?.tipo_restauracion?.mock_up))} Mock-up\n`,
+                                            `${check(Boolean(d?.tipo_restauracion?.encerado_diagnostico))} Encerado Diagnóstico\n`,
+                                            `${check(Boolean(d?.tipo_restauracion?.guia_quirurgica))} Guía Quirúrgica`
+                                        ],
+                                        fontSize: 7
+                                    }
                                 ],
-                                fontSize: 7.5,
+                                margin: [2, 3, 0, 2]
+                            },
+                            {
+                                text: [{ text: 'Otro: ', bold: true }, d?.tipo_restauracion?.otro || '____________________'],
+                                fontSize: 7,
+                                margin: [2, 2, 0, 0]
+                            }
+                        ]
+                    },
+                    {
+                        width: '40%',
+                        stack: [
+                            { text: '3. DIENTES INVOLUCRADOS & PREPARACIÓN', fontSize: 7.5, bold: true, color: 'white', fillColor: '#102a6b', alignment: 'center' },
+                            { text: `Dientes / Piezas: ${trabajo.pieza || 'Ninguna'}`, fontSize: 8.5, bold: true, color: '#dc2626', margin: [0, 4, 0, 4], alignment: 'center' },
+                            (d?.preparacion || d?.lado) ? {
+                                text: [
+                                    d.preparacion ? { text: `Preparación: ${typeof d.preparacion === 'string' ? d.preparacion : Object.keys(d.preparacion).filter(k => d.preparacion[k]).join(', ')}\n`, fontSize: 7 } : '',
+                                    d.lado ? { text: `Lado: ${typeof d.lado === 'string' ? d.lado : Object.keys(d.lado).filter(k => d.lado[k]).join(', ')}`, fontSize: 7 } : ''
+                                ],
+                                margin: [4, 2, 0, 0]
+                            } : { text: '' }
+                        ]
+                    }
+                ],
+                columnGap: 6,
+                margin: [0, 0, 0, 8]
+            });
+
+            // ─── 4. COLOR | 5. INFO DIGITAL | 6. IMPLANTOLOGÍA ───
+            content.push({
+                columns: [
+                    {
+                        width: '34%',
+                        stack: [
+                            { text: '4. COLOR Y CARACTERIZACIONES', fontSize: 7.5, bold: true, color: 'white', fillColor: '#102a6b', alignment: 'center' },
+                            {
+                                text: [
+                                    { text: 'Color Principal: ', bold: true }, `${trabajo.color || '-'}\n`,
+                                    { text: 'Caracterizaciones: ', bold: true }, `${d?.caracterizaciones?.detalle || (typeof d?.caracterizaciones === 'string' ? d.caracterizaciones : '') || '-'}`
+                                ],
+                                fontSize: 7,
                                 margin: [2, 3, 0, 0]
                             }
                         ]
                     },
                     {
-                        width: '*',
+                        width: '33%',
                         stack: [
-                            { text: '3. DIENTES INVOLUCRADOS', fontSize: 7.5, bold: true, color: 'white', fillColor: '#102a6b', alignment: 'center' },
-                            { text: `Dientes: ${trabajo.pieza || '____'}`, fontSize: 8.5, bold: true, color: '#dc2626', margin: [0, 2, 0, 2] },
+                            { text: '5. INFORMACIÓN DIGITAL', fontSize: 7.5, bold: true, color: 'white', fillColor: '#102a6b', alignment: 'center' },
                             {
                                 text: [
-                                    { text: 'Preparación:\n', bold: true },
-                                    `${check(Boolean(d?.preparacion?.hombro))} Hombro\n`,
-                                    `${check(Boolean(d?.preparacion?.chaflan))} Chaflán\n`,
-                                    `${check(Boolean(d?.preparacion?.vertical))} Vertical\n`,
-                                    `${check(Boolean(d?.preparacion?.bopt))} BOPT\n`,
-                                    { text: 'Lado:\n', bold: true },
-                                    `${check(Boolean(d?.lado?.derecho))} Der  ${check(Boolean(d?.lado?.izquierdo))} Izq\n`,
-                                    `${check(Boolean(d?.lado?.anterior))} Ant  ${check(Boolean(d?.lado?.posterior))} Post`
+                                    `${check(Boolean(d?.digital?.escaneo_intraoral))} Escaneo Intraoral\n`,
+                                    { text: 'Marca: ', bold: true }, `${d?.digital?.marca || '-'}`
                                 ],
-                                fontSize: 7.5,
-                                margin: [2, 0, 0, 0]
-                            }
-                        ]
-                    },
-                    {
-                        width: '*',
-                        stack: [
-                            { text: '4. MATERIAL SOLICITADO', fontSize: 7.5, bold: true, color: 'white', fillColor: '#102a6b', alignment: 'center' },
-                            {
-                                text: [
-                                    `${check(Boolean(d?.material?.zirconio))} Zirconio\n`,
-                                    `${check(Boolean(d?.material?.disilicato))} Disilicato de Litio\n`,
-                                    `${check(Boolean(d?.material?.metal_ceramica))} Metal Cerámica\n`,
-                                    `${check(Boolean(d?.material?.acrilico))} Acrílico\n`,
-                                    `${check(Boolean(d?.material?.pmma))} PMMA\n`,
-                                    `${check(Boolean(d?.material?.composite))} Composite\n`,
-                                    `${check(Boolean(d?.material?.peek))} PEEK\n`,
-                                    d?.material?.otro ? `Otro: ${d.material.otro}` : ''
-                                ],
-                                fontSize: 7.5,
+                                fontSize: 7,
                                 margin: [2, 3, 0, 0]
                             }
                         ]
                     },
                     {
-                        width: '*',
+                        width: '33%',
                         stack: [
-                            { text: '5. COLOR & CARACTERÍSTICAS', fontSize: 7.5, bold: true, color: 'white', fillColor: '#102a6b', alignment: 'center' },
+                            { text: '6. IMPLANTOLOGÍA', fontSize: 7.5, bold: true, color: 'white', fillColor: '#102a6b', alignment: 'center' },
                             {
                                 text: [
-                                    { text: 'Color Principal: ', bold: true }, `${trabajo.color || '____'}\n`,
-                                    { text: 'Color Muñón: ', bold: true }, `${d?.caracterizaciones?.color_munon || '____'}\n`,
-                                    `${check(Boolean(d?.caracterizaciones?.cervical))} Cervical\n`,
-                                    `${check(Boolean(d?.caracterizaciones?.incisal))} Incisal\n`,
-                                    `${check(Boolean(d?.caracterizaciones?.halo))} Halo\n`,
-                                    `${check(Boolean(d?.caracterizaciones?.opalescencia))} Opalescencia\n`,
-                                    `${check(Boolean(d?.caracterizaciones?.fotografias_adjuntas))} Fotos adjuntas`
+                                    { text: 'Detalle: ', bold: true }, `${d?.implantologia?.detalle || (typeof d?.implantologia === 'string' ? d.implantologia : '') || '-'}`
+                                ],
+                                fontSize: 7,
+                                margin: [2, 3, 0, 0]
+                            }
+                        ]
+                    }
+                ],
+                columnGap: 6,
+                margin: [0, 0, 0, 8]
+            });
+
+            // ─── 7. PRUEBAS | 8. URGENCIA ───
+            const urg = d?.urgencia || 'Normal';
+            content.push({
+                columns: [
+                    {
+                        width: '50%',
+                        stack: [
+                            { text: '7. PRUEBAS', fontSize: 7.5, bold: true, color: 'white', fillColor: '#102a6b', alignment: 'center' },
+                            {
+                                text: [
+                                    `${check(Boolean(d?.pruebas?.cera))} Cera  ${check(Boolean(d?.pruebas?.metal))} Metal  ${check(Boolean(d?.pruebas?.bizcocho))} Bizcocho\n`,
+                                    `${check(Boolean(d?.pruebas?.oclusion))} Oclusión  ${check(Boolean(d?.pruebas?.aprobado))} Aprobado\n`,
+                                    { text: 'Detalle: ', bold: true }, `${d?.pruebas?.detalle || '-'}`
+                                ],
+                                fontSize: 7,
+                                margin: [2, 3, 0, 0]
+                            }
+                        ]
+                    },
+                    {
+                        width: '50%',
+                        stack: [
+                            { text: '8. URGENCIA', fontSize: 7.5, bold: true, color: 'white', fillColor: '#102a6b', alignment: 'center' },
+                            {
+                                text: [
+                                    `${check(urg === 'Normal')} Normal   ${check(urg === 'Prioritario')} Prioritario\n`,
+                                    `${check(urg === 'Urgente 24 h')} Urgente 24 h   ${check(urg === 'Express')} Express`
                                 ],
                                 fontSize: 7.5,
                                 margin: [2, 3, 0, 0]
@@ -206,83 +271,71 @@ export class TrabajosLaboratoriosPdfService {
                 margin: [0, 0, 0, 8]
             });
 
-            // ─── 6. OCLUSIÓN | 7. INFORMACIÓN DIGITAL | 8. IMPLANTOLOGÍA ───
+            // ─── 9. CONTROL DE TIEMPOS Y ESTADO DEL TRABAJO ───
+            content.push({
+                text: '9. CONTROL DE TIEMPOS Y ESTADO DEL TRABAJO',
+                fontSize: 8.5,
+                bold: true,
+                color: 'white',
+                fillColor: '#102a6b',
+                margin: [0, 4, 0, 4],
+                padding: [4, 2]
+            });
+
+            content.push({
+                table: {
+                    widths: ['*', '*', '*', '*', '*'],
+                    body: [
+                        [
+                            { text: [{ text: 'Estado: ', bold: true }, (trabajo.estado || 'no terminado').toUpperCase()], fontSize: 8 },
+                            { text: [{ text: 'Fecha de Envío: ', bold: true }, fmtDate(trabajo.fecha)], fontSize: 8 },
+                            { text: [{ text: 'Hora de Envío: ', bold: true }, trabajo.hora_envio || d?.control_tiempos?.hora_envio || trabajo.hora || '-'], fontSize: 8 },
+                            { text: [{ text: 'Fecha de Entrega: ', bold: true }, fmtDate(trabajo.fecha_pedido)], fontSize: 8 },
+                            { text: [{ text: 'Hora de Entrega: ', bold: true }, trabajo.hora_entrega || d?.control_tiempos?.hora_entrega || '-'], fontSize: 8 }
+                        ]
+                    ]
+                },
+                margin: [0, 0, 0, 8]
+            });
+
+            // ─── 10. OBSERVACIONES CLÍNICAS / INSTRUCCIONES ESPECIALES ───
+            content.push({
+                text: '10. OBSERVACIONES CLÍNICAS / INSTRUCCIONES ESPECIALES',
+                fontSize: 8,
+                bold: true,
+                color: 'white',
+                fillColor: '#102a6b',
+                margin: [0, 4, 0, 2],
+                padding: [4, 2]
+            });
+            content.push({
+                text: trabajo.observacion || trabajo.observaciones || 'Sin observaciones adicionales.',
+                fontSize: 7.5,
+                margin: [0, 2, 0, 10]
+            });
+
+            // ─── FIRMAS ───
             content.push({
                 columns: [
                     {
                         width: '*',
                         stack: [
-                            { text: '6. OCLUSIÓN', fontSize: 7.5, bold: true, color: 'white', fillColor: '#102a6b', alignment: 'center' },
-                            {
-                                text: [
-                                    `${check(Boolean(d?.oclusion?.mi))} MI (Máx. Intercuspidación)\n`,
-                                    `${check(Boolean(d?.oclusion?.rc))} RC (Relación Céntrica)\n`,
-                                    `${check(Boolean(d?.oclusion?.guia_canina))} Guía Canina\n`,
-                                    `${check(Boolean(d?.oclusion?.funcion_grupo))} Función de Grupo\n`,
-                                    `Sobremordida: ${d?.oclusion?.sobremordida_mm || '___'} mm\n`,
-                                    `Resalte: ${d?.oclusion?.resalte_mm || '___'} mm`
-                                ],
-                                fontSize: 7.5,
-                                margin: [2, 3, 0, 0]
-                            }
+                            { text: `Dr. ${doctorNombre}`, bold: true, fontSize: 8, alignment: 'center' },
+                            { text: '__________________________________', alignment: 'center', margin: [0, 20, 0, 2] },
+                            { text: 'Firma Doctor Tratante', fontSize: 7, color: '#64748b', alignment: 'center' }
                         ]
                     },
                     {
                         width: '*',
                         stack: [
-                            { text: '7. INFORMACIÓN DIGITAL', fontSize: 7.5, bold: true, color: 'white', fillColor: '#102a6b', alignment: 'center' },
-                            {
-                                text: [
-                                    `${check(Boolean(d?.digital?.escaneo_intraoral))} Escaneo Intraoral\n`,
-                                    `${check(Boolean(d?.digital?.stl || d?.digital?.ply || d?.digital?.dcm))} STL / PLY / DCM\n`,
-                                    `${check(Boolean(d?.digital?.cbct))} CBCT\n`,
-                                    `${check(Boolean(d?.digital?.fotografias))} Fotografías\n`,
-                                    `${check(Boolean(d?.digital?.diseno_exocad))} Diseño Exocad\n`,
-                                    `${check(Boolean(d?.digital?.smile_design))} Smile Design`
-                                ],
-                                fontSize: 7.5,
-                                margin: [2, 3, 0, 0]
-                            }
-                        ]
-                    },
-                    {
-                        width: '*',
-                        stack: [
-                            { text: '8. IMPLANTOLOGÍA', fontSize: 7.5, bold: true, color: 'white', fillColor: '#102a6b', alignment: 'center' },
-                            {
-                                text: [
-                                    `Sistema: ${d?.implantologia?.sistema || '____'}\n`,
-                                    `Torque: ${d?.implantologia?.torque_ncm || '____'} Ncm\n`,
-                                    `Marca: ${d?.implantologia?.marca || '____'}\n`,
-                                    `Diámetro: ${d?.implantologia?.diametro_mm || '____'} mm\n`,
-                                    `Longitud: ${d?.implantologia?.longitud_mm || '____'} mm\n`,
-                                    `Plataforma: ${d?.implantologia?.plataforma || '____'}`
-                                ],
-                                fontSize: 7.5,
-                                margin: [2, 3, 0, 0]
-                            }
+                            { text: labNombre, bold: true, fontSize: 8, alignment: 'center' },
+                            { text: '__________________________________', alignment: 'center', margin: [0, 20, 0, 2] },
+                            { text: 'Firma Laboratorio Dental', fontSize: 7, color: '#64748b', alignment: 'center' }
                         ]
                     }
                 ],
-                columnGap: 6,
-                margin: [0, 0, 0, 8]
+                margin: [0, 10, 0, 8]
             });
-
-            // ─── OBSERVACIONES Y CONTROL ───
-            if (trabajo.observaciones) {
-                content.push({
-                    text: 'OBSERVACIONES / DETALLES ADICIONALES:',
-                    fontSize: 8,
-                    bold: true,
-                    color: '#102a6b',
-                    margin: [0, 4, 0, 2]
-                });
-                content.push({
-                    text: trabajo.observaciones,
-                    fontSize: 7.5,
-                    margin: [0, 0, 0, 8]
-                });
-            }
 
             // ─── FOOTER INFO ───
             const footerParts: string[] = [];

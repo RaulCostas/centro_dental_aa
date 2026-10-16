@@ -9,7 +9,7 @@ import Odontogram from './Odontogram';
 import SearchableSelect from './SearchableSelect';
 import { formatDate } from '../utils/dateUtils';
 import { formatFullName, formatNumber, formatCurrency, getImageUrl } from '../utils/formatters';
-import { Printer } from 'lucide-react';
+import { Printer, Calendar, Edit } from 'lucide-react';
 import { printOdontogramaPDF } from '../utils/odontogramaPdfGenerator';
 
 
@@ -86,7 +86,15 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
         return `${year}-${month}-${day}`;
     });
     const [numero, setNumero] = useState<number | null>(null);
+    const [aprobado, setAprobado] = useState(false);
     const [historiaClinica, setHistoriaClinica] = useState<HistoriaClinica[]>([]);
+    const [planPagos, setPlanPagos] = useState<{
+        activo: boolean;
+        meses: number;
+        diaPago: number;
+        fechaInicio: string;
+        cuotaInicial?: number;
+    } | null>(null);
 
     // Form state for new item
     const [selectedArancelId, setSelectedArancelId] = useState<number>(0);
@@ -156,6 +164,7 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
             setNota(data.nota);
             setFecha(data.fecha.split('T')[0]);
             setNumero(data.numero);
+            setAprobado(data.aprobado || false);
 
             const discountValue = data.descuento ?? 0;
             setDescuentoGlobal(discountValue);
@@ -163,6 +172,11 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
                 setOdontogramaPreexistente(data.odontograma_mapa);
             } else {
                 setOdontogramaPreexistente({});
+            }
+            if (data.plan_pagos) {
+                setPlanPagos(data.plan_pagos);
+            } else {
+                setPlanPagos(null);
             }
 
             if (data.detalles) {
@@ -498,12 +512,14 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
         setCantidad(1);
         setDescuentoItem(0);
         setPosible(false);
+        setAprobado(false);
     };
 
     const handleRemoveItem = (index: number) => {
         const newDetalles = [...detalles];
         newDetalles.splice(index, 1);
         setDetalles(newDetalles);
+        setAprobado(false);
 
         if (editingIndex === index) {
             cancelEdit();
@@ -565,6 +581,96 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
         return total;
     };
 
+    const handleTogglePaymentPlan = () => {
+        const isActivo = planPagos?.activo;
+
+        Swal.fire({
+            title: isActivo ? 'Editar Plan de Pagos' : 'Configurar Plan de Pagos',
+            html: `
+                <div class="space-y-4 text-left">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Cuota Inicial (Opcional)</label>
+                        <input type="number" id="swal-cuota-inicial" class="swal2-input w-full mx-0 mt-1 !text-lg" placeholder="Ej: 5000" value="${planPagos?.cuotaInicial ?? ''}" min="0">
+                        <div class="text-xs text-gray-500 mt-1">El monto restante se dividirá en cuotas.</div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Duración en meses</label>
+                        <input type="number" id="swal-meses" class="swal2-input w-full mx-0 mt-1 !text-lg" value="${planPagos?.meses || 6}" min="1" max="60">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Día de pago (del mes)</label>
+                        <input type="number" id="swal-dia" class="swal2-input w-full mx-0 mt-1 !text-lg" value="${planPagos?.diaPago || 15}" min="1" max="31">
+                    </div>
+                    <div class="pt-2 text-xs text-gray-500 dark:text-gray-400">
+                        La cuota se calculará dividiendo el total del presupuesto (menos la cuota inicial) entre los meses.
+                    </div>
+                </div>
+            `,
+            focusConfirm: false,
+            showCancelButton: true,
+            showDenyButton: Boolean(isActivo),
+            confirmButtonText: 'Guardar Plan',
+            cancelButtonText: 'Cancelar',
+            denyButtonText: 'Eliminar Plan',
+            preConfirm: () => {
+                const cuotaInicial = (document.getElementById('swal-cuota-inicial') as HTMLInputElement).value;
+                const meses = (document.getElementById('swal-meses') as HTMLInputElement).value;
+                const dia = (document.getElementById('swal-dia') as HTMLInputElement).value;
+                if (!meses || Number(meses) < 1) {
+                    Swal.showValidationMessage('Ingrese una cantidad válida de meses');
+                    return false;
+                }
+                if (!dia || Number(dia) < 1 || Number(dia) > 31) {
+                    Swal.showValidationMessage('El día debe estar entre 1 y 31');
+                    return false;
+                }
+                const cuotaInicialNum = cuotaInicial !== '' ? Number(cuotaInicial) : 0;
+                return { meses: Number(meses), diaPago: Number(dia), cuotaInicial: cuotaInicialNum };
+            }
+        }).then(async (result) => {
+            if (result.isConfirmed && result.value) {
+                const newPlan = {
+                    activo: true,
+                    meses: result.value.meses,
+                    diaPago: result.value.diaPago,
+                    cuotaInicial: result.value.cuotaInicial,
+                    fechaInicio: planPagos?.fechaInicio || fecha || new Date().toISOString()
+                };
+                setPlanPagos(newPlan);
+                if (proformaId) {
+                    try {
+                        await api.patch(`/proformas/${proformaId}`, { plan_pagos: newPlan });
+                    } catch (error) {
+                        console.error('Error updating plan de pagos:', error);
+                    }
+                }
+                Swal.fire({
+                    title: 'Guardado',
+                    text: 'Plan de pagos configurado',
+                    icon: 'success',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            } else if (result.isDenied) {
+                setPlanPagos(null);
+                if (proformaId) {
+                    try {
+                        await api.patch(`/proformas/${proformaId}`, { plan_pagos: null });
+                    } catch (error) {
+                        console.error('Error removing plan de pagos:', error);
+                    }
+                }
+                Swal.fire({
+                    title: 'Eliminado',
+                    text: 'Plan de pagos eliminado correctamente',
+                    icon: 'success',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            }
+        });
+    };
+
     const handleSubmit = async () => {
         if (!paciente) return;
 
@@ -579,7 +685,11 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
                 sub_total: subtotal_bruto,
                 descuento: Number(descuentoGlobal || 0),
                 total: total_neto,
+                aprobado,
+                usuario_aprobado: aprobado ? (localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).id : undefined) : null,
+                fecha_aprobado: aprobado ? new Date().toISOString() : null,
                 odontograma_mapa: odontogramaPreexistente,
+                plan_pagos: planPagos,
                 detalles: detalles.map(d => ({
                     id: d.id,
                     arancelId: d.arancelId,
@@ -667,7 +777,7 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
                             )}
                         </div>
                     </div>
-                    <div className="flex gap-2 items-center">
+                    <div className="flex gap-2 items-center flex-wrap">
                         <button
                             type="button"
                             onClick={async () => {
@@ -1131,6 +1241,93 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
                     </div>
                 </div>
 
+                {/* Plan de Pagos Section */}
+                {planPagos?.activo && (() => {
+                    const totalNeto = calculateTotal();
+                    const cuotaInicial = Number(planPagos.cuotaInicial || 0);
+                    const meses = Number(planPagos.meses || 1);
+                    const dia = Number(planPagos.diaPago || 15);
+                    const montoParaCuotas = Math.max(0, totalNeto - cuotaInicial);
+                    const cuotaMensual = meses > 0 ? montoParaCuotas / meses : 0;
+                    const baseDateStr = (planPagos.fechaInicio || fecha || new Date().toISOString()).split('T')[0];
+                    const [baseYear, baseMonth, baseDay] = baseDateStr.split('-').map(Number);
+                    const fechaInicialDate = new Date(baseYear || new Date().getFullYear(), (baseMonth || 1) - 1, baseDay || 1);
+
+                    const cuotasRows: { detalle: string; monto: number; vencimiento: string }[] = [];
+                    if (cuotaInicial > 0) {
+                        cuotasRows.push({
+                            detalle: 'Pago / Cuota Inicial',
+                            monto: cuotaInicial,
+                            vencimiento: fechaInicialDate.toLocaleDateString('es-BO')
+                        });
+                    }
+                    for (let i = 1; i <= meses; i++) {
+                        let nextMonth = new Date(fechaInicialDate.getFullYear(), fechaInicialDate.getMonth() + i, dia);
+                        if (nextMonth.getMonth() !== (fechaInicialDate.getMonth() + i) % 12) {
+                            nextMonth = new Date(fechaInicialDate.getFullYear(), fechaInicialDate.getMonth() + i + 1, 0);
+                        }
+                        cuotasRows.push({
+                            detalle: `Cuota ${i}`,
+                            monto: cuotaMensual,
+                            vencimiento: nextMonth.toLocaleDateString('es-BO')
+                        });
+                    }
+
+                    return (
+                        <div className="mb-8 bg-indigo-50/40 dark:bg-indigo-900/10 rounded-xl border border-indigo-200 dark:border-indigo-800/50 p-6 shadow-sm">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-indigo-100 dark:border-indigo-800/50 pb-3">
+                                <div className="flex items-center gap-3">
+                                    <h4 className="text-lg font-bold text-indigo-900 dark:text-indigo-300 flex items-center gap-2">
+                                        <Calendar size={20} className="text-indigo-600 dark:text-indigo-400" />
+                                        Plan de Pagos Configurado
+                                    </h4>
+                                    <button
+                                        type="button"
+                                        onClick={handleTogglePaymentPlan}
+                                        className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition-all transform hover:-translate-y-0.5 active:scale-95"
+                                        title="Editar Plan de Pagos"
+                                    >
+                                        <Edit size={14} />
+                                        Editar Plan de Pagos
+                                    </button>
+                                </div>
+                                <div className="flex flex-wrap gap-3 text-xs font-semibold">
+                                    <span className="px-3 py-1 rounded-lg bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-700 text-gray-700 dark:text-gray-200">
+                                        Pago Inicial: <strong className="text-indigo-600 dark:text-indigo-400">{formatCurrency(cuotaInicial, 'Bs')}</strong>
+                                    </span>
+                                    <span className="px-3 py-1 rounded-lg bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-700 text-gray-700 dark:text-gray-200">
+                                        Plazo: <strong className="text-indigo-600 dark:text-indigo-400">{meses} {meses === 1 ? 'mes' : 'meses'}</strong> (Día {dia})
+                                    </span>
+                                    <span className="px-3 py-1 rounded-lg bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-700 text-gray-700 dark:text-gray-200">
+                                        Cuota Mensual: <strong className="text-indigo-600 dark:text-indigo-400">{formatCurrency(cuotaMensual, 'Bs')}</strong>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="overflow-x-auto rounded-xl border border-indigo-100 dark:border-indigo-800/50 bg-white dark:bg-gray-800">
+                                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                    <thead className="bg-indigo-50/70 dark:bg-gray-700/70">
+                                        <tr>
+                                            <th className="px-4 py-2.5 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Detalle</th>
+                                            <th className="px-4 py-2.5 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Monto</th>
+                                            <th className="px-4 py-2.5 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Fecha Vencimiento</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                                        {cuotasRows.map((row, idx) => (
+                                            <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                                                <td className="px-4 py-2 text-center text-sm font-medium text-gray-800 dark:text-gray-200">{row.detalle}</td>
+                                                <td className="px-4 py-2 text-center text-sm font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(row.monto, 'Bs')}</td>
+                                                <td className="px-4 py-2 text-center text-sm text-gray-600 dark:text-gray-300">{row.vencimiento}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    );
+                })()}
+
                 {/* Footer: Total and Note */}
                 <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-600 overflow-hidden shadow-sm">
                     <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-gray-200 dark:divide-gray-600">
@@ -1181,7 +1378,17 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
 
 
 
-                                        <div className="flex gap-3 w-full justify-end">
+                                        <div className="flex flex-wrap gap-3 w-full justify-end">
+                                            {!planPagos?.activo && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleTogglePaymentPlan}
+                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-xl flex items-center gap-2 transform hover:-translate-y-0.5 transition-all shadow-md text-sm"
+                                                >
+                                                    <Calendar size={16} />
+                                                    Crear Plan de Pagos
+                                                </button>
+                                            )}
                                             {!isReadOnly && (
                                                 <button
                                                     onClick={handleSubmit}

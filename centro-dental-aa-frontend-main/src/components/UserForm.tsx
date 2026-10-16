@@ -18,6 +18,7 @@ const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, id, onSaveSuccess 
         email: '',
         password: '',
         estado: 'Activo',
+        codigo_proforma: undefined,
     });
     const [showManual, setShowManual] = useState(false);
 
@@ -37,6 +38,7 @@ const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, id, onSaveSuccess 
                     email: '',
                     password: '',
                     estado: 'Activo',
+                    codigo_proforma: undefined,
                 });
             }
         }
@@ -45,8 +47,8 @@ const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, id, onSaveSuccess 
     const fetchUser = async (userId: number) => {
         try {
             const response = await api.get(`/users/${userId}`);
-            const { name, email, estado, foto } = response.data;
-            setFormData({ name, email, estado, foto, password: '' }); // Don't populate password
+            const { name, email, estado, foto, codigo_proforma } = response.data;
+            setFormData({ name, email, estado, foto, codigo_proforma, password: '' }); // Don't populate password
         } catch (error) {
             console.error('Error fetching user:', error);
         }
@@ -227,6 +229,27 @@ const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, id, onSaveSuccess 
                                         <option value="" disabled>-- Seleccione --</option><option value="Activo">Activo</option>
                                         <option value="Inactivo">Inactivo</option>
                                     </select>
+                                </div>
+                            </div>
+                            <div className="mb-4">
+                                <label className="block mb-2 font-medium">Código de Aprobación Presupuestos (4 dígitos):</label>
+                                <div className="relative">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                    <input
+                                        type="number"
+                                        name="codigo_proforma"
+                                        value={formData.codigo_proforma || ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val.length <= 4) {
+                                                setFormData({ ...formData, codigo_proforma: val ? Number(val) : undefined });
+                                            }
+                                        }}
+                                        placeholder="Ej: 1234"
+                                        className="w-full pl-10 pr-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                                    />
                                 </div>
                             </div>
                             {/* Footer Buttons */}

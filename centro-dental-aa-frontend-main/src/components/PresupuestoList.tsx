@@ -22,6 +22,7 @@ import pernoImg from '../assets/teeth/perno.png';
 import { Printer, DollarSign, CreditCard, ClipboardList } from 'lucide-react';
 import PropuestasList from './PropuestasList';
 import { printOdontogramaPDF } from '../utils/odontogramaPdfGenerator';
+import { promptWhatsAppNumber } from '../utils/whatsappHelper';
 
 
 interface Proforma {
@@ -256,6 +257,85 @@ const PresupuestoList: React.FC = () => {
         }
     };
 
+    const handleApprove = async (proformaId: number) => {
+        // 1. Verify if logged-in user has codigo_proforma registered
+        const userStr = localStorage.getItem('user');
+        const currentUser = userStr ? JSON.parse(userStr) : null;
+        let userObj = currentUser;
+
+        if (currentUser?.id) {
+            try {
+                const res = await api.get(`/users/${currentUser.id}`);
+                userObj = res.data;
+            } catch (e) {
+                console.error('Error fetching user info:', e);
+            }
+        }
+
+        if (!userObj || !userObj.codigo_proforma) {
+            Swal.fire({
+                title: 'Atención',
+                text: 'Debe registrar primero su código de aprobación en su perfil de usuario.',
+                icon: 'warning',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#3085d6',
+                background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
+            });
+            return;
+        }
+
+        const { value: codigo } = await Swal.fire({
+            title: 'Aprobar Presupuesto',
+            text: 'Ingrese su código de aprobación:',
+            input: 'password',
+            inputValue: '',
+            inputPlaceholder: 'Código de aprobación',
+            inputAttributes: {
+                autocomplete: 'new-password',
+                autoCapitalize: 'off',
+                autoCorrect: 'off'
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Aprobar',
+            cancelButtonText: 'Cancelar',
+            background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+            color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
+            inputValidator: (value) => {
+                if (!value) {
+                    return '¡Debe ingresar el código!';
+                }
+            }
+        });
+
+        if (codigo) {
+            try {
+                await api.post(`/proformas/${proformaId}/approve`, { codigo });
+                Swal.fire({
+                    title: '¡Aprobado!',
+                    text: 'El presupuesto ha sido aprobado.',
+                    icon: 'success',
+                    showConfirmButton: false,
+                    timer: 1500,
+                    background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                    color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
+                });
+                if (id) fetchProformas(Number(id));
+            } catch (error: any) {
+                console.error('Error approving proforma:', error);
+                Swal.fire({
+                    title: 'Error',
+                    text: error.response?.data?.message || 'Código incorrecto o error del servidor',
+                    icon: 'error',
+                    showConfirmButton: false,
+                    timer: 1500,
+                    background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                    color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
+                });
+            }
+        }
+    };
+
     const handleDelete = async (proformaId: number) => {
         const result = await Swal.fire({
             title: '¿Está seguro?',
@@ -303,6 +383,15 @@ const PresupuestoList: React.FC = () => {
     const handleSendWhatsApp = async (proforma: Proforma, includePaymentInfo: boolean) => {
         const type = includePaymentInfo ? 'Con Pago' : 'Sin Pago';
 
+        const defaultPhone = (proforma as any).paciente?.telefono_celular || (proforma as any).paciente?.celular || paciente?.telefono_celular || paciente?.celular || '';
+        const selectedPhone = await promptWhatsAppNumber({
+            defaultPhone,
+            title: 'Enviar por WhatsApp',
+            subtitle: `Seleccione el código de país e ingrese el número (Plan N° ${proforma.numero} - ${type}):`
+        });
+
+        if (!selectedPhone) return;
+
         Swal.fire({
             title: 'Enviando...',
             text: `Enviando plan de tratamiento (${type}) por WhatsApp...`,
@@ -320,6 +409,7 @@ const PresupuestoList: React.FC = () => {
 
             const formData = new FormData();
             formData.append('file', pdfBlob, `Plan_de_Tratamiento_${proforma.numero}.pdf`);
+            formData.append('celular', selectedPhone);
 
             await api.post(`/proformas/${proforma.id}/send-whatsapp`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
@@ -422,19 +512,30 @@ const PresupuestoList: React.FC = () => {
         doc.text(`Plan # ${proforma.numero.toString().padStart(2, '0')}`, 200, 65, { align: 'right' });
 
         // 4. Table
-        const hasItemDiscounts = proforma.detalles.some(d => Number(d.descuento) > 0);
+        const getItemDiscount = (item: any) => {
+            if (Number(item.descuento) > 0) return Number(item.descuento);
+            const gross = Number(item.precioUnitario) * Number(item.cantidad);
+            const net = Number(item.total);
+            if (gross > 0 && gross - net > 0.01) {
+                return Math.round((1 - net / gross) * 100);
+            }
+            return 0;
+        };
+        const hasItemDiscounts = proforma.detalles.some(d => getItemDiscount(d) > 0);
         let tableColumn = ["Pieza(s)", "Descripción", "Cant.", "P.U.", "Total"];
         if (hasItemDiscounts) {
             tableColumn.splice(3, 0, "Desc. %");
         }
         const tableRows: any[] = [];
-        const tableStyles: any[] = []; // per-row styles for posible items
+        const tableStyles: any[] = []; // per-row styles for posible and discounted items
         let totalSubTotal = 0;
         let hasPosible = false;
 
         proforma.detalles.forEach(item => {
             const isPosible = item.posible === true;
             if (isPosible) hasPosible = true;
+            const itemDiscount = getItemDiscount(item);
+            const hasDiscount = itemDiscount > 0;
             const sub = Number(item.total) / (proforma.tipoCambio || 1);
             if (!isPosible) totalSubTotal += sub; // only confirmed items
             const row = [
@@ -443,13 +544,21 @@ const PresupuestoList: React.FC = () => {
                 item.cantidad
             ];
             if (hasItemDiscounts) {
-                row.push(`${item.descuento || 0}%`);
+                row.push(`${itemDiscount}%`);
             }
             row.push(formatNumber(item.precioUnitario / (proforma.tipoCambio || 1)));
             row.push(isPosible ? '-' : formatNumber(sub));
 
             tableRows.push(row);
-            tableStyles.push(isPosible ? { fontStyle: 'italic', textColor: [120, 90, 0] } : {});
+            if (isPosible && hasDiscount) {
+                tableStyles.push({ fontStyle: 'bolditalic', textColor: [120, 90, 0] });
+            } else if (isPosible) {
+                tableStyles.push({ fontStyle: 'italic', textColor: [120, 90, 0] });
+            } else if (hasDiscount) {
+                tableStyles.push({ fontStyle: 'bold' });
+            } else {
+                tableStyles.push({});
+            }
         });
 
         const columnStyles: any = hasItemDiscounts ? {
@@ -498,7 +607,21 @@ const PresupuestoList: React.FC = () => {
                     const rowStyle = tableStyles[data.row.index];
                     if (rowStyle && rowStyle.fontStyle) {
                         data.cell.styles.fontStyle = rowStyle.fontStyle;
-                        data.cell.styles.textColor = rowStyle.textColor;
+                        doc.setFont('helvetica', rowStyle.fontStyle);
+                        if (rowStyle.textColor) {
+                            data.cell.styles.textColor = rowStyle.textColor;
+                        }
+                    }
+                }
+            },
+            didParseCell: (data) => {
+                if (data.section === 'body') {
+                    const rowStyle = tableStyles[data.row.index];
+                    if (rowStyle && rowStyle.fontStyle) {
+                        data.cell.styles.fontStyle = rowStyle.fontStyle;
+                        if (rowStyle.textColor) {
+                            data.cell.styles.textColor = rowStyle.textColor;
+                        }
                     }
                 }
             },
@@ -852,6 +975,7 @@ const PresupuestoList: React.FC = () => {
                             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fecha</th>
                             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Registrado Por</th>
                             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Total (Bs.)</th>
+                            <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Aprobado</th>
 
                             <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider no-print">Enviar</th>
                             <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider no-print">Imprimir</th>
@@ -865,13 +989,18 @@ const PresupuestoList: React.FC = () => {
                             const isCompleted = completedBudgets.has(proforma.id);
                             return (
                                 <tr key={proforma.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                    <td className={`px-5 py-4 whitespace-nowrap text-sm font-medium ${isCompleted ? 'text-green-600 dark:text-green-400 line-through decoration-2' : 'text-gray-900 dark:text-gray-200'
+                                    <td className={`px-5 py-4 whitespace-nowrap text-sm font-medium ${isCompleted ? 'text-green-600 dark:text-green-400 font-bold' : 'text-gray-900 dark:text-gray-200'
                                         }`}>
                                         {proforma.numero}
                                     </td>
-                                    <td className={`px-5 py-4 whitespace-nowrap text-sm ${isCompleted ? 'text-green-600 dark:text-green-400 line-through decoration-2' : 'text-gray-500 dark:text-gray-400'
+                                    <td className={`px-5 py-4 whitespace-nowrap text-sm ${isCompleted ? 'text-green-600 dark:text-green-400 font-medium' : 'text-gray-500 dark:text-gray-400'
                                         }`}>
-                                        {formatDate(proforma.fecha)}
+                                        <div>{formatDate(proforma.fecha)}</div>
+                                        {isCompleted && (
+                                            <div className="text-xs font-bold text-green-600 dark:text-green-400 mt-0.5">
+                                                Plan terminado
+                                            </div>
+                                        )}
                                     </td>
                                     <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                         {proforma.usuario?.name || 'Sistema'}
@@ -880,6 +1009,24 @@ const PresupuestoList: React.FC = () => {
                                         <div className="flex items-center gap-1">
                                             {proforma.moneda === 'USD' ? <DollarSign size={14} className="text-emerald-500" /> : <span className="text-xs text-gray-500">Bs.</span>}
                                             {formatNumber((proforma.descuento && proforma.descuento > 0 ? proforma.sub_total * (1 - proforma.descuento / 100) : (proforma.total || proforma.sub_total)) / (proforma.tipoCambio || 1))}
+                                        </div>
+                                    </td>
+                                    <td className="px-5 py-4 whitespace-nowrap text-center text-sm">
+                                        <div className="flex flex-col items-center">
+                                            <span
+                                                className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm cursor-help ${proforma.aprobado
+                                                    ? 'bg-gradient-to-r from-green-400 to-green-600 text-white'
+                                                    : 'bg-gradient-to-r from-red-400 to-red-600 text-white'
+                                                    }`}
+                                                title={proforma.aprobado && proforma.usuarioAprobado ? `Aprobado por: ${proforma.usuarioAprobado.name}\nFecha: ${formatDate(proforma.fecha_aprobado)}` : ''}
+                                            >
+                                                {proforma.aprobado ? 'Sí' : 'NO'}
+                                            </span>
+                                            {proforma.aprobado && proforma.fecha_aprobado && (
+                                                <span className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 font-medium">
+                                                    {formatDate(proforma.fecha_aprobado)}
+                                                </span>
+                                            )}
                                         </div>
                                     </td>
                                     <td className="px-5 py-4 whitespace-nowrap text-center no-print">
@@ -971,6 +1118,17 @@ const PresupuestoList: React.FC = () => {
                                                     <path d="M8 12a4 4 0 0 0 8 0" />
                                                 </svg>
                                             </button>
+                                            {!proforma.aprobado && (
+                                                <button
+                                                    onClick={() => handleApprove(proforma.id)}
+                                                    className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 shadow-md transition-all transform hover:-translate-y-0.5 inline-flex items-center justify-center"
+                                                    title="Aprobar Presupuesto"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </button>
+                                            )}
                                             {isCompleted ? (
                                                 <button disabled className="p-2 bg-gray-400 text-gray-200 rounded-lg shadow-md cursor-not-allowed opacity-60 inline-flex items-center justify-center" title="Plan Terminado - Edición Bloqueada">
                                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -1005,7 +1163,7 @@ const PresupuestoList: React.FC = () => {
                         })}
                         {filteredProformas.length === 0 && (
                             <tr>
-                                <td colSpan={8} className="px-5 py-10 text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
+                                <td colSpan={10} className="px-5 py-10 text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
                                     <div className="flex flex-col items-center justify-center">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-2 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

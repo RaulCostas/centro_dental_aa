@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { getLocalDateString } from '../common/utils/date-utils';
@@ -17,7 +17,7 @@ import { SupabaseStorageService } from '../common/storage/supabase-storage.servi
 import { HistoriaClinica } from '../historia_clinica/entities/historia_clinica.entity';
 
 @Injectable()
-export class ProformasService {
+export class ProformasService implements OnModuleInit {
   constructor(
     @InjectRepository(Proforma)
     private readonly proformaRepository: Repository<Proforma>,
@@ -31,6 +31,20 @@ export class ProformasService {
     @Inject(forwardRef(() => ChatbotService))
     private readonly chatbotService: ChatbotService,
   ) { }
+
+  async onModuleInit() {
+    try {
+      await this.dataSource.query(`
+        UPDATE proformas_imagenes pi
+        SET "pacienteId" = p."pacienteId"
+        FROM proformas p
+        WHERE pi."proformaId" = p.id
+          AND pi."pacienteId" IS NULL;
+      `);
+    } catch (error) {
+      console.warn('Error backfilling pacienteId in proformas_imagenes:', error);
+    }
+  }
 
   async create(createProformaDto: CreateProformaDto) {
     const queryRunner = this.dataSource.createQueryRunner();
@@ -65,8 +79,18 @@ export class ProformasService {
       proforma.moneda = createProformaDto.moneda || 'Bs';
       proforma.tipoCambio = createProformaDto.tipoCambio || 1;
 
-      // 5. Odontograma Map
+      // Approval fields
+      proforma.aprobado = createProformaDto.aprobado || false;
+      proforma.usuarioAprobado = createProformaDto.usuario_aprobado
+        ? ({ id: createProformaDto.usuario_aprobado } as User)
+        : null;
+      proforma.fecha_aprobado = createProformaDto.fecha_aprobado
+        ? createProformaDto.fecha_aprobado.split('T')[0]
+        : null;
+
+      // 5. Odontograma Map & Plan de Pagos
       proforma.odontograma_mapa = createProformaDto.odontograma_mapa || null;
+      proforma.plan_pagos = createProformaDto.plan_pagos || null;
 
       const savedProforma = await queryRunner.manager.save(proforma);
 
@@ -184,7 +208,7 @@ export class ProformasService {
 
   async findAll(limit: number = 20, page: number = 1) {
     const options: any = {
-      relations: ['paciente', 'usuario', 'detalles', 'detalles.arancel'],
+      relations: ['paciente', 'usuario', 'usuarioAprobado', 'detalles', 'detalles.arancel'],
       order: { fecha: 'DESC' },
       take: limit,
       skip: (page - 1) * limit
@@ -198,7 +222,7 @@ export class ProformasService {
 
     const proformas = await this.proformaRepository.find({
       where,
-      relations: ['usuario', 'detalles', 'detalles.arancel', 'imagenes'],
+      relations: ['usuario', 'usuarioAprobado', 'detalles', 'detalles.arancel', 'imagenes'],
       order: { numero: 'ASC' }
     });
 
@@ -222,7 +246,7 @@ export class ProformasService {
   async findOne(id: number) {
     const proforma = await this.proformaRepository.findOne({
       where: { id },
-      relations: ['paciente', 'usuario', 'detalles', 'detalles.arancel'],
+      relations: ['paciente', 'usuario', 'usuarioAprobado', 'detalles', 'detalles.arancel'],
     });
     if (!proforma) throw new NotFoundException(`Proforma #${id} not found`);
     return proforma;
@@ -261,6 +285,18 @@ export class ProformasService {
       }
       if (updateProformaDto.plan_pagos !== undefined) {
           proforma.plan_pagos = updateProformaDto.plan_pagos;
+      }
+
+      if (updateProformaDto.aprobado !== undefined) proforma.aprobado = updateProformaDto.aprobado;
+      if (updateProformaDto.usuario_aprobado !== undefined) {
+        proforma.usuarioAprobado = updateProformaDto.usuario_aprobado
+          ? ({ id: updateProformaDto.usuario_aprobado } as User)
+          : null;
+      }
+      if (updateProformaDto.fecha_aprobado !== undefined) {
+        proforma.fecha_aprobado = updateProformaDto.fecha_aprobado
+          ? updateProformaDto.fecha_aprobado.split('T')[0]
+          : null;
       }
 
       // Recalculate total if details are provided
@@ -342,13 +378,11 @@ export class ProformasService {
     const proforma = await this.findOne(id);
     
     try {
-      // 1. Delete associated proforma images physical files
-      const imagenes = await this.imagenRepository.find({ where: { proformaId: id } });
-      for (const img of imagenes) {
-        if (img.ruta) {
-           await this.storageService.deleteFile('clinica-media', img.ruta).catch(e => console.warn(e));
-        }
-      }
+      // 1. Preserve patient images by unlinking proformaId and ensuring pacienteId is set
+      await this.imagenRepository.update(
+        { proformaId: id },
+        { proformaId: null, pacienteId: proforma.pacienteId }
+      );
 
       // 2. Delete associated signatures physical files (tipoDocumento = 'presupuesto')
       const firmasRepository = this.dataSource.getRepository('FirmaDigital');
@@ -389,6 +423,7 @@ export class ProformasService {
 
     const imagen = new ProformaImagen();
     imagen.proforma = proforma;
+    imagen.pacienteId = proforma.pacienteId;
     imagen.nombre_archivo = filename;
     imagen.ruta = publicUrl;
     imagen.descripcion = descripcion || '';
@@ -418,11 +453,12 @@ export class ProformasService {
   }
 
   async getPacienteImages(pacienteId: number, tipo: 'particular') {
-    const where: any = { pacienteId };
-    return this.imagenRepository.find({
-      where,
-      order: { fecha_creacion: 'DESC' }
-    });
+    return this.imagenRepository
+      .createQueryBuilder('img')
+      .leftJoin('img.proforma', 'p')
+      .where('img.pacienteId = :pacienteId OR p.pacienteId = :pacienteId', { pacienteId })
+      .orderBy('img.fecha_creacion', 'DESC')
+      .getMany();
   }
 
   async removeImage(id: number) {
@@ -442,16 +478,17 @@ export class ProformasService {
     return this.imagenRepository.save(imagen);
   }
 
-  async sendWhatsApp(id: number, fileBuffer: Buffer) {
+  async sendWhatsApp(id: number, fileBuffer: Buffer, targetPhone?: string) {
     const proforma = await this.findOne(id);
     const paciente = proforma.paciente;
 
-    if (!paciente || !paciente.telefono_celular) {
-      throw new NotFoundException('El paciente no tiene número de celular registrado');
+    let phone = targetPhone ? targetPhone.replace(/\D/g, '') : (paciente?.telefono_celular ? paciente.telefono_celular.replace(/\D/g, '') : '');
+
+    if (!phone) {
+      throw new NotFoundException('Número de celular no proporcionado');
     }
 
     // Clean phone number
-    let phone = paciente.telefono_celular.replace(/\D/g, '');
     if (!phone.startsWith('591') && phone.length === 8) {
       phone = '591' + phone;
     }
@@ -469,5 +506,25 @@ export class ProformasService {
       console.error('Error sending WhatsApp:', error);
       throw new Error('Error al enviar mensaje de WhatsApp');
     }
+  }
+
+  async approve(id: number, codigo: string) {
+    const users = await this.usersService.findAll();
+    const user = users.find(u => u.codigo_proforma === Number(codigo));
+
+    if (!user) {
+      throw new NotFoundException('Código de aprobación incorrecto');
+    }
+
+    const proforma = await this.findOne(id);
+    proforma.aprobado = true;
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    proforma.fecha_aprobado = `${year}-${month}-${day}`;
+    proforma.usuarioAprobado = user;
+
+    return this.proformaRepository.save(proforma);
   }
 }

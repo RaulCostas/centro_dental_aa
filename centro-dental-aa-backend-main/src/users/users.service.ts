@@ -22,6 +22,15 @@ export class UsersService {
       throw new ConflictException('El correo electrónico ya existe');
     }
 
+    if (createUserDto.codigo_proforma && Number(createUserDto.codigo_proforma) > 0) {
+      const codeUser = await this.usersRepository.findOne({
+        where: { codigo_proforma: Number(createUserDto.codigo_proforma) }
+      });
+      if (codeUser) {
+        throw new ConflictException('El código de aprobación ya se encuentra registrado por otro usuario');
+      }
+    }
+
     if (createUserDto.foto && createUserDto.foto.startsWith('data:image')) {
       this.logger.warn(`[UsersService] Detected Base64 photo for new user: ${createUserDto.email}, attempting upload...`);
       createUserDto.foto = await this.storageService.uploadBase64('clinica-media', `user-photo-${createUserDto.email}`, createUserDto.foto);
@@ -58,6 +67,15 @@ export class UsersService {
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
     console.log(`[UsersService] Updating user ${id} with data:`, { ...updateUserDto, foto: updateUserDto.foto ? 'Present (DataURL truncated)' : 'Not present' });
     const user = await this.findOne(id);
+
+    if (updateUserDto.codigo_proforma && Number(updateUserDto.codigo_proforma) > 0) {
+      const codeUser = await this.usersRepository.findOne({
+        where: { codigo_proforma: Number(updateUserDto.codigo_proforma) }
+      });
+      if (codeUser && codeUser.id !== id) {
+        throw new ConflictException('El código de aprobación ya se encuentra registrado por otro usuario');
+      }
+    }
 
     if (updateUserDto.foto && updateUserDto.foto.startsWith('data:image')) {
       this.logger.warn(`[UsersService] Detected new Base64 photo for user ${id}, attempting upload...`);

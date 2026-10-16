@@ -24,6 +24,9 @@ export class User {
     @OneToMany('Propuesta', (propuesta: any) => propuesta.usuario)
     propuestas: any[];
 
+    @Column({ nullable: true, type: 'int' })
+    codigo_proforma: number;
+
     @Column({ type: 'json' , nullable: true })
     permisos: string[];
 }

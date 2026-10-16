@@ -9,6 +9,7 @@ import Pagination from './Pagination';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import SignatureModal from './SignatureModal';
+import { promptWhatsAppNumber } from '../utils/whatsappHelper';
 import ManualModal, { type ManualSection } from './ManualModal';
 
 import { useParams } from 'react-router-dom';
@@ -98,15 +99,7 @@ const PacienteTabInformes: React.FC = () => {
             const proformasData = proformasRes.data || [];
             setProformas(proformasData);
             setGeneralImages(genImagesRes.data || []);
-
-            const proformaImgs: { [key: number]: any[] } = {};
-            for (const p of proformasData) {
-                try {
-                    const imgRes = await api.get(`/proformas/${p.id}/imagenes`);
-                    proformaImgs[p.id] = imgRes.data || [];
-                } catch (e) { console.error(e); }
-            }
-            setProformaImages(proformaImgs);
+            setProformaImages({});
         } catch (error) {
             console.error("Error fetching extra data:", error);
         }
@@ -575,125 +568,68 @@ const PacienteTabInformes: React.FC = () => {
     };
 
     const handleSendWhatsApp = async (informe: any) => {
-        let defaultPhone = paciente?.telefono_celular || paciente?.celular || '';
-        defaultPhone = defaultPhone.replace(/\+/g, '').replace(/\s/g, '');
-        let defaultCode = '591';
-        
-        if (defaultPhone.startsWith('591')) {
-            defaultPhone = defaultPhone.substring(3);
-        } else if (defaultPhone.length > 8 && (defaultPhone.startsWith('54') || defaultPhone.startsWith('56') || defaultPhone.startsWith('51') || defaultPhone.startsWith('55') || defaultPhone.startsWith('57') || defaultPhone.startsWith('52') || defaultPhone.startsWith('34'))) {
-            defaultCode = defaultPhone.substring(0, 2);
-            defaultPhone = defaultPhone.substring(2);
-        } else if (defaultPhone.length > 10 && defaultPhone.startsWith('1')) {
-            defaultCode = '1';
-            defaultPhone = defaultPhone.substring(1);
-        }
-
-        const isDark = document.documentElement.classList.contains('dark');
-        
-        const result = await Swal.fire({
-            title: 'Enviar por WhatsApp',
-            html: `
-                <div style="text-align: left; margin-bottom: 8px; font-size: 14px; color: ${isDark ? '#d1d5db' : '#4b5563'};">
-                    Seleccione el código de país e ingrese el número:
-                </div>
-                <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                    <select id="country-code" class="swal2-select" style="margin: 0; width: 40%; font-size: 15px; padding: 5px;">
-                        <option value="591" ${defaultCode === '591' ? 'selected' : ''}>🇧🇴 +591</option>
-                        <option value="54" ${defaultCode === '54' ? 'selected' : ''}>🇦🇷 +54</option>
-                        <option value="56" ${defaultCode === '56' ? 'selected' : ''}>🇨🇱 +56</option>
-                        <option value="51" ${defaultCode === '51' ? 'selected' : ''}>🇵🇪 +51</option>
-                        <option value="55" ${defaultCode === '55' ? 'selected' : ''}>🇧🇷 +55</option>
-                        <option value="57" ${defaultCode === '57' ? 'selected' : ''}>🇨🇴 +57</option>
-                        <option value="52" ${defaultCode === '52' ? 'selected' : ''}>🇲🇽 +52</option>
-                        <option value="34" ${defaultCode === '34' ? 'selected' : ''}>🇪🇸 +34</option>
-                        <option value="1" ${defaultCode === '1' ? 'selected' : ''}>🇺🇸 +1</option>
-                    </select>
-                    <input id="phone-number" class="swal2-input" placeholder="Número" type="number" style="margin: 0; width: 60%; font-size: 16px;" value="${defaultPhone}">
-                </div>
-            `,
-            showCancelButton: true,
-            confirmButtonColor: '#25D366',
-            confirmButtonText: 'Sí, enviar',
-            cancelButtonText: 'Cancelar',
-            background: isDark ? '#1f2937' : '#fff',
-            color: isDark ? '#f3f4f6' : '#000',
-            preConfirm: () => {
-                const code = (document.getElementById('country-code') as HTMLSelectElement).value;
-                const rawNum = (document.getElementById('phone-number') as HTMLInputElement).value;
-                if (!rawNum || rawNum.trim() === '') {
-                    Swal.showValidationMessage('¡Necesita escribir un número de celular!');
-                    return false;
-                }
-                let cleanNum = rawNum.replace(/\D/g, '');
-                if (cleanNum.startsWith(code)) {
-                    cleanNum = cleanNum.substring(code.length);
-                }
-                return code + cleanNum;
-            }
+        const celular = await promptWhatsAppNumber({
+            defaultPhone: paciente?.telefono_celular || paciente?.celular
         });
+        if (!celular) return;
 
-        if (result.isConfirmed && result.value) {
-            const celular = result.value.replace(/\D/g, '');
-            
-            try {
-                // Check chatbot status first
-                const statusResponse = await api.get('/chatbot/status');
-                if (statusResponse.data.status !== 'connected') {
-                    Swal.fire({
-                        title: 'Bot Desconectado',
-                        text: 'El chatbot no está conectado a WhatsApp. Por favor, conéctelo en Configuración.',
-                        icon: 'warning',
-                        background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
-                        color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
-                    });
-                    return;
-                }
-
+        try {
+            // Check chatbot status first
+            const statusResponse = await api.get('/chatbot/status');
+            if (statusResponse.data.status !== 'connected') {
                 Swal.fire({
-                    title: 'Generando y enviando...',
-                    allowOutsideClick: false,
-                    background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
-                    color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-
-                const base64Data = await handlePrint(informe, true);
-                
-                if (!base64Data) {
-                    throw new Error("No se pudo generar el PDF");
-                }
-
-                const jid = `${celular}@s.whatsapp.net`;
-                await api.post('/chatbot/send-pdf', {
-                    jid: jid,
-                    base64: base64Data,
-                    fileName: `Informe_Odontologico_${formatDateUTC(informe.fecha).replace(/\//g, '-')}.pdf`,
-                    caption: `Hola ${paciente?.nombre || ''}, le adjunto su Informe Odontológico de la Clínica CENTRO DENTAL A&A.`
-                });
-
-                Swal.fire({
-                    icon: 'success',
-                    title: '¡Enviado!',
-                    text: `El informe ha sido enviado exitosamente al número +${celular}.`,
-                    timer: 3000,
-                    showConfirmButton: false,
+                    title: 'Bot Desconectado',
+                    text: 'El chatbot no está conectado a WhatsApp. Por favor, conéctelo en Configuración.',
+                    icon: 'warning',
                     background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
                     color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
                 });
-
-            } catch (error) {
-                console.error('Error sending WhatsApp:', error);
-                Swal.fire({
-                    title: 'Error',
-                    text: 'No se pudo enviar el informe por WhatsApp.',
-                    icon: 'error',
-                    background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
-                    color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
-                });
+                return;
             }
+
+            Swal.fire({
+                title: 'Generando y enviando...',
+                allowOutsideClick: false,
+                background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            const base64Data = await handlePrint(informe, true);
+            
+            if (!base64Data) {
+                throw new Error("No se pudo generar el PDF");
+            }
+
+            const jid = `${celular}@s.whatsapp.net`;
+            await api.post('/chatbot/send-pdf', {
+                jid: jid,
+                base64: base64Data,
+                fileName: `Informe_Odontologico_${formatDateUTC(informe.fecha).replace(/\//g, '-')}.pdf`,
+                caption: `Hola ${paciente?.nombre || ''}, le adjunto su Informe Odontológico de la Clínica CENTRO DENTAL A&A.`
+            });
+
+            Swal.fire({
+                icon: 'success',
+                title: '¡Enviado!',
+                text: `El informe ha sido enviado exitosamente al número +${celular}.`,
+                timer: 3000,
+                showConfirmButton: false,
+                background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
+            });
+
+        } catch (error) {
+            console.error('Error sending WhatsApp:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'No se pudo enviar el informe por WhatsApp.',
+                icon: 'error',
+                background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
+            });
         }
     };
 

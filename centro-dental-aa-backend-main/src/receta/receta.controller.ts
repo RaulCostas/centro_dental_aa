@@ -32,7 +32,7 @@ export class RecetaController {
     }
 
     @Post(':id/send-whatsapp')
-    async sendWhatsApp(@Param('id') id: string) {
+    async sendWhatsApp(@Param('id') id: string, @Body('celular') customCelular?: string) {
         try {
             // Get prescription with patient details
             const receta = await this.recetaService.findOne(+id);
@@ -45,8 +45,10 @@ export class RecetaController {
                 throw new HttpException('Paciente no encontrado', HttpStatus.NOT_FOUND);
             }
 
-            if (!receta.paciente.telefono_celular) {
-                return { message: 'El paciente no tiene un número de celular registrado.' };
+            let phone = customCelular ? customCelular.replace(/\D/g, '') : (receta.paciente.telefono_celular ? receta.paciente.telefono_celular.replace(/\D/g, '') : '');
+
+            if (!phone) {
+                return { message: 'No se proporcionó un número de celular.' };
             }
 
             const chatbotStatus = this.chatbotService.getStatus();
@@ -54,7 +56,6 @@ export class RecetaController {
                 throw new HttpException('El chatbot no está conectado. Por favor, conecte el chatbot primero.', HttpStatus.SERVICE_UNAVAILABLE);
             }
 
-            let phone = receta.paciente.telefono_celular.replace(/\D/g, '');
             if (phone.length === 8) {
                 phone = '591' + phone;
             }

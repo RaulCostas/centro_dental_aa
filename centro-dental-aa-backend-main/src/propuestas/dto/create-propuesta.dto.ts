@@ -22,6 +22,10 @@ class CreatePropuestaDetalleDto {
     @IsNumber()
     cantidad: number;
 
+    @IsOptional()
+    @IsNumber()
+    descuento?: number;
+
     @IsNotEmpty()
     @IsNumber()
     total: number;

@@ -37,8 +37,8 @@ export class PagosController {
     }
 
     @Post('whatsapp')
-    async sendByWhatsapp(@Body() body: { pacienteId: number; proformaId?: number }) {
-        const { pacienteId, proformaId } = body;
+    async sendByWhatsapp(@Body() body: { pacienteId: number; proformaId?: number; celular?: string }) {
+        const { pacienteId, proformaId, celular: customCelular } = body;
 
         try {
             const pagos = await this.pagosService.findAllByPaciente(pacienteId);
@@ -69,10 +69,10 @@ export class PagosController {
 
             const pdfBuffer = await this.pagosPdfService.generatePagosPdf(patientEntity, proformaEntity, filteredPagos, resumen);
 
-            const phoneNumber = patientEntity.telefono_celular;
+            const phoneNumber = customCelular ? customCelular.replace(/\D/g, '') : (patientEntity.telefono_celular ? patientEntity.telefono_celular.replace(/\D/g, '') : '');
 
             if (!phoneNumber) {
-                return { success: false, message: 'El paciente no tiene número de celular registrado.' };
+                return { success: false, message: 'No se proporcionó un número de celular.' };
             }
 
             const cleanPhone = phoneNumber.replace(/\D/g, '');

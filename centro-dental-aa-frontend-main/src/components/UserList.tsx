@@ -94,7 +94,8 @@ const UserList: React.FC = () => {
                     const lowerTerm = searchTerm.toLowerCase();
                     filtered = filtered.filter(u =>
                         u.name.toLowerCase().includes(lowerTerm) ||
-                        u.email.toLowerCase().includes(lowerTerm)
+                        u.email.toLowerCase().includes(lowerTerm) ||
+                        (u.codigo_proforma && u.codigo_proforma.toString().includes(lowerTerm))
                     );
                 }
                 setTotal(filtered.length);
@@ -211,7 +212,8 @@ const UserList: React.FC = () => {
                 'ID': user.id,
                 'Nombre': user.name,
                 'Email': user.email,
-                'Estado': user.estado
+                'Estado': user.estado,
+                'Código Proforma': user.codigo_proforma || ''
             }));
 
             const ws = XLSX.utils.json_to_sheet(excelData);
@@ -247,11 +249,12 @@ const UserList: React.FC = () => {
                 user.id,
                 user.name,
                 user.email,
-                user.estado
+                user.estado,
+                user.codigo_proforma || ''
             ]);
 
             autoTable(doc, {
-                head: [['ID', 'Nombre', 'Email', 'Estado']],
+                head: [['ID', 'Nombre', 'Email', 'Estado', 'Cód. Aprob.']],
                 body: tableData,
                 startY: 35,
                 styles: { fontSize: 10 },
@@ -406,6 +409,7 @@ const UserList: React.FC = () => {
                                 <th>Nombre</th>
                                 <th>Email</th>
                                 <th>Estado</th>
+                                <th>Cód. Aprob.</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -417,6 +421,7 @@ const UserList: React.FC = () => {
                                     <td class="${user.estado?.toLowerCase() === 'activo' ? 'status-active' : 'status-inactive'}">
                                         ${user.estado ? (user.estado.charAt(0).toUpperCase() + user.estado.slice(1)) : 'Inactivo'}
                                     </td>
+                                    <td>${user.codigo_proforma || '-'}</td>
                                 </tr>
                             `).join('')}
                         </tbody>

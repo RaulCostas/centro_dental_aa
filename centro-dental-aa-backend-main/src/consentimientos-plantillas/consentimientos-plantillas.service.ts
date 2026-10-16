@@ -17,31 +17,34 @@ export class ConsentimientosPlantillasService {
     return this.plantillaRepository.save(plantilla);
   }
 
-  async findAll(page: number = 1, limit: number = 10, search?: string) {
+  async findAll(page?: number, limit?: number, search?: string) {
     const qb = this.plantillaRepository.createQueryBuilder('plantilla')
-      .leftJoinAndSelect('plantilla.especialidad', 'especialidad');
+      .leftJoinAndSelect('plantilla.especialidad', 'especialidad')
+      .orderBy('plantilla.id', 'DESC');
     
     if (search) {
-      qb.where('plantilla.titulo LIKE :search', { search: `%${search}%` });
+      qb.where('LOWER(plantilla.titulo) LIKE LOWER(:search) OR LOWER(plantilla.contenido) LIKE LOWER(:search)', {
+        search: `%${search}%`,
+      });
     }
 
-    qb.orderBy('plantilla.id', 'DESC')
-      .skip((page - 1) * limit)
-      .take(limit);
+    if (page && limit) {
+      qb.skip((page - 1) * limit).take(limit);
+      const [data, total] = await qb.getManyAndCount();
+      return {
+        data,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    }
 
-    const [data, total] = await qb.getManyAndCount();
-
-    return {
-      data,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
+    return qb.getMany();
   }
 
   async findOne(id: number) {
-    const plantilla = await this.plantillaRepository.findOneBy({ id });
+    const plantilla = await this.plantillaRepository.findOne({ where: { id } });
     if (!plantilla) {
       throw new NotFoundException(`Plantilla #${id} no encontrada`);
     }

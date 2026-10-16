@@ -41,10 +41,15 @@ export class ProformasController {
     return this.proformasService.remove(+id);
   }
 
+  @Post(':id/approve')
+  approve(@Param('id') id: string, @Body('codigo') codigo: string) {
+    return this.proformasService.approve(+id, codigo);
+  }
+
   @Post(':id/send-whatsapp')
   @UseInterceptors(FileInterceptor('file'))
-  async sendWhatsApp(@Param('id') id: string, @UploadedFile() file: any) {
-    return this.proformasService.sendWhatsApp(+id, file.buffer);
+  async sendWhatsApp(@Param('id') id: string, @UploadedFile() file: any, @Body('celular') celular?: string) {
+    return this.proformasService.sendWhatsApp(+id, file.buffer, celular);
   }
 
   @Post(':id/imagenes')

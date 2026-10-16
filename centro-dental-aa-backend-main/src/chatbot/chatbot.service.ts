@@ -25,6 +25,7 @@ import { InventarioService } from '../inventario/inventario.service';
 import pino from 'pino';
 import * as fs from 'fs';
 import * as path from 'path';
+import axios from 'axios';
 
 // @ts-ignore
 import { decryptPollVote } from '@whiskeysockets/baileys/lib/Utils/process-message.js';
@@ -1079,13 +1080,29 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
             throw new Error('El chatbot no está conectado a WhatsApp');
         }
 
-        const filePath = path.join(process.cwd(), 'uploads', filename);
-        if (!fs.existsSync(filePath)) {
-            throw new Error(`El archivo ${filename} no fue encontrado en el servidor.`);
-        }
+        let buffer: Buffer;
+        let ext = '';
+        let fileName = 'orden_estudio';
 
-        const buffer = fs.readFileSync(filePath);
-        const ext = path.extname(filename).toLowerCase();
+        if (filename.startsWith('http://') || filename.startsWith('https://')) {
+            const response = await axios.get(filename, { responseType: 'arraybuffer' });
+            buffer = Buffer.from(response.data);
+            try {
+                const parsedUrl = new URL(filename);
+                ext = path.extname(parsedUrl.pathname).toLowerCase();
+                fileName = path.basename(parsedUrl.pathname);
+            } catch {
+                ext = '.pdf';
+            }
+        } else {
+            const filePath = path.join(process.cwd(), 'uploads', filename);
+            if (!fs.existsSync(filePath)) {
+                throw new Error(`El archivo ${filename} no fue encontrado en el servidor.`);
+            }
+            buffer = fs.readFileSync(filePath);
+            ext = path.extname(filename).toLowerCase();
+            fileName = filename;
+        }
 
         if (['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
             await this.sendMessage(jid, {
@@ -1099,7 +1116,7 @@ export class ChatbotService implements OnModuleInit, OnModuleDestroy {
             await this.sendMessage(jid, {
                 document: buffer,
                 mimetype,
-                fileName: filename,
+                fileName: fileName.endsWith(ext) ? fileName : `${fileName}${ext}`,
                 caption: caption || ''
             });
         }

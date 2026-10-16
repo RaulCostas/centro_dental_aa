@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
 import type { TrabajoLaboratorio, Paciente, Laboratorio, PrecioLaboratorio, Doctor } from '../types';
@@ -108,7 +108,7 @@ const TrabajosLaboratoriosForm: React.FC = () => {
     const manualSections: ManualSection[] = [
         {
             title: 'Orden de Trabajo de Laboratorio Dental',
-            content: 'Formulario oficial de Orden de Trabajo Dental de Centro Dental A&A. Permite registrar datos generales, dientes involucrados en el arcada, materiales, oclusión, implantología, fase de laboratorio y fotografías de referencia.'
+            content: 'Formulario oficial de Orden de Trabajo Dental de Centro Dental A&A. Permite registrar datos generales, dientes involucrados en la arcada, color y caracterizaciones, oclusión, implantología, control de tiempos y fotografías de referencia.'
         },
         {
             title: 'Arcada Dental e Interactividad',
@@ -207,7 +207,14 @@ const TrabajosLaboratoriosForm: React.FC = () => {
                 if (d.implantologia) setImplantologia(d.implantologia);
                 if (d.pruebas) setPruebas(d.pruebas);
                 if (d.urgencia) setUrgencia(d.urgencia);
-                if (d.control_tiempos) setControlTiempos(d.control_tiempos);
+                if (d.control_tiempos) {
+                    setControlTiempos(d.control_tiempos);
+                    setFormData(prev => ({
+                        ...prev,
+                        hora_envio: (prev as any).hora_envio || d.control_tiempos.hora_envio || prev.hora || '',
+                        hora_entrega: (prev as any).hora_entrega || d.control_tiempos.hora_entrega || ''
+                    }));
+                }
                 if (d.obs_clinicas) setObsClinicas(d.obs_clinicas);
                 if (d.control_calidad) setControlCalidad(d.control_calidad);
             }
@@ -303,6 +310,9 @@ const TrabajosLaboratoriosForm: React.FC = () => {
 
         setIsSaving(true);
 
+        const envioHora = (formData as any).hora_envio || formData.hora;
+        const entregaHora = (formData as any).hora_entrega || '';
+
         const detalles = {
             tipo_restauracion: tipoRestauracion,
             preparacion,
@@ -314,13 +324,20 @@ const TrabajosLaboratoriosForm: React.FC = () => {
             implantologia,
             pruebas,
             urgencia,
-            control_tiempos: controlTiempos,
+            control_tiempos: {
+                ...controlTiempos,
+                hora_envio: envioHora,
+                hora_entrega: entregaHora
+            },
             obs_clinicas: obsClinicas,
             control_calidad: controlCalidad
         };
 
         const payload = {
             ...formData,
+            hora: envioHora,
+            hora_envio: envioHora,
+            hora_entrega: entregaHora,
             idLaboratorio: Number(formData.idLaboratorio),
             idPaciente: Number(formData.idPaciente),
             idprecios_laboratorios: Number(formData.idprecios_laboratorios),
@@ -658,80 +675,32 @@ const TrabajosLaboratoriosForm: React.FC = () => {
                     </div>
                 </div>
 
-                {/* GRID 2 COLUMNAS: MATERIAL SOLICITADO + COLOR Y CARACTERIZACIONES */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* 4. MATERIAL SOLICITADO */}
-                    <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col justify-between">
+                {/* 4. COLOR Y CARACTERIZACIONES */}
+                <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-blue-900 dark:text-blue-300 mb-3 border-b pb-1.5 border-gray-100 dark:border-gray-700">
+                        4. COLOR Y CARACTERIZACIONES
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                         <div>
-                            <h3 className="text-xs font-black uppercase tracking-wider text-blue-900 dark:text-blue-300 mb-3 border-b pb-1.5 border-gray-100 dark:border-gray-700">
-                                4. MATERIAL SOLICITADO
-                            </h3>
-                            <div className="space-y-1.5 text-xs">
-                                {[
-                                    { key: 'zirconia', label: 'Zirconia' },
-                                    { key: 'disilicato_litio', label: 'Disilicato de Litio' },
-                                    { key: 'metal_ceramica', label: 'Metal Cerámica' },
-                                    { key: 'pmma', label: 'PMMA' },
-                                    { key: 'resina_cad_cam', label: 'Resina CAD/CAM' },
-                                    { key: 'cromo_cobalto', label: 'Cromo Cobalto' },
-                                    { key: 'acrilico', label: 'Acrílico' },
-                                    { key: 'ceramage', label: 'Ceramage' },
-                                ].map(mat => (
-                                    <label key={mat.key} className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={Boolean(material[mat.key])}
-                                            onChange={(e) => setMaterial(prev => ({ ...prev, [mat.key]: e.target.checked }))}
-                                            className="w-3.5 h-3.5 rounded text-blue-600"
-                                        />
-                                        <span>{mat.label}</span>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                            <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">Color Principal:</label>
                             <input
                                 type="text"
-                                value={material.otro || ''}
-                                onChange={(e) => setMaterial(prev => ({ ...prev, otro: e.target.value }))}
-                                placeholder="Otro Material..."
-                                className="w-full px-3 py-1.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
+                                name="color"
+                                value={formData.color || ''}
+                                onChange={handleChange}
+                                placeholder="Ej. A2, A3, BL2"
+                                className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-2 focus:ring-blue-500 outline-none text-xs transition-all shadow-sm"
                             />
                         </div>
-                    </div>
-
-                    {/* 5. COLOR Y CARACTERIZACIONES */}
-                    <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col justify-between">
                         <div>
-                            <h3 className="text-xs font-black uppercase tracking-wider text-blue-900 dark:text-blue-300 mb-3 border-b pb-1.5 border-gray-100 dark:border-gray-700">
-                                5. COLOR Y CARACTERIZACIONES
-                            </h3>
-                            <div className="space-y-2 text-xs mb-3">
-                                <div>
-                                    <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">Color Principal:</label>
-                                    <input
-                                        type="text"
-                                        name="color"
-                                        value={formData.color || ''}
-                                        onChange={handleChange}
-                                        placeholder="Ej. A2, A3, BL2"
-                                        className="w-full px-3 py-1.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-2 focus:ring-blue-500 outline-none text-xs transition-all shadow-sm"
-                                    />
-                                </div>
-                            </div>
-
-                            <h4 className="font-bold text-gray-800 dark:text-gray-200 text-xs mb-1.5 border-b pb-0.5 border-gray-100 dark:border-gray-700">
-                                Caracterizaciones:
-                            </h4>
-                            <div>
-                                <textarea
-                                    value={caracterizaciones.detalle || ''}
-                                    onChange={(e) => setCaracterizaciones(prev => ({ ...prev, detalle: e.target.value }))}
-                                    placeholder="Describa las caracterizaciones..."
-                                    className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none text-xs transition-all shadow-sm"
-                                    rows={3}
-                                />
-                            </div>
+                            <label className="block font-bold text-gray-700 dark:text-gray-300 mb-1">Caracterizaciones:</label>
+                            <textarea
+                                value={caracterizaciones.detalle || ''}
+                                onChange={(e) => setCaracterizaciones(prev => ({ ...prev, detalle: e.target.value }))}
+                                placeholder="Describa las caracterizaciones..."
+                                className="w-full px-3 py-1.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none text-xs transition-all shadow-sm"
+                                rows={2}
+                            />
                         </div>
                     </div>
                 </div>
@@ -739,10 +708,10 @@ const TrabajosLaboratoriosForm: React.FC = () => {
                 {/* GRID 2 COLUMNAS: INFORMACIÓN DIGITAL + IMPLANTOLOGÍA */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-                    {/* 6. INFORMACIÓN DIGITAL */}
+                    {/* 5. INFORMACIÓN DIGITAL */}
                     <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                         <h3 className="text-xs font-black uppercase tracking-wider text-blue-900 dark:text-blue-300 mb-3 border-b pb-1.5 border-gray-100 dark:border-gray-700">
-                            6. INFORMACIÓN DIGITAL
+                            5. INFORMACIÓN DIGITAL
                         </h3>
                         <div className="space-y-3 text-xs">
                             <label className="flex items-center gap-2 cursor-pointer font-bold">
@@ -764,10 +733,10 @@ const TrabajosLaboratoriosForm: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* 7. IMPLANTOLOGÍA */}
+                    {/* 6. IMPLANTOLOGÍA */}
                     <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                         <h3 className="text-xs font-black uppercase tracking-wider text-blue-900 dark:text-blue-300 mb-3 border-b pb-1.5 border-gray-100 dark:border-gray-700">
-                            7. IMPLANTOLOGÍA
+                            6. IMPLANTOLOGÍA
                         </h3>
                         <div>
                             <textarea
@@ -784,10 +753,10 @@ const TrabajosLaboratoriosForm: React.FC = () => {
                 {/* GRID 3 COLUMNAS: PRUEBAS + URGENCIA + FOTOGRAFÍAS / REFERENCIAS */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-                    {/* 8. PRUEBAS */}
+                    {/* 7. PRUEBAS */}
                     <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                         <h3 className="text-xs font-black uppercase tracking-wider text-blue-900 dark:text-blue-300 mb-3 border-b pb-1.5 border-gray-100 dark:border-gray-700">
-                            8. PRUEBAS
+                            7. PRUEBAS
                         </h3>
                         <div className="grid grid-cols-2 gap-1.5 text-xs mb-3">
                             {[
@@ -817,10 +786,10 @@ const TrabajosLaboratoriosForm: React.FC = () => {
                         />
                     </div>
 
-                    {/* 9. URGENCIA */}
+                    {/* 8. URGENCIA */}
                     <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                         <h3 className="text-xs font-black uppercase tracking-wider text-blue-900 dark:text-blue-300 mb-3 border-b pb-1.5 border-gray-100 dark:border-gray-700">
-                            9. URGENCIA
+                            8. URGENCIA
                         </h3>
                         <div className="space-y-2 text-xs">
                             {[
@@ -901,14 +870,14 @@ const TrabajosLaboratoriosForm: React.FC = () => {
                     </div>
                 </div>
 
-                {/* 10. CONTROL DE TIEMPOS Y ESTADO DEL TRABAJO */}
+                {/* 9. CONTROL DE TIEMPOS Y ESTADO DEL TRABAJO */}
                 <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                     <h3 className="text-xs font-black uppercase tracking-wider text-blue-900 dark:text-blue-300 mb-3 border-b pb-1.5 border-gray-100 dark:border-gray-700 flex items-center gap-2">
                         <Clock className="w-4 h-4 text-blue-600" />
-                        10. CONTROL DE TIEMPOS Y ESTADO DEL TRABAJO
+                        9. CONTROL DE TIEMPOS Y ESTADO DEL TRABAJO
                     </h3>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 text-xs">
                         <div>
                             <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
                                 Estado del Trabajo:
@@ -937,7 +906,7 @@ const TrabajosLaboratoriosForm: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
-                                Fecha Registro / Envío:
+                                Fecha de Envío:
                             </label>
                             <input
                                 type="date"
@@ -954,9 +923,21 @@ const TrabajosLaboratoriosForm: React.FC = () => {
                             <input
                                 type="time"
                                 name="hora_envio"
-                                value={formData.hora_envio || ''}
+                                value={(formData as any).hora_envio || formData.hora || ''}
                                 onChange={handleChange}
                                 className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none text-xs font-medium transition-all shadow-sm"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                                Fecha de Entrega:
+                            </label>
+                            <input
+                                type="date"
+                                name="fecha_pedido"
+                                value={formData.fecha_pedido || ''}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-blue-700 dark:text-blue-300 font-bold focus:ring-2 focus:ring-blue-500 outline-none text-xs transition-all shadow-sm"
                             />
                         </div>
                         <div>
@@ -971,38 +952,14 @@ const TrabajosLaboratoriosForm: React.FC = () => {
                                 className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-amber-700 dark:text-amber-300 font-bold focus:ring-2 focus:ring-blue-500 outline-none text-xs transition-all shadow-sm"
                             />
                         </div>
-                        <div>
-                            <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
-                                Entrega Estimada:
-                            </label>
-                            <input
-                                type="date"
-                                name="fecha_pedido"
-                                value={formData.fecha_pedido || ''}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-blue-700 dark:text-blue-300 font-bold focus:ring-2 focus:ring-blue-500 outline-none text-xs transition-all shadow-sm"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
-                                Entrega Real (Fecha Terminado):
-                            </label>
-                            <input
-                                type="date"
-                                name="fecha_terminado"
-                                value={formData.fecha_terminado || ''}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-emerald-700 dark:text-emerald-300 font-bold focus:ring-2 focus:ring-blue-500 outline-none text-xs transition-all shadow-sm"
-                            />
-                        </div>
                     </div>
                 </div>
 
-                {/* 11. OBSERVACIONES CLÍNICAS / INSTRUCCIONES ESPECIALES */}
+                {/* 10. OBSERVACIONES CLÍNICAS / INSTRUCCIONES ESPECIALES */}
                 <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                     <h3 className="text-xs font-black uppercase tracking-wider text-blue-900 dark:text-blue-300 mb-3 border-b pb-1.5 border-gray-100 dark:border-gray-700 flex items-center gap-2">
                         <FileText className="w-4 h-4 text-blue-600" />
-                        11. OBSERVACIONES CLÍNICAS / INSTRUCCIONES ESPECIALES
+                        10. OBSERVACIONES CLÍNICAS / INSTRUCCIONES ESPECIALES
                     </h3>
 
                     <textarea

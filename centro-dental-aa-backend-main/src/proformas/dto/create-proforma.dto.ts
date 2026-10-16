@@ -71,6 +71,18 @@ export class CreateProformaDto {
     detalles: CreateProformaDetalleDto[];
 
     @IsOptional()
+    @IsBoolean()
+    aprobado?: boolean;
+
+    @IsOptional()
+    @IsNumber()
+    usuario_aprobado?: number;
+
+    @IsOptional()
+    @IsString()
+    fecha_aprobado?: string;
+
+    @IsOptional()
     odontograma_mapa?: any;
 
     @IsOptional()

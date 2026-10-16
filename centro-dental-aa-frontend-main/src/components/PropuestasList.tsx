@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import Swal from 'sweetalert2';
+import { promptWhatsAppNumber } from '../utils/whatsappHelper';
 import type { Paciente, Propuesta } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -189,89 +190,70 @@ const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClos
     };
 
     const handleSendWhatsApp = async (propuesta: Propuesta, letra: string) => {
-        if (!paciente?.telefono_celular) {
+        const defaultPhone = paciente?.telefono_celular || (paciente as any)?.celular || '';
+        const selectedPhone = await promptWhatsAppNumber({
+            defaultPhone,
+            title: 'Enviar por WhatsApp',
+            subtitle: `Seleccione el código de país e ingrese el número (Propuesta N° ${propuesta.numero} - Opción ${letra}):`
+        });
+
+        if (!selectedPhone) return;
+
+        try {
+            // Check chatbot status first
+            const statusResponse = await api.get('/chatbot/status');
+            if (statusResponse.data.status !== 'connected') {
+                Swal.fire({
+                    title: 'Bot Desconectado',
+                    text: 'El chatbot no está conectado a WhatsApp. Por favor, conéctelo en Configuración.',
+                    icon: 'warning',
+                    background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                    color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: 'Generando y enviando...',
+                allowOutsideClick: false,
+                background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            const doc = await generatePDF(propuesta, 'blob', letra);
+            const base64Data = doc.output('datauristring').split(',')[1];
+
+            const jid = `${selectedPhone}@s.whatsapp.net`;
+
+            await api.post('/chatbot/send-pdf', {
+                jid: jid,
+                base64: base64Data,
+                fileName: `Propuesta_${propuesta.numero}_Opción_${letra}.pdf`,
+                caption: `Hola ${paciente?.nombre || ''}, le envío la propuesta de tratamiento odontológico de la Clínica CENTRO DENTAL A&A.`
+            });
+
+            Swal.fire({
+                icon: 'success',
+                title: '¡Enviado!',
+                text: 'La propuesta ha sido enviada exitosamente.',
+                timer: 2000,
+                showConfirmButton: false,
+                background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
+            });
+
+        } catch (error) {
+            console.error('Error sending WhatsApp:', error);
             Swal.fire({
                 title: 'Error',
-                text: 'El paciente no tiene un número de celular registrado.',
+                text: 'No se pudo enviar la propuesta por WhatsApp.',
                 icon: 'error',
                 background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
                 color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
             });
-            return;
-        }
-
-        const result = await Swal.fire({
-            title: 'Enviar por WhatsApp',
-            text: `¿Enviar la Propuesta ${letra} al paciente via WhatsApp?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#25D366',
-            confirmButtonText: 'Sí, enviar',
-            background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
-            color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
-        });
-
-        if (result.isConfirmed) {
-            try {
-                // Check chatbot status first
-                const statusResponse = await api.get('/chatbot/status');
-                if (statusResponse.data.status !== 'connected') {
-                    Swal.fire({
-                        title: 'Bot Desconectado',
-                        text: 'El chatbot no está conectado a WhatsApp. Por favor, conéctelo en Configuración.',
-                        icon: 'warning',
-                        background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
-                        color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
-                    });
-                    return;
-                }
-
-                Swal.fire({
-                    title: 'Generando y enviando...',
-                    allowOutsideClick: false,
-                    background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
-                    color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-
-                const doc = await generatePDF(propuesta, 'blob', letra);
-                const base64Data = doc.output('datauristring').split(',')[1];
-
-                let celular = paciente.telefono_celular.replace(/\D/g, '');
-                if (!celular.startsWith('591') && celular.length === 8) {
-                    celular = `591${celular}`;
-                }
-                const jid = `${celular}@s.whatsapp.net`;
-
-                await api.post('/chatbot/send-pdf', {
-                    jid: jid,
-                    base64: base64Data,
-                    fileName: `Propuesta_${propuesta.numero}_Opción_${letra}.pdf`,
-                    caption: `Hola ${paciente.nombre}, le envío la propuesta de tratamiento odontológico de la Clínica CENTRO DENTAL A&A.`
-                });
-
-                Swal.fire({
-                    icon: 'success',
-                    title: '¡Enviado!',
-                    text: 'La propuesta ha sido enviada exitosamente.',
-                    timer: 2000,
-                    showConfirmButton: false,
-                    background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
-                    color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
-                });
-
-            } catch (error) {
-                console.error('Error sending WhatsApp:', error);
-                Swal.fire({
-                    title: 'Error',
-                    text: 'No se pudo enviar la propuesta por WhatsApp.',
-                    icon: 'error',
-                    background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
-                    color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
-                });
-            }
         }
     };
 

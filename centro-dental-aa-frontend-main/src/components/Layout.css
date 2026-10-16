@@ -40,8 +40,47 @@ body {
   flex-direction: column;
   padding: 20px;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-  transition: transform var(--transition-speed), width var(--transition-speed);
+  transition: transform var(--transition-speed), width var(--transition-speed), padding var(--transition-speed);
   z-index: 1000;
+  flex-shrink: 0;
+}
+
+.sidebar.collapsed {
+  width: 76px;
+  padding: 20px 10px;
+}
+
+.sidebar.collapsed .sidebar-header {
+  padding: 10px 0;
+}
+
+.sidebar.collapsed .sidebar-logo-text {
+  font-size: 16px;
+  letter-spacing: 0;
+}
+
+.sidebar.collapsed .nav-text,
+.sidebar.collapsed .submenu-arrow {
+  display: none;
+}
+
+.sidebar.collapsed .nav-link {
+  justify-content: center !important;
+  padding: 12px 0;
+}
+
+.sidebar.collapsed .nav-link-content {
+  justify-content: center;
+}
+
+.sidebar.collapsed .nav-link svg {
+  margin-right: 0 !important;
+}
+
+.sidebar.collapsed .submenu-list {
+  padding-left: 0 !important;
+  border-radius: 8px;
+  margin-top: 4px;
 }
 
 .sidebar-header {
@@ -58,6 +97,9 @@ body {
   text-transform: uppercase;
   letter-spacing: 1px;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .close-sidebar-btn {
@@ -76,6 +118,7 @@ body {
 .sidebar-nav {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
 }
 
@@ -98,6 +141,7 @@ body {
   border-radius: 8px;
   transition: all var(--transition-speed);
   font-size: 16px;
+  white-space: nowrap;
 }
 
 .nav-link:hover {
@@ -142,12 +186,24 @@ body {
   border: none;
   cursor: pointer;
   padding: 8px;
+  border-radius: 8px;
   color: var(--text-color);
-  margin-right: 8px;
-  display: none;
-  /* Hidden by default */
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   z-index: 10;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.hamburger-btn:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+  color: var(--primary-color);
+}
+
+html.dark .hamburger-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .content-area {

@@ -7,6 +7,7 @@ import ManualModal, { type ManualSection } from './ManualModal';
 import ArancelForm from './ArancelForm';
 import { formatDate } from '../utils/dateUtils';
 import { formatFullName, formatNumber, formatCurrency } from '../utils/formatters';
+import { Calendar, Edit } from 'lucide-react';
 
 interface DetalleItem {
     id?: number;
@@ -145,18 +146,26 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
             // setNumero(data.numero);
 
             if (data.detalles) {
-                const mappedDetalles = data.detalles.map((d: any) => ({
-                    id: d.id,
-                    letra: d.letra || 'A', // Default to A if missing
-                    arancelId: d.arancel.id,
-                    codigo: d.arancel.id.toString(),
-                    tratamiento: d.arancel.detalle,
-                    precioUnitario: Number(d.precioUnitario),
-                    piezas: d.piezas,
-                    cantidad: Number(d.cantidad),
-                    total: Number(d.total),
-                    posible: d.posible
-                }));
+                const mappedDetalles = data.detalles.map((d: any) => {
+                    const gross = Number(d.precioUnitario) * Number(d.cantidad);
+                    const net = Number(d.total);
+                    const discountPct = Number(d.descuento) > 0
+                        ? Number(d.descuento)
+                        : (gross > 0 && gross - net > 0.01 ? Math.round((1 - net / gross) * 100) : 0);
+                    return {
+                        id: d.id,
+                        letra: d.letra || 'A', // Default to A if missing
+                        arancelId: d.arancel.id,
+                        codigo: d.arancel.id.toString(),
+                        tratamiento: d.arancel.detalle,
+                        precioUnitario: Number(d.precioUnitario),
+                        piezas: d.piezas,
+                        cantidad: Number(d.cantidad),
+                        descuento: discountPct,
+                        total: Number(d.total),
+                        posible: d.posible
+                    };
+                });
                 setDetalles(mappedDetalles);
             }
         } catch (error) {
@@ -363,18 +372,16 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
 
 
     const handleTogglePaymentPlan = () => {
-        if (!propuestaId) return;
-
         const currentTabPlan = tabPlanPagos[activeTab] || null;
         const isActivo = currentTabPlan?.activo;
 
         Swal.fire({
-            title: isActivo ? `Editar Plan de Pagos (Opción ${activeTab})` : `Configurar Plan de Pagos (Opción ${activeTab})`,
+            title: isActivo ? `Editar Plan de Pagos (Propuesta ${activeTab})` : `Configurar Plan de Pagos (Propuesta ${activeTab})`,
             html: `
                 <div class="space-y-4 text-left">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Cuota Inicial (Opcional)</label>
-                        <input type="number" id="swal-cuota-inicial" class="swal2-input w-full mx-0 mt-1 !text-lg" placeholder="Ej: 5000" value="${currentTabPlan?.cuotaInicial || ''}" min="0">
+                        <input type="number" id="swal-cuota-inicial" class="swal2-input w-full mx-0 mt-1 !text-lg" placeholder="Ej: 5000" value="${currentTabPlan?.cuotaInicial ?? ''}" min="0">
                         <div class="text-xs text-gray-500 mt-1">El monto restante se dividirá en cuotas.</div>
                     </div>
                     <div>
@@ -386,13 +393,13 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                         <input type="number" id="swal-dia" class="swal2-input w-full mx-0 mt-1 !text-lg" value="${currentTabPlan?.diaPago || 15}" min="1" max="31">
                     </div>
                     <div class="pt-2 text-xs text-gray-500 dark:text-gray-400">
-                        La cuota se calculará dividiendo el total de la propuesta (menos la cuota inicial) entre los meses.
+                        La cuota se calculará dividiendo el total de la Propuesta ${activeTab} (menos la cuota inicial) entre los meses.
                     </div>
                 </div>
             `,
             focusConfirm: false,
             showCancelButton: true,
-            showDenyButton: isActivo,
+            showDenyButton: Boolean(isActivo),
             confirmButtonText: 'Guardar Plan',
             cancelButtonText: 'Cancelar',
             denyButtonText: 'Eliminar Plan',
@@ -409,44 +416,56 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                     return false;
                 }
 
-                const cuotaInicialNum = cuotaInicial ? Number(cuotaInicial) : undefined;
+                const cuotaInicialNum = cuotaInicial !== '' ? Number(cuotaInicial) : 0;
 
                 return { meses: Number(meses), diaPago: Number(dia), cuotaInicial: cuotaInicialNum };
             }
         }).then(async (result) => {
             if (result.isConfirmed && result.value) {
-                try {
-                    const newPlan = {
-                        activo: true,
-                        meses: result.value.meses,
-                        diaPago: result.value.diaPago,
-                        cuotaInicial: result.value.cuotaInicial,
-                        fechaInicio: fecha || new Date().toISOString()
-                    };
-                    const updatedTabPlanPagos = { ...tabPlanPagos, [activeTab]: newPlan };
-                    await api.patch(`/propuestas/${propuestaId}`, { plan_pagos: updatedTabPlanPagos });
-                    setTabPlanPagos(updatedTabPlanPagos);
-                    Swal.fire({
-                        title: 'Guardado',
-                        text: 'Plan de pagos configurado',
-                        icon: 'success',
-                        showConfirmButton: false,
-                        timer: 1500
-                    });
-                } catch (error) {
-                    console.error(error);
-                    Swal.fire('Error', 'No se pudo guardar el plan', 'error');
+                const newPlan = {
+                    activo: true,
+                    meses: result.value.meses,
+                    diaPago: result.value.diaPago,
+                    cuotaInicial: result.value.cuotaInicial,
+                    fechaInicio: currentTabPlan?.fechaInicio || fecha || new Date().toISOString()
+                };
+                const updatedTabPlanPagos = { ...tabPlanPagos, [activeTab]: newPlan };
+                setTabPlanPagos(updatedTabPlanPagos);
+                if (propuestaId) {
+                    try {
+                        await api.patch(`/propuestas/${propuestaId}`, { plan_pagos: updatedTabPlanPagos });
+                    } catch (error) {
+                        console.error(error);
+                        Swal.fire('Error', 'No se pudo guardar el plan en el servidor', 'error');
+                        return;
+                    }
                 }
+                Swal.fire({
+                    title: 'Guardado',
+                    text: `Plan de pagos configurado para Propuesta ${activeTab}`,
+                    icon: 'success',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
             } else if (result.isDenied) {
-                try {
-                    const updatedTabPlanPagos = { ...tabPlanPagos };
-                    delete updatedTabPlanPagos[activeTab];
-                    await api.patch(`/propuestas/${propuestaId}`, { plan_pagos: updatedTabPlanPagos });
-                    setTabPlanPagos(updatedTabPlanPagos);
-                    Swal.fire('Eliminado', 'El plan de pagos fue eliminado', 'success');
-                } catch (error) {
-                    Swal.fire('Error', 'No se pudo eliminar el plan', 'error');
+                const updatedTabPlanPagos = { ...tabPlanPagos };
+                delete updatedTabPlanPagos[activeTab];
+                setTabPlanPagos(updatedTabPlanPagos);
+                if (propuestaId) {
+                    try {
+                        await api.patch(`/propuestas/${propuestaId}`, { plan_pagos: updatedTabPlanPagos });
+                    } catch (error) {
+                        Swal.fire('Error', 'No se pudo eliminar el plan en el servidor', 'error');
+                        return;
+                    }
                 }
+                Swal.fire({
+                    title: 'Eliminado',
+                    text: `El plan de pagos de la Propuesta ${activeTab} fue eliminado`,
+                    icon: 'success',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
             }
         });
     };
@@ -463,15 +482,6 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                     {propuestaId ? (isReadOnly ? 'Ver Propuesta' : 'Editar Propuesta') : 'Nueva Propuesta'}
                 </h2>
                 <div className="flex gap-2">
-                    {isReadOnly && propuestaId && (
-                        <button
-                            onClick={handleTogglePaymentPlan}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-sm transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm border ${tabPlanPagos[activeTab]?.activo ? 'bg-indigo-100 text-indigo-700 border-indigo-200 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'}`}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                            {tabPlanPagos[activeTab]?.activo ? 'Plan Activo' : 'Crear Plan'}
-                        </button>
-                    )}
                     <button
                         onClick={() => setShowManual(true)}
                         className="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 p-1.5 rounded-full flex items-center justify-center w-[30px] h-[30px] text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
@@ -514,6 +524,7 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                 {tabs.map(tab => (
                     <button
                         key={tab}
+                        type="button"
                         onClick={() => {
                             if (!isReadOnly) {
                                 cancelEdit(); // Cancel edit if switching tabs
@@ -530,6 +541,11 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         Propuesta {tab}
+                        {tabPlanPagos[tab]?.activo && (
+                            <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300" title={`Plan de pagos activo en Propuesta ${tab}`}>
+                                Plan
+                            </span>
+                        )}
                     </button>
                 ))}
             </div>
@@ -783,6 +799,94 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                 </div>
             </div>
 
+            {/* Plan de Pagos Section for Active Tab */}
+            {tabPlanPagos[activeTab]?.activo && (() => {
+                const currentPlan = tabPlanPagos[activeTab];
+                const totalNeto = calculateTabTotal();
+                const cuotaInicial = Number(currentPlan.cuotaInicial || 0);
+                const meses = Number(currentPlan.meses || 1);
+                const dia = Number(currentPlan.diaPago || 15);
+                const montoParaCuotas = Math.max(0, totalNeto - cuotaInicial);
+                const cuotaMensual = meses > 0 ? montoParaCuotas / meses : 0;
+                const baseDateStr = (currentPlan.fechaInicio || fecha || new Date().toISOString()).split('T')[0];
+                const [baseYear, baseMonth, baseDay] = baseDateStr.split('-').map(Number);
+                const fechaInicialDate = new Date(baseYear || new Date().getFullYear(), (baseMonth || 1) - 1, baseDay || 1);
+
+                const cuotasRows: { detalle: string; monto: number; vencimiento: string }[] = [];
+                if (cuotaInicial > 0) {
+                    cuotasRows.push({
+                        detalle: 'Pago / Cuota Inicial',
+                        monto: cuotaInicial,
+                        vencimiento: fechaInicialDate.toLocaleDateString('es-BO')
+                    });
+                }
+                for (let i = 1; i <= meses; i++) {
+                    let nextMonth = new Date(fechaInicialDate.getFullYear(), fechaInicialDate.getMonth() + i, dia);
+                    if (nextMonth.getMonth() !== (fechaInicialDate.getMonth() + i) % 12) {
+                        nextMonth = new Date(fechaInicialDate.getFullYear(), fechaInicialDate.getMonth() + i + 1, 0);
+                    }
+                    cuotasRows.push({
+                        detalle: `Cuota ${i}`,
+                        monto: cuotaMensual,
+                        vencimiento: nextMonth.toLocaleDateString('es-BO')
+                    });
+                }
+
+                return (
+                    <div className="mb-8 bg-indigo-50/40 dark:bg-indigo-900/10 rounded-xl border border-indigo-200 dark:border-indigo-800/50 p-6 shadow-sm">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-indigo-100 dark:border-indigo-800/50 pb-3">
+                            <div className="flex items-center gap-3">
+                                <h4 className="text-lg font-bold text-indigo-900 dark:text-indigo-300 flex items-center gap-2">
+                                    <Calendar size={20} className="text-indigo-600 dark:text-indigo-400" />
+                                    Plan de Pagos Configurado — Propuesta {activeTab}
+                                </h4>
+                                <button
+                                    type="button"
+                                    onClick={handleTogglePaymentPlan}
+                                    className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition-all transform hover:-translate-y-0.5 active:scale-95"
+                                    title={`Editar Plan de Pagos (Propuesta ${activeTab})`}
+                                >
+                                    <Edit size={14} />
+                                    Editar Plan de Pagos
+                                </button>
+                            </div>
+                            <div className="flex flex-wrap gap-3 text-xs font-semibold">
+                                <span className="px-3 py-1 rounded-lg bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-700 text-gray-700 dark:text-gray-200">
+                                    Pago Inicial: <strong className="text-indigo-600 dark:text-indigo-400">{formatCurrency(cuotaInicial, 'Bs')}</strong>
+                                </span>
+                                <span className="px-3 py-1 rounded-lg bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-700 text-gray-700 dark:text-gray-200">
+                                    Plazo: <strong className="text-indigo-600 dark:text-indigo-400">{meses} {meses === 1 ? 'mes' : 'meses'}</strong> (Día {dia})
+                                </span>
+                                <span className="px-3 py-1 rounded-lg bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-700 text-gray-700 dark:text-gray-200">
+                                    Cuota Mensual: <strong className="text-indigo-600 dark:text-indigo-400">{formatCurrency(cuotaMensual, 'Bs')}</strong>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="overflow-x-auto rounded-xl border border-indigo-100 dark:border-indigo-800/50 bg-white dark:bg-gray-800">
+                            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead className="bg-indigo-50/70 dark:bg-gray-700/70">
+                                    <tr>
+                                        <th className="px-4 py-2.5 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Detalle</th>
+                                        <th className="px-4 py-2.5 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Monto</th>
+                                        <th className="px-4 py-2.5 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Fecha Vencimiento</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                                    {cuotasRows.map((row, idx) => (
+                                        <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                                            <td className="px-4 py-2 text-center text-sm font-medium text-gray-800 dark:text-gray-200">{row.detalle}</td>
+                                            <td className="px-4 py-2 text-center text-sm font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(row.monto, 'Bs')}</td>
+                                            <td className="px-4 py-2 text-center text-sm text-gray-600 dark:text-gray-300">{row.vencimiento}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                );
+            })()}
+
             {/* Footer: Total and Note */}
             <div className="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl border border-gray-100 dark:border-gray-600">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -837,7 +941,17 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                         </div>
 
                         {/* Footer Buttons */}
-                        <div className="flex justify-start gap-4 mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
+                        <div className="flex flex-wrap justify-start gap-4 mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
+                            {!tabPlanPagos[activeTab]?.activo && (
+                                <button
+                                    type="button"
+                                    onClick={handleTogglePaymentPlan}
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-5 rounded-xl shadow-md transition-all transform hover:-translate-y-0.5 flex items-center gap-2"
+                                >
+                                    <Calendar size={18} />
+                                    Crear Plan de Pagos
+                                </button>
+                            )}
                             {!isReadOnly && (
                                 <button
                                     onClick={handleSubmit}

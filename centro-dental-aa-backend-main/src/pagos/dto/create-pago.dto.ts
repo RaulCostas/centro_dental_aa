@@ -49,6 +49,10 @@ export class CreatePagoDto {
 
     @IsOptional()
     @IsString()
+    numero_transaccion?: string;
+
+    @IsOptional()
+    @IsString()
     observaciones?: string;
 
     @IsOptional()

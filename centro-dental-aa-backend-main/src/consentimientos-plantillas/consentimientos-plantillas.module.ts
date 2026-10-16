@@ -8,5 +8,6 @@ import { ConsentimientoPlantilla } from './entities/consentimientos-plantilla.en
   imports: [TypeOrmModule.forFeature([ConsentimientoPlantilla])],
   controllers: [ConsentimientosPlantillasController],
   providers: [ConsentimientosPlantillasService],
+  exports: [ConsentimientosPlantillasService],
 })
 export class ConsentimientosPlantillasModule {}

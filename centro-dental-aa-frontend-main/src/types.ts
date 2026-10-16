@@ -44,6 +44,7 @@ export interface User {
     estado: string;
     password?: string; // Optional for list view
     foto?: string;
+    codigo_proforma?: number;
     permisos?: string[]; // Array of denied module IDs
 }
 
@@ -53,6 +54,7 @@ export interface CreateUserDto {
     password: string;
     estado: string;
     foto?: string;
+    codigo_proforma?: number;
     permisos?: string[];
 }
 
@@ -354,6 +356,9 @@ export interface Proforma {
     total: number;
     detalles: ProformaDetalle[];
     esta_firmado?: boolean;
+    aprobado?: boolean;
+    fecha_aprobado?: string | null;
+    usuarioAprobado?: User | null;
     plan_pagos?: {
         activo: boolean;
         meses: number;
@@ -409,6 +414,7 @@ export interface Pago {
     factura?: string;
     formaPago: 'Efectivo' | 'QR' | 'Tarjeta';
     formaPagoId?: number;
+    numero_transaccion?: string;
     comisionTarjetaId?: number;
     comisionTarjeta?: ComisionTarjeta;
     observaciones?: string;
@@ -555,9 +561,12 @@ export interface ConsentimientoPlantilla {
         especialidad: string;
     };
     contenido: string;
-    estado: string;
+    estado?: string;
+    activo?: boolean;
     fechaCreacion?: string;
     fechaActualizacion?: string;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface ConsentimientoPaciente {

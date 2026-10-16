@@ -9,6 +9,7 @@ import AgendaForm from './AgendaForm';
 import Swal from 'sweetalert2';
 import ManualModal, { type ManualSection } from './ManualModal';
 import QuienAgendoModal from './QuienAgendoModal';
+import { promptWhatsAppNumber } from '../utils/whatsappHelper';
 
 import { getLocalDateString, formatDate } from '../utils/dateUtils';
 import { formatFullName } from '../utils/formatters';
@@ -232,16 +233,15 @@ const AgendaView: React.FC<AgendaViewProps> = ({ defaultPacienteId, isEmbedded =
         e.stopPropagation();
 
         try {
-            const result = await Swal.fire({
-                title: '¿Avisar ausencia?',
-                text: 'Se enviará un mensaje al paciente indicando que no asistió a su cita.',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Sí, enviar',
-                cancelButtonText: 'Cancelar'
-            });
+            const appt = appointments.find((a: any) => a.id === id) || monthAppointments.find((a: any) => a.id === id);
+            const patient = appt?.paciente || appt?.pacienteSeguro;
 
-            if (!result.isConfirmed) return;
+            const celular = await promptWhatsAppNumber({
+                defaultPhone: patient?.celular || patient?.telefono_celular,
+                title: 'Avisar Ausencia por WhatsApp',
+                subtitle: patient ? `Paciente: ${formatFullName(patient)}` : 'Se enviará un mensaje al paciente indicando que no asistió a su cita.'
+            });
+            if (!celular) return;
 
             Swal.fire({
                 title: 'Enviando notificación...',
@@ -254,7 +254,7 @@ const AgendaView: React.FC<AgendaViewProps> = ({ defaultPacienteId, isEmbedded =
                 color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
             });
 
-            const response = await api.post(`/agenda/${id}/ausencia`);
+            const response = await api.post(`/agenda/${id}/ausencia`, { celular });
 
             if (response.data.success) {
                 Swal.fire({

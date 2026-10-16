@@ -72,6 +72,16 @@ export class Proforma {
     @Column({ type: 'boolean', default: false })
     esta_firmado: boolean;
 
+    @Column({ default: false })
+    aprobado: boolean;
+
+    @Column({ type: 'date', nullable: true })
+    fecha_aprobado: string | null;
+
+    @ManyToOne(() => User)
+    @JoinColumn({ name: 'usuario_aprobado' })
+    usuarioAprobado: User | null;
+
     @Column({ type: 'timestamp', default: () => "timezone('America/La_Paz', now())" })
     createdAt: Date;
 

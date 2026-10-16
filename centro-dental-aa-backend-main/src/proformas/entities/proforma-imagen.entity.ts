@@ -9,7 +9,7 @@ export class ProformaImagen {
     @Column({ type: 'int', nullable: true })
     proformaId: number | null;
 
-    @ManyToOne(() => Proforma, (proforma) => proforma.imagenes, { onDelete: 'CASCADE', nullable: true })
+    @ManyToOne(() => Proforma, (proforma) => proforma.imagenes, { onDelete: 'SET NULL', nullable: true })
     @JoinColumn({ name: 'proformaId' })
     proforma: Proforma | null;
 

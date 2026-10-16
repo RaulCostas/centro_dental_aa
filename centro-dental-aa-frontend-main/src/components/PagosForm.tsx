@@ -6,6 +6,7 @@ import Swal from 'sweetalert2';
 import type { Paciente, Proforma, Pago, ComisionTarjeta } from '../types';
 import { formatFullName, formatNumber } from '../utils/formatters';
 import ManualModal, { type ManualSection } from './ManualModal';
+import { promptWhatsAppNumber } from '../utils/whatsappHelper';
 
 import FormaPagoForm from './FormaPagoForm';
 import ComisionTarjetaForm from './ComisionTarjetaForm';
@@ -36,6 +37,7 @@ const PagosForm: React.FC = () => {
         recibo: '',
         factura: '',
         formaPagoId: 0, // Add formaPagoId
+        numero_transaccion: '',
         comisionTarjetaId: '',
         observaciones: ''
     });
@@ -64,11 +66,20 @@ const PagosForm: React.FC = () => {
     const handleSendWhatsapp = async () => {
         if (!formData.pacienteId) return;
 
+        const pacienteSel = pacientes.find(p => p.id === formData.pacienteId);
+        const celular = await promptWhatsAppNumber({
+            defaultPhone: pacienteSel?.celular || (pacienteSel as any)?.telefono_celular,
+            title: 'Enviar Historial de Pagos',
+            subtitle: pacienteSel ? `Paciente: ${formatFullName(pacienteSel)}` : undefined
+        });
+        if (!celular) return;
+
         setSendingWhatsapp(true);
         try {
             const response = await api.post('/pagos/whatsapp', {
                 pacienteId: formData.pacienteId,
-                proformaId: formData.proformaId > 0 ? formData.proformaId : undefined
+                proformaId: formData.proformaId > 0 ? formData.proformaId : undefined,
+                celular
             });
 
             if (response.data.success) {
@@ -205,6 +216,7 @@ const PagosForm: React.FC = () => {
                 recibo: pago.recibo || '',
                 factura: pago.factura || '',
                 formaPagoId: pago.formaPagoId || (pago.formaPagoRel ? pago.formaPagoRel.id : 0),
+                numero_transaccion: pago.numero_transaccion || '',
                 comisionTarjetaId: pago.comisionTarjetaId || '',
                 observaciones: pago.observaciones || ''
             });
@@ -423,7 +435,7 @@ const PagosForm: React.FC = () => {
                                     <td>${displayMonto}</td>
                                     <td>${displayMoneda}</td>
                                     <td>${pago.formaPagoRel?.forma_pago || '-'}</td>
-                                    <td>${pago.recibo ? `R: ${pago.recibo}` : pago.factura ? `F: ${pago.factura}` : '-'}</td>
+                                    <td>${[pago.recibo ? `R: ${pago.recibo}` : '', pago.factura ? `F: ${pago.factura}` : '', pago.numero_transaccion ? `Tr: ${pago.numero_transaccion}` : ''].filter(Boolean).join(' / ') || '-'}</td>
                                 </tr>
                             `;
         }).join('')}
@@ -932,6 +944,27 @@ const PagosForm: React.FC = () => {
                                         </svg>
                                     </button>
                                 )}
+                            </div>
+                        </div>
+
+                        {/* No. Transacción */}
+                        <div>
+                            <label className="block mb-1 font-medium text-gray-700 dark:text-gray-300 text-sm">No. Transacción:</label>
+                            <div className="relative">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none">
+                                    <line x1="4" y1="9" x2="20" y2="9"></line>
+                                    <line x1="4" y1="15" x2="20" y2="15"></line>
+                                    <line x1="10" y1="3" x2="8" y2="21"></line>
+                                    <line x1="16" y1="3" x2="14" y2="21"></line>
+                                </svg>
+                                <input
+                                    type="text"
+                                    name="numero_transaccion"
+                                    value={formData.numero_transaccion || ''}
+                                    onChange={handleChange}
+                                    placeholder="No. Transacción / Transferencia"
+                                    className="w-full pl-10 pr-3 py-1.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                />
                             </div>
                         </div>
 

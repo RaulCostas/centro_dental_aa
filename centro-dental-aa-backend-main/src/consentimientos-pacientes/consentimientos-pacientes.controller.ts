@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Query, Patch } from '@nestjs/common';
 import { ConsentimientosPacientesService } from './consentimientos-pacientes.service';
 import { CreateConsentimientosPacienteDto } from './dto/create-consentimientos-paciente.dto';
 
@@ -11,9 +11,27 @@ export class ConsentimientosPacientesController {
     return this.consentimientosPacientesService.create(createDto);
   }
 
+  @Get()
+  findAll(@Query('pacienteId') pacienteId?: string) {
+    if (pacienteId) {
+      return this.consentimientosPacientesService.findAllByPaciente(+pacienteId);
+    }
+    return [];
+  }
+
   @Get('paciente/:pacienteId')
   findAllByPaciente(@Param('pacienteId') pacienteId: string) {
     return this.consentimientosPacientesService.findAllByPaciente(+pacienteId);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.consentimientosPacientesService.findOne(+id);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateDto: any) {
+    return this.consentimientosPacientesService.update(+id, updateDto);
   }
 
   @Delete(':id')

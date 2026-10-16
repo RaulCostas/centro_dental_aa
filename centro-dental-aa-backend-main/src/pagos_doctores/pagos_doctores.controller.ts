@@ -48,7 +48,7 @@ export class PagosDoctoresController {
     }
 
     @Post(':id/send-whatsapp')
-    async sendWhatsApp(@Param('id') id: string) {
+    async sendWhatsApp(@Param('id') id: string, @Body('celular') customCelular?: string) {
         try {
             // Get payment with doctor details
             const pago = await this.pagosService.findOne(+id);
@@ -61,8 +61,10 @@ export class PagosDoctoresController {
                 throw new HttpException('Doctor no encontrado', HttpStatus.NOT_FOUND);
             }
 
-            if (!pago.doctor.celular) {
-                throw new HttpException('El doctor no tiene número de celular registrado', HttpStatus.BAD_REQUEST);
+            let phone = customCelular ? customCelular.replace(/\D/g, '') : (pago.doctor.celular ? pago.doctor.celular.replace(/\D/g, '') : '');
+
+            if (!phone) {
+                throw new HttpException('No se proporcionó un número de celular', HttpStatus.BAD_REQUEST);
             }
 
             const chatbotStatus = this.chatbotService.getStatus();
@@ -70,7 +72,6 @@ export class PagosDoctoresController {
                 throw new HttpException('El chatbot no está conectado. Por favor, conecte el chatbot primero.', HttpStatus.SERVICE_UNAVAILABLE);
             }
 
-            let phone = pago.doctor.celular.replace(/\D/g, '');
             if (phone.length === 8) {
                 phone = '591' + phone;
             }

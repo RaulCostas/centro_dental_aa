@@ -1,7 +1,5 @@
 import { Controller, Get, Post, Body, Put, Param, Delete, Query, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
 import { EstudiosComplementariosService } from './estudios-complementarios.service';
 import { CreateEstudioComplementarioDto } from './dto/create-estudio-complementario.dto';
 import { UpdateEstudioComplementarioDto } from './dto/update-estudio-complementario.dto';
@@ -46,51 +44,26 @@ export class EstudiosComplementariosController {
   }
 
   @Post(':id/upload')
-  @UseInterceptors(FileInterceptor('file', {
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = extname(file.originalname);
-        cb(null, `estudio-${uniqueSuffix}${ext}`);
-      }
-    }),
-    fileFilter: (req, file, cb) => {
-      // Allow only images and PDFs
-      if (!file.mimetype.match(/\/(jpg|jpeg|png|pdf)$/)) {
-        return cb(new BadRequestException('Solo se permiten archivos de imagen o PDF'), false);
-      }
-      cb(null, true);
-    }
-  }))
+  @UseInterceptors(FileInterceptor('file'))
   uploadFile(@Param('id') id: string, @UploadedFile() file: any) {
     if (!file) {
       throw new BadRequestException('Archivo no proporcionado');
     }
-    return this.service.updateFileUrl(+id, file.filename);
+    if (!file.mimetype.match(/\/(jpg|jpeg|png|pdf)$/)) {
+      throw new BadRequestException('Solo se permiten archivos de imagen o PDF');
+    }
+    return this.service.uploadFile(+id, file.originalname, file.buffer, file.mimetype);
   }
 
   @Post(':id/upload-orden')
-  @UseInterceptors(FileInterceptor('file', {
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = extname(file.originalname);
-        cb(null, `orden-estudio-${uniqueSuffix}${ext}`);
-      }
-    }),
-    fileFilter: (req, file, cb) => {
-      if (!file.mimetype.match(/\/(jpg|jpeg|png|pdf)$/)) {
-        return cb(new BadRequestException('Solo se permiten archivos de imagen o PDF'), false);
-      }
-      cb(null, true);
-    }
-  }))
+  @UseInterceptors(FileInterceptor('file'))
   uploadOrdenFile(@Param('id') id: string, @UploadedFile() file: any) {
     if (!file) {
       throw new BadRequestException('Archivo no proporcionado');
     }
-    return this.service.updateOrdenFileUrl(+id, file.filename);
+    if (!file.mimetype.match(/\/(jpg|jpeg|png|pdf)$/)) {
+      throw new BadRequestException('Solo se permiten archivos de imagen o PDF');
+    }
+    return this.service.uploadOrdenFile(+id, file.originalname, file.buffer, file.mimetype);
   }
 }

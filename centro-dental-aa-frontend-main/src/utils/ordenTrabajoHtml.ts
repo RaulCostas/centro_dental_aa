@@ -2,19 +2,6 @@ import api from '../services/api';
 import { formatDate } from './dateUtils';
 import { formatFullName, formatNumber } from './formatters';
 
-const PROCESS_STAGES = [
-    { key: 'Recepción', label: 'Recepción' },
-    { key: 'Modelo', label: 'Modelo' },
-    { key: 'Diseño', label: 'Diseño' },
-    { key: 'Fresado', label: 'Fresado' },
-    { key: 'Sinterizado', label: 'Sinterizado' },
-    { key: 'Estratificación', label: 'Estratificación' },
-    { key: 'Pulido', label: 'Pulido' },
-    { key: 'Glaseado', label: 'Glaseado' },
-    { key: 'Control', label: 'Control' },
-    { key: 'Entregado', label: 'Entregado' },
-];
-
 export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): string => {
     let d: any = {};
     if (trabajo?.detalles_orden) {
@@ -76,7 +63,7 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
         }).join('');
 
         return `
-            <svg viewBox="0 0 270 285" width="110" height="115">
+            <svg viewBox="0 0 270 285" width="105" height="110">
                 <path d="M 38,130 Q 135,5 232,130" fill="none" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="2,2" />
                 <text x="135" y="75" text-anchor="middle" font-size="7.5" font-weight="bold" fill="#64748b" font-family="Arial">SUPERIOR</text>
                 <path d="M 38,155 Q 135,280 232,155" fill="none" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="2,2" />
@@ -86,22 +73,21 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
         `;
     };
 
-    const activeList = trabajo.fase_laboratorio ? trabajo.fase_laboratorio.split(',').map((s: string) => s.trim()) : [];
-
     const chk = (isCheck: boolean, label: string) => `
-        <div style="display: flex; align-items: center; gap: 3px; font-size: 7pt; margin-bottom: 1px; ${isCheck ? 'font-weight: bold; color: #0f172a;' : 'color: #475569;'}">
-            <span style="display: inline-block; width: 8px; height: 8px; border: 1px solid ${isCheck ? '#102a6b' : '#94a3b8'}; background: ${isCheck ? '#102a6b' : '#ffffff'}; border-radius: 1.5px; text-align: center; line-height: 7px; font-size: 6px; color: #ffffff;">${isCheck ? '✓' : ''}</span>
-            <span>${label}</span>
+        <div style="display: flex; align-items: center; gap: 3px; font-size: 6.8pt; margin-bottom: 1.5px; ${isCheck ? 'font-weight: bold; color: #0f172a;' : 'color: #475569;'}">
+            <span style="display: inline-block; width: 8.5px; height: 8.5px; border: 1px solid ${isCheck ? '#102a6b' : '#94a3b8'}; background: ${isCheck ? '#102a6b' : '#ffffff'}; border-radius: 2px; text-align: center; line-height: 8px; font-size: 6.5px; color: #ffffff; flex-shrink: 0;">${isCheck ? '✓' : ''}</span>
+            <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${label}</span>
         </div>
     `;
 
+    // 16 Restoration types exactly matching TrabajosLaboratoriosForm
     const restItems = [
         { key: 'corona', label: 'Corona' },
         { key: 'puente', label: 'Puente' },
         { key: 'carilla', label: 'Carilla' },
         { key: 'inlay', label: 'Inlay' },
         { key: 'onlay', label: 'Onlay' },
-        { key: 'protesis_removible', label: 'Prótesis Parcial Removible' },
+        { key: 'protesis_parcial', label: 'Prótesis Parcial Removible', altKey: 'protesis_removible' },
         { key: 'protesis_total', label: 'Prótesis Total' },
         { key: 'sobredentadura', label: 'Sobredentadura' },
         { key: 'barra_implantes', label: 'Barra sobre Implantes' },
@@ -114,58 +100,39 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
         { key: 'guia_quirurgica', label: 'Guía Quirúrgica' },
     ];
 
-    const matItems = [
-        { key: 'zirconia_monolitica', label: 'Zirconia Monolítica' },
-        { key: 'zirconia_estratificada', label: 'Zirconia Estratificada' },
-        { key: 'disilicato_litio', label: 'Disilicato de Litio' },
-        { key: 'feldespatica', label: 'Feldespática' },
-        { key: 'metal_ceramica', label: 'Metal Cerámica' },
-        { key: 'metal', label: 'Metal' },
-        { key: 'pmma', label: 'PMMA' },
-        { key: 'resina_cad_cam', label: 'Resina CAD/CAM' },
-        { key: 'titanio', label: 'Titanio' },
-        { key: 'cromo_cobalto', label: 'Cromo Cobalto' },
-        { key: 'acrilico', label: 'Acrílico' },
-    ];
-
-    const pruebasItems = [
+    // Pruebas items matching form
+    const pruebasList = [
         { key: 'cera', label: 'Cera' },
         { key: 'metal', label: 'Metal' },
         { key: 'bizcocho', label: 'Bizcocho' },
-        { key: 'pmma', label: 'PMMA' },
-        { key: 'impresion', label: 'Impresión' },
-        { key: 'escaneo', label: 'Escaneo' },
-        { key: 'ajuste', label: 'Ajuste' },
         { key: 'oclusion', label: 'Oclusión' },
-        { key: 'estetica', label: 'Estética' },
         { key: 'aprobado', label: 'Aprobado' },
-        { key: 'otra', label: 'Otra' },
     ];
 
-    const calItems = [
-        { key: 'contactos_revisados', label: 'Contactos revisados' },
-        { key: 'oclusion_revisada', label: 'Oclusión revisada' },
-        { key: 'pulido', label: 'Pulido' },
-        { key: 'ajuste_pasivo', label: 'Ajuste pasivo' },
-        { key: 'torque_verificado', label: 'Torque verificado' },
-        { key: 'radiografia_comprobada', label: 'Radiografía comprobada' },
-        { key: 'esterilizado_desinfectado', label: 'Esterilizado / Desinfectado' },
-    ];
+    const urgenciaVal = d?.urgencia || 'Normal';
+
+    // Fecha / Hora delivery and shipping
+    const fechaEnvio = trabajo.fecha ? formatDate(trabajo.fecha) : '-';
+    const horaEnvio = trabajo.hora_envio || d?.control_tiempos?.hora_envio || trabajo.hora || '-';
+    const fechaEntrega = trabajo.fecha_pedido ? formatDate(trabajo.fecha_pedido) : '-';
+    const horaEntrega = trabajo.hora_entrega || d?.control_tiempos?.hora_entrega || '-';
 
     return `
         <!DOCTYPE html>
         <html>
         <head>
+            <meta charset="utf-8" />
             <title>Orden de Trabajo Dental A&A-${String(trabajo.id).padStart(7, '0')}</title>
             <style>
-                @page { size: A4 portrait; margin: 0; }
+                @page { size: A4 portrait; margin: 0.4cm; }
+                * { box-sizing: border-box; }
                 body {
                     font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
                     font-size: 7pt;
                     color: #0f172a;
-                    line-height: 1.12;
+                    line-height: 1.15;
                     margin: 0;
-                    padding: 0.4cm 0.6cm;
+                    padding: 0.3cm 0.4cm;
                     background: #ffffff;
                     -webkit-print-color-adjust: exact;
                     print-color-adjust: exact;
@@ -173,10 +140,10 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
                 .main-frame {
                     border: 1.5px solid #102a6b;
                     border-radius: 6px;
-                    padding: 5px;
-                    box-sizing: border-box;
+                    padding: 6px;
                 }
-                .hdr-table { width: 100%; border-bottom: 2px solid #102a6b; padding-bottom: 4px; margin-bottom: 3px; }
+                .hdr-table { width: 100%; border-bottom: 2px solid #102a6b; padding-bottom: 4px; margin-bottom: 4px; border-collapse: collapse; }
+                .hdr-table td { border: none; }
                 .hdr-title { font-size: 13pt; font-weight: 900; color: #102a6b; text-transform: uppercase; margin: 0; letter-spacing: 0.5px; }
                 .hdr-sub { font-size: 7.5pt; font-weight: 800; color: #1e40af; letter-spacing: 0.3px; }
                 .order-box {
@@ -187,34 +154,25 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
                     text-align: center;
                 }
                 .order-no { font-size: 11pt; font-weight: 900; color: #dc2626; }
-                .pill-header {
-                    background: #102a6b;
-                    color: #ffffff;
-                    font-size: 7.5pt;
-                    font-weight: 800;
-                    padding: 2px 8px;
-                    border-radius: 10px;
-                    display: inline-block;
-                    text-transform: uppercase;
-                    letter-spacing: 0.2px;
-                    margin-bottom: 3px;
-                }
                 .sec-banner {
                     background: #102a6b;
                     color: #ffffff;
-                    font-size: 7.5pt;
+                    font-size: 7.2pt;
                     font-weight: 900;
-                    padding: 1.5px 6px;
+                    padding: 2px 6px;
                     border-radius: 3px;
                     text-transform: uppercase;
                     margin-bottom: 3px;
+                    letter-spacing: 0.3px;
                 }
                 .box-border {
                     border: 1px solid #cbd5e1;
-                    border-radius: 3px;
-                    padding: 3px 4px;
+                    border-radius: 4px;
+                    padding: 4px 5px;
                     background: #ffffff;
                 }
+                .field-label { font-weight: 800; color: #475569; font-size: 6.8pt; }
+                .field-val { font-weight: 700; color: #0f172a; }
                 .underline-field {
                     border-bottom: 1px solid #94a3b8;
                     display: inline-block;
@@ -223,48 +181,37 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
                     color: #0f172a;
                     padding-left: 2px;
                 }
-                .stg-item {
+                .sig-box {
+                    border: 1px dashed #94a3b8;
+                    border-radius: 4px;
+                    padding: 5px;
                     text-align: center;
                     font-size: 6.5pt;
-                    font-weight: 800;
-                    color: #64748b;
-                    flex: 1;
-                }
-                .stg-item.active { color: #102a6b; font-weight: 900; }
-                .stg-circle {
-                    width: 12px; height: 12px; border-radius: 50%;
-                    border: 1px solid #94a3b8; margin: 0 auto 1px auto;
-                    display: flex; align-items: center; justify-content: center;
-                    font-size: 7px; background: #ffffff;
-                }
-                .stg-item.active .stg-circle {
-                    background: #102a6b; border-color: #0f172a; color: #ffffff;
-                }
-                table { width: 100%; border-collapse: collapse; font-size: 7pt; }
-                th, td { border: 1px solid #cbd5e1; padding: 1.5px 3px; text-align: left; }
-                th { background: #f1f5f9; font-size: 6.5pt; text-transform: uppercase; font-weight: 800; }
-                .sig-box {
-                    border: 1px stroke #94a3b8; border-radius: 4px; border-style: dashed;
-                    padding: 3px; text-align: center; font-size: 6.5pt; background: #ffffff;
+                    background: #f8fafc;
+                    min-height: 48px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
                 }
                 .recipe-footer {
-                    margin-top: 10px; text-align: center; font-size: 8pt; color: #555;
-                    border-top: 1px solid #ddd; padding-top: 4px; width: 100%; page-break-inside: avoid;
+                    margin-top: 6px; text-align: center; font-size: 7pt; color: #64748b;
+                    border-top: 1px solid #e2e8f0; padding-top: 3px; width: 100%;
                 }
             </style>
         </head>
         <body>
             <div class="main-frame">
+                <!-- HEADER -->
                 <table class="hdr-table">
                     <tr>
-                        <td style="border:none; width: 20%;">
-                            <img src="/logo-clinica-dental.jpg" style="height: 46px; object-fit: contain;" onerror="this.style.display='none'" />
+                        <td style="width: 18%; vertical-align: middle;">
+                            <img src="/logo-clinica-dental.jpg" style="height: 44px; object-fit: contain;" onerror="this.style.display='none'" />
                         </td>
-                        <td style="border:none; text-align: center; width: 60%;">
+                        <td style="text-align: center; width: 62%; vertical-align: middle;">
                             <div class="hdr-title">ORDEN DE TRABAJO LABORATORIO DENTAL</div>
                             <div class="hdr-sub">REHABILITACIÓN ORAL - IMPLANTOLOGÍA - ODONTOLOGÍA DIGITAL</div>
                         </td>
-                        <td style="border:none; text-align: right; width: 20%;">
+                        <td style="text-align: right; width: 20%; vertical-align: middle;">
                             <div class="order-box">
                                 <div style="font-size: 6.5pt; font-weight: 800; color: #102a6b;">N° ORDEN</div>
                                 <div class="order-no">A&A-${String(trabajo.id).padStart(7, '0')}</div>
@@ -273,220 +220,193 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
                     </tr>
                 </table>
 
-                <div class="pill-header">1. DATOS GENERALES DE LA ORDEN</div>
-                <div class="box-border" style="margin-bottom: 3px;">
-                    <div style="display: grid; grid-template-columns: 1fr 1.2fr 1.3fr 1.2fr; gap: 4px; margin-bottom: 2px;">
-                        <div><b>Fecha y Hora:</b> <span class="underline-field">${formatDate(trabajo.fecha)} ${trabajo.hora || ''}</span></div>
-                        <div><b>Doctor Tratante:</b> <span class="underline-field">Dr. ${formatFullName(trabajo.doctor)}</span></div>
-                        <div><b>Paciente:</b> <span class="underline-field">${formatFullName(trabajo.paciente)}</span></div>
-                        <div><b>Laboratorio:</b> <span class="underline-field">${trabajo.laboratorio?.laboratorio || '-'}</span></div>
+                <!-- 1. DATOS GENERALES -->
+                <div class="sec-banner">1. DATOS GENERALES</div>
+                <div class="box-border" style="margin-bottom: 4px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1.3fr 1.3fr 1.2fr; gap: 4px; margin-bottom: 3px;">
+                        <div><span class="field-label">Fecha y Hora:</span> <span class="field-val">${formatDate(trabajo.fecha)} ${trabajo.hora || ''}</span></div>
+                        <div><span class="field-label">Doctor Tratante:</span> <span class="field-val">Dr. ${formatFullName(trabajo.doctor)}</span></div>
+                        <div><span class="field-label">Paciente:</span> <span class="field-val">${formatFullName(trabajo.paciente)}</span></div>
+                        <div><span class="field-label">Laboratorio Dental:</span> <span class="field-val">${trabajo.laboratorio?.laboratorio || '-'}</span></div>
                     </div>
-                    <div style="display: grid; grid-template-columns: 2fr 0.8fr 1fr; gap: 4px;">
-                        <div><b>Trabajo Solicitado:</b> <span class="underline-field" style="width: 75%;">${trabajo.precioLaboratorio?.detalle || '-'}</span></div>
-                        <div><b>Cantidad:</b> <span class="underline-field">${trabajo.cantidad} Unid.</span></div>
-                        <div><b>Monto Total:</b> <span class="underline-field" style="color: #102a6b; font-weight: 900;">Bs. ${formatNumber(trabajo.total)}</span></div>
+                    <div style="display: grid; grid-template-columns: 2.2fr 0.8fr 1fr; gap: 4px; padding-top: 2px; border-top: 1px dashed #e2e8f0;">
+                        <div><span class="field-label">Trabajo de Laboratorio:</span> <span class="field-val">${trabajo.precioLaboratorio?.detalle || '-'}</span></div>
+                        <div><span class="field-label">Cantidad:</span> <span class="field-val">${trabajo.cantidad || 1} Unid.</span></div>
+                        <div><span class="field-label">Total Bs:</span> <span class="field-val" style="color: #102a6b; font-weight: 900; font-size: 8pt;">Bs. ${formatNumber(trabajo.total)}</span></div>
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1.1fr 1fr 0.9fr; gap: 3px; margin-bottom: 3px;">
+                <!-- 2. TIPO DE RESTAURACIÓN & 3. DIENTES INVOLUCRADOS & PREPARACIÓN -->
+                <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 4px; margin-bottom: 4px;">
+                    <!-- 2. TIPO DE RESTAURACIÓN -->
                     <div class="box-border">
                         <div class="sec-banner">2. TIPO DE RESTAURACIÓN</div>
-                        <div style="display: grid; grid-template-columns: 1fr; gap: 0.5px;">
-                            ${restItems.map(item => chk(Boolean(d?.tipo_restauracion?.[item.key]), item.label)).join('')}
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1px 6px;">
+                            ${restItems.map(item => {
+                                const isChecked = Boolean(d?.tipo_restauracion?.[item.key] || (item.altKey && d?.tipo_restauracion?.[item.altKey]));
+                                return chk(isChecked, item.label);
+                            }).join('')}
+                        </div>
+                        <div style="margin-top: 3px; padding-top: 2px; border-top: 1px dashed #e2e8f0; font-size: 6.8pt;">
+                            <span class="field-label">Otro:</span> <span class="field-val">${d?.tipo_restauracion?.otro || '____________________'}</span>
                         </div>
                     </div>
 
-                    <div class="box-border" style="text-align: center;">
-                        <div class="sec-banner">3. DIENTES INVOLUCRADOS</div>
-                        <div style="font-size: 7.5pt; font-weight: bold; color: #dc2626; margin-bottom: 1px;">
-                            Dientes: ${trabajo.pieza || '____'}
+                    <!-- 3. DIENTES INVOLUCRADOS & PREPARACIÓN -->
+                    <div class="box-border" style="text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
+                        <div>
+                            <div class="sec-banner">3. DIENTES INVOLUCRADOS & PREPARACIÓN</div>
+                            <div style="font-size: 7.2pt; font-weight: 800; color: #dc2626; margin-bottom: 2px;">
+                                Dientes: ${trabajo.pieza || 'Ninguno'}
+                            </div>
+                            <div style="display: flex; justify-content: center; align-items: center;">
+                                ${generatePrintTeethArchSVG(selectedTeeth)}
+                            </div>
                         </div>
-                        <div style="display: flex; justify-content: center; align-items: center;">
-                            ${generatePrintTeethArchSVG(selectedTeeth)}
-                        </div>
-                        <div style="text-align: left; font-size: 6.5pt; border-t: 1px solid #e2e8f0; pt: 1px; margin-top: 1px;">
-                            <div><b>Tipo de Preparación:</b></div>
-                            ${['hombro', 'chaflan', 'vertical', 'bopt', 'chamfer_modificado', 'sin_preparacion'].map(k => chk(Boolean(d?.preparacion?.[k]), k.replace(/_/g, ' '))).join('')}
-                            <div style="margin-top: 1px;"><b>Lado:</b></div>
-                            ${['derecho', 'izquierdo', 'anterior', 'posterior'].map(k => chk(Boolean(d?.lado?.[k]), k)).join('')}
-                        </div>
+                        ${(d?.preparacion || d?.lado) ? `
+                            <div style="text-align: left; font-size: 6.5pt; border-top: 1px dashed #e2e8f0; padding-top: 2px; margin-top: 2px;">
+                                ${d.preparacion ? `<div><b>Preparación:</b> ${typeof d.preparacion === 'string' ? d.preparacion : Object.keys(d.preparacion).filter(k => d.preparacion[k]).join(', ')}</div>` : ''}
+                                ${d.lado ? `<div><b>Lado:</b> ${typeof d.lado === 'string' ? d.lado : Object.keys(d.lado).filter(k => d.lado[k]).join(', ')}</div>` : ''}
+                            </div>
+                        ` : ''}
                     </div>
+                </div>
 
+                <!-- 4. COLOR Y CARACTERIZACIONES | 5. INFORMACIÓN DIGITAL | 6. IMPLANTOLOGÍA -->
+                <div style="display: grid; grid-template-columns: 1.1fr 1fr 1.1fr; gap: 4px; margin-bottom: 4px;">
+                    <!-- 4. COLOR Y CARACTERIZACIONES -->
                     <div class="box-border">
-                        <div class="sec-banner">4. MATERIAL SOLICITADO</div>
-                        ${matItems.map(item => chk(Boolean(d?.material?.[item.key]), item.label)).join('')}
-                        ${d?.material?.otro ? `<div style="font-size: 7pt; font-weight: bold; margin-top: 1px;">Otro: ${d.material.otro}</div>` : ''}
-                    </div>
-
-                    <div class="box-border">
-                        <div class="sec-banner">5. COLOR</div>
+                        <div class="sec-banner">4. COLOR Y CARACTERIZACIONES</div>
                         <div style="margin-bottom: 2px;">
-                            <div><b>Color Principal:</b> <span class="underline-field">${trabajo.color || '____'}</span></div>
-                            <div><b>Color Muñón:</b> <span class="underline-field">${d?.caracterizaciones?.color_munon || '____'}</span></div>
+                            <span class="field-label">Color Principal:</span>
+                            <span class="field-val" style="color: #102a6b; font-weight: 900;">${trabajo.color || '-'}</span>
                         </div>
-                        <div style="font-weight: bold; font-size: 6.5pt; margin-bottom: 1px;">Caracterizaciones:</div>
-                        ${['cervical', 'incisal', 'halo', 'craquelado', 'opalescencia', 'fluorescencia'].map(k => chk(Boolean(d?.caracterizaciones?.[k]), k)).join('')}
-                        <div style="margin-top: 2px; border-t: 1px dashed #cbd5e1; pt: 1px;">
-                            ${chk(Boolean(d?.caracterizaciones?.fotografias_adjuntas), 'Fotografías adjuntas')}
-                            ${chk(Boolean(d?.caracterizaciones?.escaneo_facial), 'Escaneo facial')}
-                        </div>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 3px; margin-bottom: 3px;">
-                    <div class="box-border">
-                        <div class="sec-banner">6. OCLUSIÓN</div>
-                        ${chk(Boolean(d?.oclusion?.mi), 'MI (Máxima Intercuspidación)')}
-                        ${chk(Boolean(d?.oclusion?.rc), 'RC (Relación Céntrica)')}
-                        ${chk(Boolean(d?.oclusion?.guia_canina), 'Guía Canina')}
-                        ${chk(Boolean(d?.oclusion?.funcion_grupo), 'Función de Grupo')}
-                        ${chk(Boolean(d?.oclusion?.mordida_abierta), 'Mordida Abierta')}
-                        ${chk(Boolean(d?.oclusion?.mordida_cruzada), 'Mordida Cruzada')}
-                        <div style="margin-top: 2px;">
-                            <div>Sobremordida: <span class="underline-field">${d?.oclusion?.sobremordida_mm || '___'}</span> mm</div>
-                            <div>Resalte: <span class="underline-field">${d?.oclusion?.resalte_mm || '___'}</span> mm</div>
+                        <div>
+                            <span class="field-label">Caracterizaciones:</span>
+                            <div style="font-size: 6.8pt; min-height: 24px; color: #1e293b; background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 3px; padding: 2px 4px; margin-top: 1px;">
+                                ${d?.caracterizaciones?.detalle || (typeof d?.caracterizaciones === 'string' ? d.caracterizaciones : '') || '-'}
+                            </div>
                         </div>
                     </div>
 
+                    <!-- 5. INFORMACIÓN DIGITAL -->
                     <div class="box-border">
-                        <div class="sec-banner">7. INFORMACIÓN DIGITAL</div>
+                        <div class="sec-banner">5. INFORMACIÓN DIGITAL</div>
                         ${chk(Boolean(d?.digital?.escaneo_intraoral), 'Escaneo Intraoral')}
-                        ${chk(Boolean(d?.digital?.stl || d?.digital?.ply || d?.digital?.dcm), 'STL / PLY / DCM')}
-                        ${chk(Boolean(d?.digital?.cbct), 'CBCT')}
-                        ${chk(Boolean(d?.digital?.fotografias), 'Fotografías')}
-                        ${chk(Boolean(d?.digital?.diseno_exocad), 'Diseño Exocad')}
-                        ${chk(Boolean(d?.digital?.diseno_3shape), 'Diseño 3Shape')}
-                        ${chk(Boolean(d?.digital?.smile_design), 'Smile Design')}
+                        <div style="margin-top: 4px;">
+                            <span class="field-label">Marca:</span>
+                            <span class="field-val">${d?.digital?.marca || '-'}</span>
+                        </div>
                     </div>
 
+                    <!-- 6. IMPLANTOLOGÍA -->
                     <div class="box-border">
-                        <div class="sec-banner">8. IMPLANTOLOGÍA</div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px;">
-                            <div>Sistema: <span class="underline-field">${d?.implantologia?.sistema || '____'}</span></div>
-                            <div>Torque: <span class="underline-field">${d?.implantologia?.torque_ncm || '____'}</span> Ncm</div>
-                            <div>Marca: <span class="underline-field">${d?.implantologia?.marca || '____'}</span></div>
-                            <div>Diámetro: <span class="underline-field">${d?.implantologia?.diametro_mm || '____'}</span> mm</div>
-                            <div>Longitud: <span class="underline-field">${d?.implantologia?.longitud_mm || '____'}</span> mm</div>
-                            <div>Plataforma: <span class="underline-field">${d?.implantologia?.plataforma || '____'}</span></div>
+                        <div class="sec-banner">6. IMPLANTOLOGÍA</div>
+                        <div>
+                            <span class="field-label">Detalle:</span>
+                            <div style="font-size: 6.8pt; min-height: 32px; color: #1e293b; background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 3px; padding: 2px 4px; margin-top: 1px;">
+                                ${d?.implantologia?.detalle || (typeof d?.implantologia === 'string' ? d.implantologia : '') || '-'}
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1.3fr 1fr 0.8fr 1.1fr; gap: 3px; margin-bottom: 3px;">
+                <!-- 7. PRUEBAS | 8. URGENCIA | FOTOGRAFÍAS / REFERENCIAS -->
+                <div style="display: grid; grid-template-columns: 1.2fr 0.9fr 1.1fr; gap: 4px; margin-bottom: 4px;">
+                    <!-- 7. PRUEBAS -->
                     <div class="box-border">
-                        <div class="sec-banner">9. FASE DE LABORATORIO</div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
-                            ${PROCESS_STAGES.slice(0, 6).map(stg => {
-                                const isActive = activeList.includes(stg.key);
-                                return `
-                                    <div class="stg-item ${isActive ? 'active' : ''}">
-                                        <div class="stg-circle">${isActive ? '✓' : ''}</div>
-                                        <div>${stg.label}</div>
-                                    </div>
-                                `;
-                            }).join('<div style="color: #cbd5e1; font-size: 5pt;">→</div>')}
+                        <div class="sec-banner">7. PRUEBAS</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1px 4px; margin-bottom: 2px;">
+                            ${pruebasList.map(item => chk(Boolean(d?.pruebas?.[item.key]), item.label)).join('')}
                         </div>
-
-                        <div style="display: flex; justify-content: space-around; align-items: center; padding-top: 2px; border-top: 1px dashed #cbd5e1;">
-                            ${PROCESS_STAGES.slice(6).map(stg => {
-                                const isActive = activeList.includes(stg.key);
-                                return `
-                                    <div class="stg-item ${isActive ? 'active' : ''}">
-                                        <div class="stg-circle">${isActive ? '✓' : ''}</div>
-                                        <div>${stg.label}</div>
-                                    </div>
-                                `;
-                            }).join('<div style="color: #cbd5e1; font-size: 5pt;">→</div>')}
+                        <div style="margin-top: 2px; padding-top: 2px; border-top: 1px dashed #e2e8f0;">
+                            <span class="field-label">Detalle:</span>
+                            <span class="field-val" style="font-size: 6.5pt;">${d?.pruebas?.detalle || '-'}</span>
                         </div>
                     </div>
 
+                    <!-- 8. URGENCIA -->
                     <div class="box-border">
-                        <div class="sec-banner">10. PRUEBAS</div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5px;">
-                            ${pruebasItems.map(item => chk(Boolean(d?.pruebas?.[item.key]), item.label)).join('')}
+                        <div class="sec-banner">8. URGENCIA</div>
+                        <div style="display: flex; flex-direction: column; gap: 2px;">
+                            ${chk(urgenciaVal === 'Normal', '⚪ Normal')}
+                            ${chk(urgenciaVal === 'Prioritario', '🟡 Prioritario')}
+                            ${chk(urgenciaVal === 'Urgente 24 h', '🟠 Urgente 24 h')}
+                            ${chk(urgenciaVal === 'Express', '🔴 Express')}
                         </div>
                     </div>
 
-                    <div class="box-border">
-                        <div class="sec-banner">11. URGENCIA</div>
-                        ${chk(d?.urgencia === 'Normal' || trabajo.estado === 'normal' || (!d?.urgencia && !trabajo.estado), 'Normal')}
-                        ${chk(d?.urgencia === 'Prioritario' || trabajo.estado === 'prioritario', 'Prioritario')}
-                        ${chk(d?.urgencia === 'Urgente 24 h' || trabajo.estado === 'urgente_24h', 'Urgente 24 h')}
-                        ${chk(d?.urgencia === 'Express' || trabajo.estado === 'express', 'Express')}
-                    </div>
-
-                    <div class="box-border">
-                        <div class="sec-banner">12. CONTROL DE TIEMPOS</div>
-                        <div style="font-size: 6.5pt;">
-                            <div>Recepción: <span class="underline-field">${formatDate(trabajo.fecha)}</span></div>
-                            <div>Prueba Est.: <span class="underline-field">${trabajo.fecha_prueba_estimada ? formatDate(trabajo.fecha_prueba_estimada) : '____'}</span></div>
-                            <div>Entrega Est.: <span class="underline-field">${trabajo.fecha_pedido ? formatDate(trabajo.fecha_pedido) : '____'}</span></div>
-                            <div>Entrega Real: <span class="underline-field">${trabajo.fecha_terminado ? formatDate(trabajo.fecha_terminado) : '____'}</span></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 3px; margin-bottom: 3px;">
-                    <div class="box-border">
-                        <div class="sec-banner">13. OBSERVACIONES CLÍNICAS / INSTRUCCIONES ESPECIALES</div>
-                        <div style="font-size: 7.5pt; min-height: 25px; border-bottom: 1px dashed #cbd5e1; margin-bottom: 2px;">
-                            ${trabajo.observaciones || trabajo.observacion || ''}
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 2px; font-size: 6.5pt;">
-                            <div>Línea Media: <span class="underline-field">___</span></div>
-                            <div>Plano Oclusal: <span class="underline-field">___</span></div>
-                            <div>Papilas: <span class="underline-field">___</span></div>
-                            <div>Perfil Emergencia: <span class="underline-field">___</span></div>
-                        </div>
-                    </div>
-
+                    <!-- FOTOGRAFÍAS / REFERENCIAS -->
                     <div class="box-border">
                         <div class="sec-banner">FOTOGRAFÍAS / REFERENCIAS</div>
-                        <div style="display: flex; gap: 3px; justify-content: center; align-items: center;">
+                        <div style="display: flex; gap: 4px; justify-content: center; align-items: center; min-height: 38px;">
                             ${photos.length > 0 ? photos.slice(0, 3).map(p => `
-                                <img src="${getImageUrl(p)}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 3px; border: 1px stroke #cbd5e1;" />
+                                <img src="${getImageUrl(p)}" style="width: 38px; height: 38px; object-fit: cover; border-radius: 3px; border: 1px solid #cbd5e1;" />
                             `).join('') : `
-                                <div style="width: 35px; height: 35px; border: 1px dashed #94a3b8; border-radius: 3px;"></div>
-                                <div style="width: 35px; height: 35px; border: 1px dashed #94a3b8; border-radius: 3px;"></div>
-                                <div style="width: 35px; height: 35px; border: 1px dashed #94a3b8; border-radius: 3px;"></div>
+                                <span style="font-size: 6.5pt; color: #94a3b8; font-style: italic;">Sin fotografías adjuntas</span>
                             `}
                         </div>
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1.2fr 2fr; gap: 3px;">
-                    <div class="box-border">
-                        <div class="sec-banner">14. CONTROL DE CALIDAD</div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5px;">
-                            ${calItems.map(item => chk(Boolean(d?.control_calidad?.[item.key]), item.label)).join('')}
+                <!-- 9. CONTROL DE TIEMPOS Y ESTADO DEL TRABAJO -->
+                <div class="sec-banner">9. CONTROL DE TIEMPOS Y ESTADO DEL TRABAJO</div>
+                <div class="box-border" style="margin-bottom: 4px;">
+                    <div style="display: grid; grid-template-columns: 1.1fr 1fr 1fr 1fr 1fr; gap: 4px; text-align: center;">
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 3px; padding: 2px;">
+                            <div class="field-label" style="font-size: 6pt; text-transform: uppercase;">Estado del Trabajo</div>
+                            <div class="field-val" style="color: ${trabajo.estado === 'terminado' ? '#16a34a' : '#d97706'}; font-size: 7.2pt; text-transform: uppercase;">
+                                ${trabajo.estado || 'no terminado'}
+                            </div>
                         </div>
-                        <div style="text-align: center; margin-top: 2px; font-weight: 900; color: #102a6b; font-size: 6.5pt;">
-                            ★ CALIDAD A&A - EXCELENCIA GARANTIZADA ★
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 3px; padding: 2px;">
+                            <div class="field-label" style="font-size: 6pt; text-transform: uppercase;">Fecha de Envío</div>
+                            <div class="field-val">${fechaEnvio}</div>
+                        </div>
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 3px; padding: 2px;">
+                            <div class="field-label" style="font-size: 6pt; text-transform: uppercase;">Hora de Envío</div>
+                            <div class="field-val">${horaEnvio}</div>
+                        </div>
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 3px; padding: 2px;">
+                            <div class="field-label" style="font-size: 6pt; text-transform: uppercase;">Fecha de Entrega</div>
+                            <div class="field-val" style="color: #1e40af;">${fechaEntrega}</div>
+                        </div>
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 3px; padding: 2px;">
+                            <div class="field-label" style="font-size: 6pt; text-transform: uppercase;">Hora de Entrega</div>
+                            <div class="field-val" style="color: #b45309;">${horaEntrega}</div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="box-border">
-                        <div class="sec-banner">15. FIRMAS</div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 3px; margin-bottom: 2px;">
-                            <div class="sig-box">Doctor<br/><br/>Fecha: __/__/____</div>
-                            <div class="sig-box">Laboratorio<br/><br/>Fecha: __/__/____</div>
-                            <div class="sig-box">Recepción<br/><br/>Fecha: __/__/____</div>
-                            <div class="sig-box">Entrega<br/><br/>Fecha: __/__/____</div>
-                        </div>
-                        <div style="text-align: center; font-size: 6.5pt;">
-                            Paciente (opcional): <span class="underline-field" style="width: 120px;"></span> Fecha: <span class="underline-field" style="width: 60px;"></span>
-                        </div>
+                <!-- 10. OBSERVACIONES CLÍNICAS / INSTRUCCIONES ESPECIALES -->
+                <div class="sec-banner">10. OBSERVACIONES CLÍNICAS / INSTRUCCIONES ESPECIALES</div>
+                <div class="box-border" style="min-height: 38px; font-size: 7pt; margin-bottom: 5px; color: #1e293b; white-space: pre-line;">
+                    ${trabajo.observacion || trabajo.observaciones || 'Sin observaciones adicionales.'}
+                </div>
+
+                <!-- FIRMAS -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div class="sig-box">
+                        <div style="font-weight: 800; color: #102a6b;">Dr. ${formatFullName(trabajo.doctor)}</div>
+                        <div style="border-top: 1px solid #94a3b8; margin: 18px 20px 2px 20px;"></div>
+                        <div style="color: #64748b; font-weight: 700;">Firma Doctor Tratante</div>
+                    </div>
+                    <div class="sig-box">
+                        <div style="font-weight: 800; color: #102a6b;">${trabajo.laboratorio?.laboratorio || 'Laboratorio Dental'}</div>
+                        <div style="border-top: 1px solid #94a3b8; margin: 18px 20px 2px 20px;"></div>
+                        <div style="color: #64748b; font-weight: 700;">Firma Laboratorio Dental</div>
                     </div>
                 </div>
             </div>
 
+            <!-- FOOTER -->
             ${centroDental ? `
                 <div class="recipe-footer">
-                    ${centroDental.direccion ? `Dirección: ${centroDental.direccion} | ` : ''}
-                    ${centroDental.telefono ? `Teléfono: ${centroDental.telefono} | ` : ''}
-                    ${centroDental.celular ? `Celular: ${centroDental.celular} | ` : ''}
-                    ${centroDental.emergencias ? `Emergencias: ${centroDental.emergencias} | ` : ''}
-                    ${centroDental.email ? `Email: ${centroDental.email}` : ''}
+                    ${centroDental.direccion ? `<b>Dirección:</b> ${centroDental.direccion} | ` : ''}
+                    ${centroDental.telefono ? `<b>Teléfono:</b> ${centroDental.telefono} | ` : ''}
+                    ${centroDental.celular ? `<b>Celular:</b> ${centroDental.celular} | ` : ''}
+                    ${centroDental.emergencias ? `<b>Emergencias:</b> ${centroDental.emergencias} | ` : ''}
+                    ${centroDental.email ? `<b>Email:</b> ${centroDental.email}` : ''}
                 </div>
             ` : ''}
         </body>

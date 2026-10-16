@@ -53,6 +53,10 @@ export class PropuestasService {
             total: total,
             detalles: activeDetails.map(d => {
                 const itemTotal = Number(d.total) || (Number(d.precioUnitario) * Number(d.cantidad));
+                const gross = Number(d.precioUnitario) * Number(d.cantidad);
+                const inferredDiscount = Number(d.descuento) > 0
+                    ? Number(d.descuento)
+                    : (gross > 0 && gross - itemTotal > 0.01 ? Math.round((1 - itemTotal / gross) * 100) : 0);
                 return {
                     arancelId: d.arancelId,
                     precioUnitario: Number(d.precioUnitario),
@@ -60,7 +64,7 @@ export class PropuestasService {
                     piezas: d.piezas,
                     cantidad: Number(d.cantidad),
                     subTotal: itemTotal, // Static mapping for ProformaDetalle
-                    descuento: 0, // Individual discounts are cleared in favor of the global one
+                    descuento: inferredDiscount,
                     total: itemTotal, // Before global discount, individual total is just subtotal
                     posible: Boolean(d.posible)
                 };
@@ -111,6 +115,7 @@ export class PropuestasService {
                 detalle.precioUnitario = item.precioUnitario;
                 detalle.piezas = item.piezas || '';
                 detalle.cantidad = item.cantidad;
+                detalle.descuento = item.descuento || 0;
                 detalle.total = item.total;
                 detalle.posible = item.posible || false;
                 return detalle;
@@ -224,6 +229,7 @@ export class PropuestasService {
                     detalle.precioUnitario = item.precioUnitario;
                     detalle.piezas = item.piezas || '';
                     detalle.cantidad = item.cantidad;
+                    detalle.descuento = item.descuento || 0;
                     detalle.total = item.total;
                     detalle.posible = item.posible || false;
 

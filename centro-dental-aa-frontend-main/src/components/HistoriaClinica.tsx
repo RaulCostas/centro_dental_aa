@@ -151,12 +151,14 @@ const HistoriaClinica: React.FC = () => {
         }
     };
 
-    const fetchHistoria = async () => {
+    const fetchHistoria = async (): Promise<HistoriaClinicaType[]> => {
         try {
             const response = await api.get(`/historia-clinica/paciente/${id}`);
             setHistoria(response.data);
+            return response.data;
         } catch (error) {
             console.error('Error fetching historia:', error);
+            return [];
         }
     };
 
@@ -270,7 +272,12 @@ const HistoriaClinica: React.FC = () => {
         });
     };
 
-    const handlePrintHistory = async () => {
+    const handlePrintHistory = async (customHistoria?: HistoriaClinicaType[] | any, customProformaId?: number) => {
+        const targetProformaId = customProformaId !== undefined ? customProformaId : selectedProformaId;
+        const listToPrint: HistoriaClinicaType[] = Array.isArray(customHistoria)
+            ? customHistoria
+            : filteredHistoria;
+
         const doc = new jsPDF();
 
         try {
@@ -306,7 +313,7 @@ const HistoriaClinica: React.FC = () => {
 
         // Patient info box with blue border (matching Próxima Cita format)
         const boxY = 40;
-        const boxHeight = selectedProformaId > 0 ? 18 : 12;
+        const boxHeight = targetProformaId > 0 ? 18 : 12;
 
         // Gray background
         doc.setFillColor(248, 249, 250); // #f8f9fa
@@ -327,8 +334,8 @@ const HistoriaClinica: React.FC = () => {
         doc.text(pacienteNombre.toUpperCase(), 45, boxY + 6);
 
         // Plan de Tratamiento info
-        if (selectedProformaId > 0) {
-            const proforma = proformas.find(p => p.id === selectedProformaId);
+        if (targetProformaId > 0) {
+            const proforma = proformas.find(p => p.id === targetProformaId);
             if (proforma) {
                 doc.setFont('helvetica', 'bold');
                 doc.text('PLAN DE TRATAMIENTO:', 20, boxY + 13);
@@ -338,9 +345,9 @@ const HistoriaClinica: React.FC = () => {
         }
 
         // Table
-        if (filteredHistoria.length > 0) {
+        if (listToPrint.length > 0) {
             const tableColumn = ["Fecha", "Pieza", "Tratamiento", "Observaciones", "Cant.", "Doctor", "Diagnóstico", "Estado"];
-            const tableRows = filteredHistoria.map(item => [
+            const tableRows = listToPrint.map(item => [
                 formatDate(item.fecha),
                 item.pieza || '-',
                 item.tratamiento || '-',
@@ -385,7 +392,7 @@ const HistoriaClinica: React.FC = () => {
             });
         }
 
-        const historiaWithFirma = filteredHistoria.slice().reverse().find(h => h.firmaPaciente);
+        const historiaWithFirma = listToPrint.slice().reverse().find(h => h.firmaPaciente);
         if (historiaWithFirma && historiaWithFirma.firmaPaciente) {
             try {
                 const finalY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY : 150;
@@ -513,9 +520,30 @@ const HistoriaClinica: React.FC = () => {
                                     <div className="mb-6">
                                         <HistoriaClinicaForm
                                             pacienteId={Number(id)}
-                                            onSuccess={() => {
-                                                fetchHistoria();
+                                            onSuccess={async (opts) => {
+                                                const updatedHistoria = await fetchHistoria();
                                                 setShowForm(false);
+                                                if (opts?.estadoPresupuesto === 'terminado') {
+                                                    const targetProformaId = opts.proformaId || selectedProformaId;
+                                                    const result = await Swal.fire({
+                                                        icon: 'success',
+                                                        title: 'Plan de Tratamiento Terminado',
+                                                        text: '¿Desea imprimir toda la historia clínica de este presupuesto?',
+                                                        showCancelButton: true,
+                                                        confirmButtonColor: '#3498db',
+                                                        cancelButtonColor: '#6b7280',
+                                                        confirmButtonText: 'Sí, imprimir',
+                                                        cancelButtonText: 'No, cerrar',
+                                                        background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                                                        color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
+                                                    });
+                                                    if (result.isConfirmed) {
+                                                        const listForProforma = targetProformaId
+                                                            ? updatedHistoria.filter((h: HistoriaClinicaType) => h.proformaId === targetProformaId)
+                                                            : updatedHistoria;
+                                                        await handlePrintHistory(listForProforma, targetProformaId);
+                                                    }
+                                                }
                                             }}
                                             historiaToEdit={historiaToEdit}
                                             onCancelEdit={handleCancelEdit}

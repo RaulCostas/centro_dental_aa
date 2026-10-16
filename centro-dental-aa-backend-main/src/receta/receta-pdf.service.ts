@@ -143,9 +143,9 @@ export class RecetaPdfService {
                 receta.detalles.forEach((detalle: any, index: number) => {
                     const rowColor = index % 2 === 0 ? '#f8f9fa' : null;
                     tableBody.push([
-                        { text: detalle.medicamento || '', alignment: 'left', fillColor: rowColor, fontSize: 10 },
-                        { text: detalle.cantidad || '', alignment: 'center', fillColor: rowColor, fontSize: 10 },
-                        { text: detalle.indicacion || '', alignment: 'left', fillColor: rowColor, fontSize: 10 }
+                        { text: detalle.medicamento || '', alignment: 'left', fillColor: rowColor, fontSize: 12 },
+                        { text: detalle.cantidad || '', alignment: 'center', fillColor: rowColor, fontSize: 12 },
+                        { text: detalle.indicacion || '', alignment: 'left', fillColor: rowColor, fontSize: 12 }
                     ]);
                 });
 
@@ -308,7 +308,7 @@ export class RecetaPdfService {
                 styles: {
                     tableHeader: {
                         bold: true,
-                        fontSize: 10,
+                        fontSize: 12,
                         color: 'white',
                         fillColor: '#3498db'
                     }
@@ -565,7 +565,7 @@ export class RecetaPdfService {
                 styles: {
                     tableHeader: {
                         bold: true,
-                        fontSize: 10,
+                        fontSize: 12,
                         color: 'white',
                         fillColor: '#3498db'
                     }

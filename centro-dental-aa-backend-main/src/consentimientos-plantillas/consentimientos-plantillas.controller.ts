@@ -18,8 +18,8 @@ export class ConsentimientosPlantillasController {
     @Query('limit') limit?: string,
     @Query('search') search?: string,
   ) {
-    const pageNum = page ? parseInt(page, 10) : 1;
-    const limitNum = limit ? parseInt(limit, 10) : 10;
+    const pageNum = page ? parseInt(page, 10) : undefined;
+    const limitNum = limit ? parseInt(limit, 10) : undefined;
     return this.consentimientosPlantillasService.findAll(pageNum, limitNum, search);
   }
 

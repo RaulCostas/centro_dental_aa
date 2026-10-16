@@ -10,6 +10,7 @@ import { formatFullName, getImageUrl } from '../utils/formatters';
 import ManualModal, { type ManualSection } from './ManualModal';
 import SignatureModal from './SignatureModal';
 import RecetarioForm from './RecetarioForm';
+import { promptWhatsAppNumber } from '../utils/whatsappHelper';
 
 import { ClipboardList, Printer, Stethoscope } from 'lucide-react';
 
@@ -242,13 +243,13 @@ const RecetarioList: React.FC = () => {
                         text-align: left;
                         font-weight: bold;
                         border: 1px solid #cccccc;
-                        font-size: 11px;
+                        font-size: 12px;
                     }
                     
                     td {
                         padding: 8px;
                         border: 1px solid #ddd;
-                        font-size: 10px;
+                        font-size: 12px;
                     }
                     
                     .text-center {
@@ -503,10 +504,30 @@ const RecetarioList: React.FC = () => {
     };
 
     const handleWhatsApp = async (receta: Receta) => {
-        if (!receta.paciente?.celular) {
-            Swal.fire('Atención', 'El paciente no tiene número de celular registrado', 'warning');
-            return;
+        let defaultPhone = receta.paciente?.telefono_celular || (receta.paciente as any)?.celular || (receta.paciente as any)?.telefono || '';
+        
+        // Si no vino cargado en la receta, obtenerlo directamente del paciente
+        const targetPacienteId = receta.pacienteId || pacienteIdNum || receta.paciente?.id;
+        if (!defaultPhone && targetPacienteId) {
+            try {
+                const res = await api.get(`/pacientes/${targetPacienteId}`);
+                if (res.data) {
+                    defaultPhone = res.data.telefono_celular || res.data.celular || res.data.telefono || '';
+                    if (!receta.paciente) {
+                        receta.paciente = res.data;
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching paciente data for receta:', err);
+            }
         }
+
+        const celular = await promptWhatsAppNumber({
+            defaultPhone,
+            title: 'Enviar Receta por WhatsApp',
+            subtitle: receta.paciente ? `Paciente: ${formatFullName(receta.paciente)}` : undefined
+        });
+        if (!celular) return;
 
         // Show loading
         Swal.fire({
@@ -519,7 +540,7 @@ const RecetarioList: React.FC = () => {
         });
 
         try {
-            const response = await api.post(`/receta/${receta.id}/send-whatsapp`);
+            const response = await api.post(`/receta/${receta.id}/send-whatsapp`, { celular });
 
             Swal.fire({
                 icon: 'success',
