@@ -569,7 +569,7 @@ const TrabajoLaboratorioViewModal: React.FC<Props> = ({ isOpen, onClose, trabajo
                                                 Hora de Entrega:
                                             </label>
                                             <div className="w-full px-3 py-2 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 font-bold text-center">
-                                                {trabajo.hora_entrega || d?.control_tiempos?.hora_entrega || '-'}
+                                                {(trabajo as any).hora_entrega || d?.control_tiempos?.hora_entrega || '-'}
                                             </div>
                                         </div>
                                     </div>
@@ -582,7 +582,7 @@ const TrabajoLaboratorioViewModal: React.FC<Props> = ({ isOpen, onClose, trabajo
                                         10. OBSERVACIONES CLÍNICAS / INSTRUCCIONES ESPECIALES
                                     </h3>
                                     <div className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 text-gray-800 dark:text-white text-xs font-medium whitespace-pre-line min-h-[50px]">
-                                        {trabajo.observacion || trabajo.observaciones || 'Sin observaciones o instrucciones especiales registradas.'}
+                                        {trabajo.observacion || (trabajo as any).observaciones || 'Sin observaciones o instrucciones especiales registradas.'}
                                     </div>
                                 </div>
                             </>

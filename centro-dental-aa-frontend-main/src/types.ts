@@ -820,7 +820,9 @@ export interface TrabajoLaboratorio {
     fecha_prueba_estimada?: string;
     color: string;
     estado: string;
+    hora_entrega?: string;
     observacion: string;
+    observaciones?: string;
     fecha_terminado?: string;
     pagado: string;
     precio_unitario: number;
