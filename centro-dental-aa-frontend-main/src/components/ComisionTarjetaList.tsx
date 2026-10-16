@@ -16,7 +16,7 @@ const ComisionTarjetaList: React.FC = () => {
     const [showManual, setShowManual] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5;
+    const itemsPerPage = 10;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedId, setSelectedId] = useState<number | null>(null);

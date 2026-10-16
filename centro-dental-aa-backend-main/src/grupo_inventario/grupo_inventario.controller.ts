@@ -18,7 +18,7 @@ export class GrupoInventarioController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.grupoInventarioService.findAll(search, page ? +page : 1, limit ? +limit : 5);
+    return this.grupoInventarioService.findAll(search, page ? +page : 1, limit ? +limit : 10);
   }
 
   @Get(':id')

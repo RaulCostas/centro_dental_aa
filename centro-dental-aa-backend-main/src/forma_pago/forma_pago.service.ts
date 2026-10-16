@@ -25,7 +25,7 @@ export class FormaPagoService {
         return this.formaPagoRepository.save(formaPago);
     }
 
-    async findAll(search?: string, page: number = 1, limit: number = 5): Promise<{
+    async findAll(search?: string, page: number = 1, limit: number = 10): Promise<{
         data: FormaPago[];
         total: number;
         page: number;

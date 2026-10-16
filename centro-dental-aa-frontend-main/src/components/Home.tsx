@@ -26,7 +26,7 @@ const Home: React.FC = () => {
     const [selectedGasto, setSelectedGasto] = useState<GastoFijo | null>(null);
     const [noRegistrados, setNoRegistrados] = useState<any[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5;
+    const itemsPerPage = 10;
 
 
     const [loading, setLoading] = useState(true);

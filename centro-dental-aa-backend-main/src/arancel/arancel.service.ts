@@ -37,7 +37,7 @@ export class ArancelService {
         }
     }
 
-    async findAll(search?: string, page: number = 1, limit: number = 5, tipo?: string) {
+    async findAll(search?: string, page: number = 1, limit: number = 10, tipo?: string) {
         try {
             const skip = (page - 1) * limit;
             let where: any = {};

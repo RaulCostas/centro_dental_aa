@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import ManualModal, { type ManualSection } from './ManualModal';
 import { ShoppingCart } from 'lucide-react';
+import Pagination from './Pagination';
 
 interface GrupoInventario {
     id: number;
@@ -48,6 +49,8 @@ const EstadisticasProductos: React.FC = () => {
     const [history, setHistory] = useState<ProductHistory[]>([]);
     const [loading, setLoading] = useState(false);
     const [showManual, setShowManual] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     const manualSections: ManualSection[] = [
         {
@@ -97,6 +100,7 @@ const EstadisticasProductos: React.FC = () => {
 
     const fetchHistory = async () => {
         setLoading(true);
+        setCurrentPage(1);
         try {
             const response = await api.get(`/pedidos/history/${selectedProductId}?year=${year}`);
             setHistory(response.data);
@@ -121,6 +125,12 @@ const EstadisticasProductos: React.FC = () => {
         precio_unitario: Number(item.precio_unitario),
         formattedDate: formatDate(item.fecha)
     }));
+
+    const totalPages = Math.ceil(history.length / itemsPerPage);
+    const paginatedHistory = history.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
 
     const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
@@ -300,7 +310,7 @@ const EstadisticasProductos: React.FC = () => {
                                     </td>
                                 </tr>
                             ) : (
-                                history.map((item, index) => (
+                                paginatedHistory.map((item, index) => (
                                     <tr key={index} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                                         <td className="p-3 text-gray-800 dark:text-gray-300">{formatDate(item.fecha)}</td>
                                         <td className="p-3 text-gray-900 dark:text-white font-medium">{item.proveedor}</td>
@@ -319,6 +329,16 @@ const EstadisticasProductos: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {history.length > itemsPerPage && (
+                    <div className="p-4 border-t border-gray-100 dark:border-gray-700">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                        />
+                    </div>
+                )}
             </div>
 
             <ManualModal

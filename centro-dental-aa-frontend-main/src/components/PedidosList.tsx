@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import type { Pedidos } from '../types';
@@ -13,6 +13,7 @@ import PedidoViewModal from './PedidoViewModal';
 import PagosPedidosForm from './PagosPedidosForm';
 import PedidosForm from './PedidosForm';
 import { formatNumber } from '../utils/formatters';
+import Pagination from './Pagination';
 
 import { FileText, Download, Printer, ShoppingCart } from 'lucide-react';
 
@@ -31,6 +32,8 @@ const PedidosList: React.FC = () => {
     const [selectedPedidoForPayment, setSelectedPedidoForPayment] = useState<number | null>(null);
     const [isPedidoFormOpen, setIsPedidoFormOpen] = useState(false);
     const [selectedEditId, setSelectedEditId] = useState<number | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     const manualSections: ManualSection[] = [
         {
@@ -494,6 +497,12 @@ const PedidosList: React.FC = () => {
         p.proveedor?.proveedor.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const totalPages = Math.ceil(filteredPedidos.length / itemsPerPage);
+    const paginatedPedidos = filteredPedidos.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
     if (loading) return <div className="text-center p-4">Cargando...</div>;
 
     return (
@@ -601,7 +610,7 @@ const PedidosList: React.FC = () => {
             </div>
 
             <div className="text-sm text-gray-500 dark:text-gray-400 mb-4 font-medium">
-                Mostrando {filteredPedidos.length === 0 ? 0 : 1} - {filteredPedidos.length} de {pedidos.length} registros
+                Mostrando {filteredPedidos.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredPedidos.length)} de {filteredPedidos.length} registros
             </div>
 
             <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors">
@@ -619,9 +628,9 @@ const PedidosList: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        {filteredPedidos.map((pedido, index) => (
+                        {paginatedPedidos.map((pedido, index) => (
                             <tr key={pedido.id} className="hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
-                                <td className="p-3 text-gray-800 dark:text-gray-300">{index + 1}</td>
+                                <td className="p-3 text-gray-800 dark:text-gray-300">{(currentPage - 1) * itemsPerPage + index + 1}</td>
                                 <td className="p-3 text-gray-800 dark:text-gray-300">{formatDate(pedido.fecha)}</td>
                                 <td className="p-3 text-gray-800 dark:text-gray-300">{pedido.proveedor?.proveedor}</td>
                                 <td className="p-3 text-gray-800 dark:text-gray-300">{formatNumber(Number(pedido.Sub_Total))}</td>
@@ -635,8 +644,8 @@ const PedidosList: React.FC = () => {
                                 <td className="p-3 flex gap-2">
                                     <button
                                         onClick={() => {
-                                            setSelectedPedidoId(pedido.id);
-                                            setIsViewModalOpen(true);
+                                             setSelectedPedidoId(pedido.id);
+                                             setIsViewModalOpen(true);
                                         }}
                                         className="p-2 bg-[#3498db] text-white rounded-lg hover:bg-blue-600 shadow-md transition-all transform hover:-translate-y-0.5 flex items-center justify-center"
                                         title="Ver Detalles"
@@ -700,6 +709,15 @@ const PedidosList: React.FC = () => {
                 <p style={{ textAlign: 'center', marginTop: '20px', color: '#6c757d' }}>
                     {searchTerm ? 'No se encontraron pedidos con ese proveedor' : 'No hay pedidos registrados'}
                 </p>
+            )}
+
+            {/* Pagination Component */}
+            {filteredPedidos.length > itemsPerPage && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                />
             )}
             {/* Manual Modal */}
             <ManualModal

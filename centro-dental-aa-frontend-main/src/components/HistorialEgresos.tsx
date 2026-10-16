@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import type { Inventario, EgresoInventario } from '../types';
 import EgresoInventarioForm from './EgresoInventarioForm';
+import Pagination from './Pagination';
 
 interface HistorialEgresosProps {
     inventario: Inventario;
@@ -13,6 +14,8 @@ const HistorialEgresos: React.FC<HistorialEgresosProps> = ({ inventario, onClose
     const [fechaInicio, setFechaInicio] = useState('');
     const [fechaFin, setFechaFin] = useState('');
     const [editingEgreso, setEditingEgreso] = useState<EgresoInventario | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         fetchHistory();
@@ -44,6 +47,12 @@ const HistorialEgresos: React.FC<HistorialEgresosProps> = ({ inventario, onClose
         setEditingEgreso(null);
         fetchHistory();
     };
+
+    const totalPages = Math.ceil(egresos.length / itemsPerPage);
+    const paginatedEgresos = egresos.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
@@ -87,8 +96,8 @@ const HistorialEgresos: React.FC<HistorialEgresosProps> = ({ inventario, onClose
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                            {egresos.length > 0 ? (
-                                egresos.map((egreso) => (
+                            {paginatedEgresos.length > 0 ? (
+                                paginatedEgresos.map((egreso) => (
                                     <tr key={egreso.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{formatDate(egreso.fecha)}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{egreso.cantidad}</td>
@@ -135,6 +144,16 @@ const HistorialEgresos: React.FC<HistorialEgresosProps> = ({ inventario, onClose
                         </tbody>
                     </table>
                 </div>
+
+                {egresos.length > itemsPerPage && (
+                    <div className="mt-4">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                        />
+                    </div>
+                )}
 
                 <div className="flex justify-end mt-6">
                     <button

@@ -34,7 +34,7 @@ export class DoctorsController {
         return this.doctorsService.findAll(
             search,
             page ? +page : 1,
-            limit ? +limit : 5
+            limit ? +limit : 10
         );
     }
 

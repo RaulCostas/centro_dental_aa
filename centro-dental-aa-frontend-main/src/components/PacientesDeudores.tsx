@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -30,7 +30,7 @@ const PacientesDeudores: React.FC = () => {
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5;
+    const itemsPerPage = 10;
 
     useEffect(() => {
         fetchDeudores();

@@ -46,7 +46,7 @@ export class GrupoInventarioService implements OnModuleInit {
     return this.grupoInventarioRepository.save(grupo);
   }
 
-  async findAll(search?: string, page: number = 1, limit: number = 5) {
+  async findAll(search?: string, page: number = 1, limit: number = 10) {
     const skip = (page - 1) * limit;
     const whereCondition = search ? [
       { grupo: Like(`%${search}%`) },

@@ -206,7 +206,7 @@ export class ProformasService implements OnModuleInit {
     return duePlanes;
   }
 
-  async findAll(limit: number = 20, page: number = 1) {
+  async findAll(limit: number = 10, page: number = 1) {
     const options: any = {
       relations: ['paciente', 'usuario', 'usuarioAprobado', 'detalles', 'detalles.arancel'],
       order: { fecha: 'DESC' },

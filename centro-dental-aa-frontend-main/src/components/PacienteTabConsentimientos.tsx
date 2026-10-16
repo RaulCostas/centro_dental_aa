@@ -6,6 +6,7 @@ import Swal from 'sweetalert2';
 import { FileText, Printer, CheckCircle2, Sparkles, Filter, Edit3 } from 'lucide-react';
 import { formatFullName, cleanConsentimientoHtml } from '../utils/formatters';
 import { printHtml } from '../utils/printUtils';
+import Pagination from './Pagination';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 
@@ -33,6 +34,8 @@ const PacienteTabConsentimientos: React.FC<PacienteTabConsentimientosProps> = ({
     const [historial, setHistorial] = useState<ConsentimientoPaciente[]>([]);
     const [especialidadesList, setEspecialidadesList] = useState<any[]>([]);
     const [selectedEspecialidad, setSelectedEspecialidad] = useState<string>('all');
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const itemsPerPage = 10;
 
     // Form state
     const [selectedPlantillaId, setSelectedPlantillaId] = useState<number | ''>('');
@@ -399,6 +402,12 @@ const PacienteTabConsentimientos: React.FC<PacienteTabConsentimientosProps> = ({
 
     const nombrePaciente = paciente ? formatFullName(paciente) : 'Cargando...';
 
+    const totalPages = Math.ceil(historial.length / itemsPerPage);
+    const paginatedHistorial = historial.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
     return (
         <div className="space-y-6">
             <style>{`
@@ -609,8 +618,8 @@ const PacienteTabConsentimientos: React.FC<PacienteTabConsentimientosProps> = ({
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50 text-sm">
-                            {historial.length > 0 ? (
-                                historial.map(item => (
+                            {paginatedHistorial.length > 0 ? (
+                                paginatedHistorial.map(item => (
                                     <tr key={item.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-all text-gray-800 dark:text-gray-200">
                                         <td className="py-4 px-6 font-medium text-gray-700 dark:text-gray-300">
                                             {item.fecha ? new Date(item.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
@@ -681,6 +690,17 @@ const PacienteTabConsentimientos: React.FC<PacienteTabConsentimientosProps> = ({
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination */}
+                {historial.length > itemsPerPage && (
+                    <div className="mt-4">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Modal Editar Consentimiento Emitido */}

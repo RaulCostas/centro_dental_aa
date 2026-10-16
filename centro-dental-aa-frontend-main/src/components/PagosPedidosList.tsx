@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import { formatDate, getLocalDateString } from '../utils/dateUtils';
 import type { PagosPedidos } from '../types';
@@ -37,7 +37,7 @@ const PagosPedidosList: React.FC = () => {
     // Search & Pagination State
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 8;
+    const itemsPerPage = 10;
     const [showingPrintModal, setShowingPrintModal] = useState(false);
     const [modalMode, setModalMode] = useState<'print' | 'export'>('print');
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);

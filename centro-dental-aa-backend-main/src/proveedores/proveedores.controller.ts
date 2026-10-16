@@ -21,7 +21,7 @@ export class ProveedoresController {
         return this.proveedoresService.findAll(
             search,
             page ? +page : 1,
-            limit ? +limit : 5,
+            limit ? +limit : 10,
         );
     }
 
