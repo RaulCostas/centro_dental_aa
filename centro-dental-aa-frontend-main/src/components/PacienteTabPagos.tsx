@@ -522,24 +522,118 @@ const PacienteTabPagos: React.FC = () => {
     const saldo = totalTratamiento - totalPagado;
 
     // Debt calculation for finished treatments
-    const historiaFiltrada = selectedProformaId
-        ? historiaClinica.filter(h => h.proformaId === selectedProformaId)
-        : historiaClinica;
+    // Takes into account specific teeth pieces, quantities, and deduplication of clinical history entries:
+    // If a treatment item has multiple pieces (e.g. 12-14), each unique piece finished adds its proportional cost.
+    // If multiple clinical history notes are recorded for the same piece/treatment, its cost is computed only once.
+    const targetProformas = selectedProformaId
+        ? proformas.filter(p => p.id === selectedProformaId)
+        : proformas;
 
-    const costoTerminados = historiaFiltrada
-        .filter(h => h.estadoTratamiento === 'terminado')
-        .reduce((acc, h) => {
+    let totalCostoTerminados = 0;
+    const handledHistoryIds = new Set<number>();
+
+    targetProformas.forEach(prof => {
+        const descVal = Number(prof.descuento || 0);
+        const descFactor = descVal > 0 ? (1 - descVal / 100) : 1;
+        const profHistoria = historiaClinica.filter(h => h.proformaId === prof.id);
+
+        if (prof.detalles && prof.detalles.length > 0) {
+            prof.detalles.forEach(detalle => {
+                const detailPieces = detalle.piezas
+                    ? detalle.piezas.split(/[-/,\s]+/).map((p: string) => p.trim()).filter((p: string) => p.length > 0)
+                    : [];
+
+                const matchingFinishedNotes = profHistoria.filter(h =>
+                    h.estadoTratamiento === 'terminado' && (
+                        (h.proformaDetalleId && h.proformaDetalleId === detalle.id) ||
+                        (!h.proformaDetalleId && detalle.arancel?.detalle && h.tratamiento?.trim().toLowerCase() === detalle.arancel.detalle.trim().toLowerCase())
+                    )
+                );
+
+                if (matchingFinishedNotes.length > 0) {
+                    matchingFinishedNotes.forEach(h => handledHistoryIds.add(h.id));
+
+                    const totalQty = Number(detalle.cantidad || (detailPieces.length > 0 ? detailPieces.length : 1));
+                    const rawTotal = Number(
+                        detalle.total != null
+                            ? detalle.total
+                            : (Number(detalle.precioUnitario || 0) * totalQty)
+                    );
+                    const unitPrice = totalQty > 0 ? (rawTotal / totalQty) : rawTotal;
+
+                    let completedUnits = 0;
+
+                    if (detailPieces.length > 0) {
+                        // Extract unique completed pieces matching the budgeted pieces
+                        const finishedPieces = new Set<string>();
+                        matchingFinishedNotes.forEach(h => {
+                            if (h.pieza) {
+                                const notePieces = h.pieza.split(/[-/,\s]+/).map((p: string) => p.trim()).filter((p: string) => p.length > 0);
+                                notePieces.forEach(p => {
+                                    if (detailPieces.includes(p)) {
+                                        finishedPieces.add(p);
+                                    }
+                                });
+                            }
+                        });
+
+                        if (finishedPieces.size > 0) {
+                            completedUnits = Math.min(finishedPieces.size, totalQty);
+                        } else {
+                            // If notes didn't specify a piece number but are marked finished for this item,
+                            // count unique sessions up to the item's total quantity
+                            const distinctDates = new Set(matchingFinishedNotes.map(h => h.fecha ? h.fecha.split('T')[0] : String(h.id))).size;
+                            completedUnits = Math.min(distinctDates, totalQty);
+                        }
+                    } else {
+                        // Treatment without specific pieces: count unique dates/sessions up to total quantity
+                        const distinctDates = new Set(matchingFinishedNotes.map(h => h.fecha ? h.fecha.split('T')[0] : String(h.id))).size;
+                        completedUnits = Math.min(distinctDates, totalQty);
+                    }
+
+                    const itemCost = Math.round(completedUnits * unitPrice * descFactor * 100) / 100;
+                    totalCostoTerminados += itemCost;
+                }
+            });
+        }
+    });
+
+    // Handle any finished history notes not matched to a proforma detalle
+    // (e.g. independent records, legacy entries, or proformas without loaded detalles)
+    const remainingHistoria = (selectedProformaId
+        ? historiaClinica.filter(h => h.proformaId === selectedProformaId)
+        : historiaClinica
+    ).filter(h => h.estadoTratamiento === 'terminado' && !handledHistoryIds.has(h.id));
+
+    const seenRemainingKeys = new Set<string>();
+    remainingHistoria.forEach(h => {
+        const piecePart = (h.pieza || '').trim();
+        const key = h.proformaDetalleId
+            ? `detalle_${h.proformaDetalleId}_${piecePart}`
+            : (h.proformaId
+                ? `p_${h.proformaId}_${(h.tratamiento || '').trim().toLowerCase()}_${piecePart}`
+                : `h_${(h.tratamiento || '').trim().toLowerCase()}_${piecePart || h.id}`);
+
+        if (!seenRemainingKeys.has(key)) {
+            seenRemainingKeys.add(key);
             let precio = Number(h.precio || 0);
             if (h.proformaId) {
                 const proformaRel = proformas.find(p => p.id === h.proformaId);
-                if (proformaRel && proformaRel.descuento > 0) {
-                    precio = precio * (1 - (proformaRel.descuento / 100));
+                const descVal = Number(proformaRel?.descuento || 0);
+                if (descVal > 0) {
+                    precio = precio * (1 - (descVal / 100));
                 }
             }
-            return acc + Math.round(precio * 100) / 100; // Round to 2 decimal places to avoid floating point issues
-        }, 0);
+            totalCostoTerminados += Math.round(precio * 100) / 100;
+        }
+    });
 
-    const saldoAdeudadoTerminados = costoTerminados - totalPagado;
+    // Ensure finished treatments cost never exceeds the total treatment budget
+    const costoTerminados = totalTratamiento > 0
+        ? Math.min(totalCostoTerminados, totalTratamiento)
+        : totalCostoTerminados;
+
+    const saldoAdeudadoTerminados = Math.max(0, costoTerminados - totalPagado);
 
     // Cuotas Calculation
     const cuotas = [];
