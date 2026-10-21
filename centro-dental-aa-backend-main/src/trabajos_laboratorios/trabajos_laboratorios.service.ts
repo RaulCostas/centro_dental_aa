@@ -18,14 +18,33 @@ export class TrabajosLaboratoriosService {
         private cubetasService: CubetasService,
     ) { }
 
+    private sanitizePayload(data: any): any {
+        if (!data) return {};
+        const allowedColumns = new Set(this.trabajosRepository.metadata.columns.map(c => c.propertyName));
+
+        const sanitized: any = {};
+        for (const key of Object.keys(data)) {
+            if (allowedColumns.has(key) && key !== 'id') {
+                sanitized[key] = data[key];
+            }
+        }
+
+        if (data.hora_envio && !sanitized.hora) {
+            sanitized.hora = data.hora_envio;
+        }
+
+        return sanitized;
+    }
+
     async create(createTrabajoLaboratorioDto: any) {
-        if (createTrabajoLaboratorioDto.idCubeta) {
-            const cubeta = await this.cubetasService.findOne(createTrabajoLaboratorioDto.idCubeta);
+        const cleanDto = this.sanitizePayload(createTrabajoLaboratorioDto);
+        if (cleanDto.idCubeta) {
+            const cubeta = await this.cubetasService.findOne(cleanDto.idCubeta);
             if (cubeta && cubeta.dentro_fuera === 'DENTRO') {
                 await this.cubetasService.update(cubeta.id, { dentro_fuera: 'FUERA' });
             }
         }
-        return this.trabajosRepository.save(createTrabajoLaboratorioDto);
+        return this.trabajosRepository.save(cleanDto);
     }
 
     findAll(page: number = 1, limit: number = 10, search: string = '', estado: string = '') {
@@ -63,12 +82,13 @@ export class TrabajosLaboratoriosService {
 
     async update(id: number, updateTrabajoLaboratorioDto: any) {
         const trabajoActual = await this.findOne(id);
+        const cleanDto = this.sanitizePayload(updateTrabajoLaboratorioDto);
 
         if (!trabajoActual) {
-            return this.trabajosRepository.update(id, updateTrabajoLaboratorioDto);
+            return this.trabajosRepository.update(id, cleanDto);
         }
 
-        const newCubetaId = updateTrabajoLaboratorioDto.idCubeta ? Number(updateTrabajoLaboratorioDto.idCubeta) : null;
+        const newCubetaId = cleanDto.idCubeta ? Number(cleanDto.idCubeta) : null;
         const oldCubetaId = trabajoActual.idCubeta ? Number(trabajoActual.idCubeta) : null;
 
         // 1. Handle Cubeta Change (Assignment or Swapping)
@@ -83,14 +103,14 @@ export class TrabajosLaboratoriosService {
         }
 
         // 2. Handle Status Completion (Terminado)
-        if (updateTrabajoLaboratorioDto.estado === 'terminado') {
+        if (cleanDto.estado === 'terminado') {
             // Auto-fill fecha_terminado if not provided
-            if (!updateTrabajoLaboratorioDto.fecha_terminado) {
+            if (!cleanDto.fecha_terminado) {
                 const today = new Date();
                 const year = today.getFullYear();
                 const month = String(today.getMonth() + 1).padStart(2, '0');
                 const day = String(today.getDate()).padStart(2, '0');
-                updateTrabajoLaboratorioDto.fecha_terminado = `${year}-${month}-${day}`;
+                cleanDto.fecha_terminado = `${year}-${month}-${day}`;
             }
 
             // If it's being marked as finished, the cubeta (either existing or new) should be returned ('DENTRO')
@@ -100,7 +120,7 @@ export class TrabajosLaboratoriosService {
             }
         }
 
-        return this.trabajosRepository.update(id, updateTrabajoLaboratorioDto);
+        return this.trabajosRepository.update(id, cleanDto);
     }
 
     remove(id: number) {

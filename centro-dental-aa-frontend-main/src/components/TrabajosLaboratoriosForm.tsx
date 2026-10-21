@@ -333,11 +333,9 @@ const TrabajosLaboratoriosForm: React.FC = () => {
             control_calidad: controlCalidad
         };
 
-        const payload = {
+        const payload: any = {
             ...formData,
             hora: envioHora,
-            hora_envio: envioHora,
-            hora_entrega: entregaHora,
             idLaboratorio: Number(formData.idLaboratorio),
             idPaciente: Number(formData.idPaciente),
             idprecios_laboratorios: Number(formData.idprecios_laboratorios),
@@ -349,6 +347,16 @@ const TrabajosLaboratoriosForm: React.FC = () => {
             detalles_orden: detalles,
             idHistoriaClinica: null // Removed relation per explicit request
         };
+
+        delete payload.hora_envio;
+        delete payload.hora_entrega;
+        delete payload.laboratorio;
+        delete payload.paciente;
+        delete payload.precioLaboratorio;
+        delete payload.cubeta;
+        delete payload.doctor;
+        delete payload.historiaClinica;
+        delete payload.id;
 
         try {
             let savedId: number;
