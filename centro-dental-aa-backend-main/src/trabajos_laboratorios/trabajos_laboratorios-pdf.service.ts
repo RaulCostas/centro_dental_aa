@@ -310,7 +310,8 @@ export class TrabajosLaboratoriosPdfService {
             });
             content.push({
                 text: trabajo.observacion || trabajo.observaciones || 'Sin observaciones adicionales.',
-                fontSize: 7.5,
+                fontSize: 8.5,
+                bold: true,
                 margin: [0, 2, 0, 10]
             });
 

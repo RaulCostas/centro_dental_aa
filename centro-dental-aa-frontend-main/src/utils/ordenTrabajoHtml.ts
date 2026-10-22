@@ -74,8 +74,8 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
     };
 
     const chk = (isCheck: boolean, label: string) => `
-        <div style="display: flex; align-items: center; gap: 3px; font-size: 6.8pt; margin-bottom: 1.5px; ${isCheck ? 'font-weight: bold; color: #0f172a;' : 'color: #475569;'}">
-            <span style="display: inline-block; width: 8.5px; height: 8.5px; border: 1px solid ${isCheck ? '#102a6b' : '#94a3b8'}; background: ${isCheck ? '#102a6b' : '#ffffff'}; border-radius: 2px; text-align: center; line-height: 8px; font-size: 6.5px; color: #ffffff; flex-shrink: 0;">${isCheck ? '✓' : ''}</span>
+        <div style="display: flex; align-items: center; gap: 4px; font-size: 7.8pt; margin-bottom: 2px; ${isCheck ? 'font-weight: bold; color: #0f172a;' : 'color: #475569;'}">
+            <span style="display: inline-block; width: 9.5px; height: 9.5px; border: 1px solid ${isCheck ? '#102a6b' : '#94a3b8'}; background: ${isCheck ? '#102a6b' : '#ffffff'}; border-radius: 2px; text-align: center; line-height: 9px; font-size: 7px; color: #ffffff; flex-shrink: 0;">${isCheck ? '✓' : ''}</span>
             <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${label}</span>
         </div>
     `;
@@ -124,15 +124,15 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
             <meta charset="utf-8" />
             <title>Orden de Trabajo Dental A&A-${String(trabajo.id).padStart(7, '0')}</title>
             <style>
-                @page { size: A4 portrait; margin: 0.4cm; }
+                @page { size: A4 portrait; margin: 0.5cm; }
                 * { box-sizing: border-box; }
                 body {
                     font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
-                    font-size: 7pt;
+                    font-size: 8.5pt;
                     color: #0f172a;
-                    line-height: 1.15;
+                    line-height: 1.22;
                     margin: 0;
-                    padding: 0.3cm 0.4cm;
+                    padding: 0.2cm 0.3cm;
                     background: #ffffff;
                     -webkit-print-color-adjust: exact;
                     print-color-adjust: exact;
@@ -140,26 +140,26 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
                 .main-frame {
                     border: 1.5px solid #102a6b;
                     border-radius: 6px;
-                    padding: 6px;
+                    padding: 6px 8px;
                 }
                 .hdr-table { width: 100%; border-bottom: 2px solid #102a6b; padding-bottom: 4px; margin-bottom: 4px; border-collapse: collapse; }
                 .hdr-table td { border: none; }
-                .hdr-title { font-size: 13pt; font-weight: 900; color: #102a6b; text-transform: uppercase; margin: 0; letter-spacing: 0.5px; }
-                .hdr-sub { font-size: 7.5pt; font-weight: 800; color: #1e40af; letter-spacing: 0.3px; }
+                .hdr-title { font-size: 13.5pt; font-weight: 900; color: #102a6b; text-transform: uppercase; margin: 0; letter-spacing: 0.5px; }
+                .hdr-sub { font-size: 8pt; font-weight: 800; color: #1e40af; letter-spacing: 0.3px; }
                 .order-box {
                     border: 1.5px solid #102a6b;
                     border-radius: 5px;
                     background: #f0f3ff;
-                    padding: 2px 8px;
+                    padding: 3px 8px;
                     text-align: center;
                 }
-                .order-no { font-size: 11pt; font-weight: 900; color: #dc2626; }
+                .order-no { font-size: 11.5pt; font-weight: 900; color: #dc2626; }
                 .sec-banner {
                     background: #102a6b;
                     color: #ffffff;
-                    font-size: 7.2pt;
+                    font-size: 8pt;
                     font-weight: 900;
-                    padding: 2px 6px;
+                    padding: 2.5px 6px;
                     border-radius: 3px;
                     text-transform: uppercase;
                     margin-bottom: 3px;
@@ -168,11 +168,11 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
                 .box-border {
                     border: 1px solid #cbd5e1;
                     border-radius: 4px;
-                    padding: 4px 5px;
+                    padding: 4px 6px;
                     background: #ffffff;
                 }
-                .field-label { font-weight: 800; color: #475569; font-size: 6.8pt; }
-                .field-val { font-weight: 700; color: #0f172a; }
+                .field-label { font-weight: 800; color: #475569; font-size: 8pt; }
+                .field-val { font-weight: 700; color: #0f172a; font-size: 8.5pt; }
                 .underline-field {
                     border-bottom: 1px solid #94a3b8;
                     display: inline-block;
@@ -186,7 +186,7 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
                     border-radius: 4px;
                     padding: 5px;
                     text-align: center;
-                    font-size: 6.5pt;
+                    font-size: 7.8pt;
                     background: #f8fafc;
                     min-height: 48px;
                     display: flex;
@@ -194,7 +194,7 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
                     justify-content: space-between;
                 }
                 .recipe-footer {
-                    margin-top: 6px; text-align: center; font-size: 7pt; color: #64748b;
+                    margin-top: 5px; text-align: center; font-size: 7.5pt; color: #64748b;
                     border-top: 1px solid #e2e8f0; padding-top: 3px; width: 100%;
                 }
             </style>
@@ -213,7 +213,7 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
                         </td>
                         <td style="text-align: right; width: 20%; vertical-align: middle;">
                             <div class="order-box">
-                                <div style="font-size: 6.5pt; font-weight: 800; color: #102a6b;">N° ORDEN</div>
+                                <div style="font-size: 7pt; font-weight: 800; color: #102a6b;">N° ORDEN</div>
                                 <div class="order-no">A&A-${String(trabajo.id).padStart(7, '0')}</div>
                             </div>
                         </td>
@@ -232,7 +232,7 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
                     <div style="display: grid; grid-template-columns: 2.2fr 0.8fr 1fr; gap: 4px; padding-top: 2px; border-top: 1px dashed #e2e8f0;">
                         <div><span class="field-label">Trabajo de Laboratorio:</span> <span class="field-val">${trabajo.precioLaboratorio?.detalle || '-'}</span></div>
                         <div><span class="field-label">Cantidad:</span> <span class="field-val">${trabajo.cantidad || 1} Unid.</span></div>
-                        <div><span class="field-label">Total Bs:</span> <span class="field-val" style="color: #102a6b; font-weight: 900; font-size: 8pt;">Bs. ${formatNumber(trabajo.total)}</span></div>
+                        <div><span class="field-label">Total Bs:</span> <span class="field-val" style="color: #102a6b; font-weight: 900; font-size: 9pt;">Bs. ${formatNumber(trabajo.total)}</span></div>
                     </div>
                 </div>
 
@@ -247,7 +247,7 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
                                 return chk(isChecked, item.label);
                             }).join('')}
                         </div>
-                        <div style="margin-top: 3px; padding-top: 2px; border-top: 1px dashed #e2e8f0; font-size: 6.8pt;">
+                        <div style="margin-top: 3px; padding-top: 2px; border-top: 1px dashed #e2e8f0; font-size: 7.8pt;">
                             <span class="field-label">Otro:</span> <span class="field-val">${d?.tipo_restauracion?.otro || '____________________'}</span>
                         </div>
                     </div>
@@ -256,7 +256,7 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
                     <div class="box-border" style="text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
                         <div>
                             <div class="sec-banner">3. DIENTES INVOLUCRADOS & PREPARACIÓN</div>
-                            <div style="font-size: 7.2pt; font-weight: 800; color: #dc2626; margin-bottom: 2px;">
+                            <div style="font-size: 8pt; font-weight: 800; color: #dc2626; margin-bottom: 2px;">
                                 Dientes: ${trabajo.pieza || 'Ninguno'}
                             </div>
                             <div style="display: flex; justify-content: center; align-items: center;">
@@ -264,7 +264,7 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
                             </div>
                         </div>
                         ${(d?.preparacion || d?.lado) ? `
-                            <div style="text-align: left; font-size: 6.5pt; border-top: 1px dashed #e2e8f0; padding-top: 2px; margin-top: 2px;">
+                            <div style="text-align: left; font-size: 7.5pt; border-top: 1px dashed #e2e8f0; padding-top: 2px; margin-top: 2px;">
                                 ${d.preparacion ? `<div><b>Preparación:</b> ${typeof d.preparacion === 'string' ? d.preparacion : Object.keys(d.preparacion).filter(k => d.preparacion[k]).join(', ')}</div>` : ''}
                                 ${d.lado ? `<div><b>Lado:</b> ${typeof d.lado === 'string' ? d.lado : Object.keys(d.lado).filter(k => d.lado[k]).join(', ')}</div>` : ''}
                             </div>
@@ -283,7 +283,7 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
                         </div>
                         <div>
                             <span class="field-label">Caracterizaciones:</span>
-                            <div style="font-size: 6.8pt; min-height: 24px; color: #1e293b; background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 3px; padding: 2px 4px; margin-top: 1px;">
+                            <div style="font-size: 7.8pt; min-height: 24px; color: #1e293b; background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 3px; padding: 2px 4px; margin-top: 1px;">
                                 ${d?.caracterizaciones?.detalle || (typeof d?.caracterizaciones === 'string' ? d.caracterizaciones : '') || '-'}
                             </div>
                         </div>
@@ -304,7 +304,7 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
                         <div class="sec-banner">6. IMPLANTOLOGÍA</div>
                         <div>
                             <span class="field-label">Detalle:</span>
-                            <div style="font-size: 6.8pt; min-height: 32px; color: #1e293b; background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 3px; padding: 2px 4px; margin-top: 1px;">
+                            <div style="font-size: 7.8pt; min-height: 32px; color: #1e293b; background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 3px; padding: 2px 4px; margin-top: 1px;">
                                 ${d?.implantologia?.detalle || (typeof d?.implantologia === 'string' ? d.implantologia : '') || '-'}
                             </div>
                         </div>
@@ -321,7 +321,7 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
                         </div>
                         <div style="margin-top: 2px; padding-top: 2px; border-top: 1px dashed #e2e8f0;">
                             <span class="field-label">Detalle:</span>
-                            <span class="field-val" style="font-size: 6.5pt;">${d?.pruebas?.detalle || '-'}</span>
+                            <span class="field-val" style="font-size: 7.5pt;">${d?.pruebas?.detalle || '-'}</span>
                         </div>
                     </div>
 
@@ -343,7 +343,7 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
                             ${photos.length > 0 ? photos.slice(0, 3).map(p => `
                                 <img src="${getImageUrl(p)}" style="width: 38px; height: 38px; object-fit: cover; border-radius: 3px; border: 1px solid #cbd5e1;" />
                             `).join('') : `
-                                <span style="font-size: 6.5pt; color: #94a3b8; font-style: italic;">Sin fotografías adjuntas</span>
+                                <span style="font-size: 7.2pt; color: #94a3b8; font-style: italic;">Sin fotografías adjuntas</span>
                             `}
                         </div>
                     </div>
@@ -354,25 +354,25 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
                 <div class="box-border" style="margin-bottom: 4px;">
                     <div style="display: grid; grid-template-columns: 1.1fr 1fr 1fr 1fr 1fr; gap: 4px; text-align: center;">
                         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 3px; padding: 2px;">
-                            <div class="field-label" style="font-size: 6pt; text-transform: uppercase;">Estado del Trabajo</div>
-                            <div class="field-val" style="color: ${trabajo.estado === 'terminado' ? '#16a34a' : '#d97706'}; font-size: 7.2pt; text-transform: uppercase;">
+                            <div class="field-label" style="font-size: 6.8pt; text-transform: uppercase;">Estado del Trabajo</div>
+                            <div class="field-val" style="color: ${trabajo.estado === 'terminado' ? '#16a34a' : '#d97706'}; font-size: 8.2pt; text-transform: uppercase;">
                                 ${trabajo.estado || 'no terminado'}
                             </div>
                         </div>
                         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 3px; padding: 2px;">
-                            <div class="field-label" style="font-size: 6pt; text-transform: uppercase;">Fecha de Envío</div>
+                            <div class="field-label" style="font-size: 6.8pt; text-transform: uppercase;">Fecha de Envío</div>
                             <div class="field-val">${fechaEnvio}</div>
                         </div>
                         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 3px; padding: 2px;">
-                            <div class="field-label" style="font-size: 6pt; text-transform: uppercase;">Hora de Envío</div>
+                            <div class="field-label" style="font-size: 6.8pt; text-transform: uppercase;">Hora de Envío</div>
                             <div class="field-val">${horaEnvio}</div>
                         </div>
                         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 3px; padding: 2px;">
-                            <div class="field-label" style="font-size: 6pt; text-transform: uppercase;">Fecha de Entrega</div>
+                            <div class="field-label" style="font-size: 6.8pt; text-transform: uppercase;">Fecha de Entrega</div>
                             <div class="field-val" style="color: #1e40af;">${fechaEntrega}</div>
                         </div>
                         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 3px; padding: 2px;">
-                            <div class="field-label" style="font-size: 6pt; text-transform: uppercase;">Hora de Entrega</div>
+                            <div class="field-label" style="font-size: 6.8pt; text-transform: uppercase;">Hora de Entrega</div>
                             <div class="field-val" style="color: #b45309;">${horaEntrega}</div>
                         </div>
                     </div>
@@ -380,21 +380,19 @@ export const generateOrdenTrabajoHTML = (trabajo: any, centroDental: any): strin
 
                 <!-- 10. OBSERVACIONES CLÍNICAS / INSTRUCCIONES ESPECIALES -->
                 <div class="sec-banner">10. OBSERVACIONES CLÍNICAS / INSTRUCCIONES ESPECIALES</div>
-                <div class="box-border" style="min-height: 38px; font-size: 7pt; margin-bottom: 5px; color: #1e293b; white-space: pre-line;">
-                    ${trabajo.observacion || trabajo.observaciones || 'Sin observaciones adicionales.'}
-                </div>
+                <div class="box-border" style="min-height: 38px; font-size: 8.5pt; font-weight: bold; margin-bottom: 5px; color: #0f172a; display: flex; flex-direction: column; justify-content: flex-start; align-items: flex-start; text-align: left;"><span style="white-space: pre-wrap; line-height: 1.25; display: block; width: 100%; text-align: left;">${String(trabajo.observacion || trabajo.observaciones || 'Sin observaciones adicionales.').trim()}</span></div>
 
                 <!-- FIRMAS -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <div class="sig-box">
-                        <div style="font-weight: 800; color: #102a6b;">Dr. ${formatFullName(trabajo.doctor)}</div>
-                        <div style="border-top: 1px solid #94a3b8; margin: 18px 20px 2px 20px;"></div>
-                        <div style="color: #64748b; font-weight: 700;">Firma Doctor Tratante</div>
+                        <div style="font-weight: 800; font-size: 8.2pt; color: #102a6b;">Dr. ${formatFullName(trabajo.doctor)}</div>
+                        <div style="border-top: 1px solid #94a3b8; margin: 16px 20px 2px 20px;"></div>
+                        <div style="color: #64748b; font-weight: 700; font-size: 7.5pt;">Firma Doctor Tratante</div>
                     </div>
                     <div class="sig-box">
-                        <div style="font-weight: 800; color: #102a6b;">${trabajo.laboratorio?.laboratorio || 'Laboratorio Dental'}</div>
-                        <div style="border-top: 1px solid #94a3b8; margin: 18px 20px 2px 20px;"></div>
-                        <div style="color: #64748b; font-weight: 700;">Firma Laboratorio Dental</div>
+                        <div style="font-weight: 800; font-size: 8.2pt; color: #102a6b;">${trabajo.laboratorio?.laboratorio || 'Laboratorio Dental'}</div>
+                        <div style="border-top: 1px solid #94a3b8; margin: 16px 20px 2px 20px;"></div>
+                        <div style="color: #64748b; font-weight: 700; font-size: 7.5pt;">Firma Laboratorio Dental</div>
                     </div>
                 </div>
             </div>

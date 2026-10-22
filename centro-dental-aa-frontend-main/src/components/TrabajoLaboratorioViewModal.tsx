@@ -581,7 +581,7 @@ const TrabajoLaboratorioViewModal: React.FC<Props> = ({ isOpen, onClose, trabajo
                                         <FileText className="w-4 h-4 text-blue-600" />
                                         10. OBSERVACIONES CLÍNICAS / INSTRUCCIONES ESPECIALES
                                     </h3>
-                                    <div className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 text-gray-800 dark:text-white text-xs font-medium whitespace-pre-line min-h-[50px]">
+                                    <div className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 text-gray-900 dark:text-white text-xs font-bold whitespace-pre-line min-h-[50px]">
                                         {trabajo.observacion || (trabajo as any).observaciones || 'Sin observaciones o instrucciones especiales registradas.'}
                                     </div>
                                 </div>
