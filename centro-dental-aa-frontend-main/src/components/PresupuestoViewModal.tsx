@@ -5,6 +5,7 @@ import { formatNumber } from '../utils/formatters';
 import { X, FileText, Calendar, User, DollarSign, CheckCircle, Clock, Edit } from 'lucide-react';
 import Swal from 'sweetalert2';
 import type { HistoriaClinica } from '../types';
+import { openPaymentPlanModal } from '../utils/paymentPlanModal';
 
 interface Props {
     isOpen: boolean;
@@ -89,101 +90,51 @@ const PresupuestoViewModal: React.FC<Props> = ({ isOpen, onClose, id, proformaId
         }
     };
 
-    const handleTogglePaymentPlan = () => {
+    const handleTogglePaymentPlan = async () => {
         if (!proforma) return;
-        
-        const isActivo = proforma.plan_pagos?.activo;
 
-        Swal.fire({
-            title: isActivo ? 'Editar Plan de Pagos' : 'Configurar Plan de Pagos',
-            html: `
-                <div class="space-y-4 text-left">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Cuota Inicial (Opcional)</label>
-                        <input type="number" id="swal-cuota-inicial" class="swal2-input w-full mx-0 mt-1 !text-lg" placeholder="Ej: 5000" value="${proforma.plan_pagos?.cuotaInicial ?? ''}" min="0">
-                        <div class="text-xs text-gray-500 mt-1">El monto restante se dividirá en cuotas.</div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Duración en meses</label>
-                        <input type="number" id="swal-meses" class="swal2-input w-full mx-0 mt-1 !text-lg" value="${proforma.plan_pagos?.meses || 6}" min="1" max="60">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Día de pago (del mes)</label>
-                        <input type="number" id="swal-dia" class="swal2-input w-full mx-0 mt-1 !text-lg" value="${proforma.plan_pagos?.diaPago || 15}" min="1" max="31">
-                    </div>
-                    <div class="pt-2 text-xs text-gray-500 dark:text-gray-400">
-                        La cuota se calculará dividiendo el total del presupuesto (menos la cuota inicial) entre los meses.
-                    </div>
-                </div>
-            `,
-            focusConfirm: false,
-            showCancelButton: true,
-            showDenyButton: Boolean(isActivo),
-            confirmButtonText: 'Guardar Plan',
-            cancelButtonText: 'Cancelar',
-            denyButtonText: 'Eliminar Plan',
-            preConfirm: () => {
-                const cuotaInicial = (document.getElementById('swal-cuota-inicial') as HTMLInputElement).value;
-                const meses = (document.getElementById('swal-meses') as HTMLInputElement).value;
-                const dia = (document.getElementById('swal-dia') as HTMLInputElement).value;
-                if (!meses || Number(meses) < 1) {
-                    Swal.showValidationMessage('Ingrese una cantidad válida de meses');
-                    return false;
-                }
-                if (!dia || Number(dia) < 1 || Number(dia) > 31) {
-                    Swal.showValidationMessage('El día debe estar entre 1 y 31');
-                    return false;
-                }
-                
-                const cuotaInicialNum = cuotaInicial !== '' ? Number(cuotaInicial) : 0;
-                
-                return { meses: Number(meses), diaPago: Number(dia), cuotaInicial: cuotaInicialNum };
-            }
-        }).then(async (result) => {
-            if (result.isConfirmed && result.value) {
-                try {
-                    await api.patch(`/proformas/${proformaId}`, { 
-                        plan_pagos: { 
-                            activo: true, 
-                            meses: result.value.meses, 
-                            diaPago: result.value.diaPago,
-                            cuotaInicial: result.value.cuotaInicial,
-                            fechaInicio: proforma.plan_pagos?.fechaInicio || proforma.fecha || new Date().toISOString()
-                        } 
-                    });
-                    fetchData();
-                    if (onUpdate) onUpdate();
-                    Swal.fire({
-                        title: 'Guardado',
-                        text: 'Plan de pagos configurado',
-                        icon: 'success',
-                        showConfirmButton: false,
-                        timer: 1500
-                    });
-                } catch (error) {
-                    console.error(error);
-                    Swal.fire('Error', 'No se pudo guardar el plan', 'error');
-                }
-            } else if (result.isDenied) {
-                try {
-                    await api.patch(`/proformas/${proformaId}`, { 
-                        plan_pagos: null
-                    });
-                    fetchData();
-                    if (onUpdate) onUpdate();
-                    Swal.fire({
-                        title: 'Eliminado',
-                        text: 'Plan de pagos eliminado correctamente',
-                        icon: 'success',
-                        showConfirmButton: false,
-                        timer: 1500
-                    });
-                } catch (error) {
-                    console.error(error);
-                    Swal.fire('Error', 'No se pudo eliminar el plan', 'error');
-                }
-            }
+        const result = await openPaymentPlanModal({
+            currentPlan: proforma.plan_pagos,
+            descriptionSubject: 'del presupuesto',
         });
+
+        if (result.action === 'save') {
+            try {
+                await api.patch(`/proformas/${proformaId}`, {
+                    plan_pagos: result.plan,
+                });
+                fetchData();
+                if (onUpdate) onUpdate();
+                Swal.fire({
+                    title: 'Guardado',
+                    text: 'Plan de pagos configurado',
+                    icon: 'success',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            } catch (error) {
+                console.error(error);
+                Swal.fire('Error', 'No se pudo guardar el plan', 'error');
+            }
+        } else if (result.action === 'delete') {
+            try {
+                await api.patch(`/proformas/${proformaId}`, {
+                    plan_pagos: null
+                });
+                fetchData();
+                if (onUpdate) onUpdate();
+                Swal.fire({
+                    title: 'Eliminado',
+                    text: 'Plan de pagos eliminado correctamente',
+                    icon: 'success',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            } catch (error) {
+                console.error(error);
+                Swal.fire('Error', 'No se pudo eliminar el plan', 'error');
+            }
+        }
     };
 
     if (!isOpen) return null;

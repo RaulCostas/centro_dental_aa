@@ -8,6 +8,7 @@ import ArancelForm from './ArancelForm';
 import { formatDate } from '../utils/dateUtils';
 import { formatFullName, formatNumber, formatCurrency } from '../utils/formatters';
 import { Calendar, Edit } from 'lucide-react';
+import { openPaymentPlanModal } from '../utils/paymentPlanModal';
 
 interface DetalleItem {
     id?: number;
@@ -371,103 +372,53 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
     };
 
 
-    const handleTogglePaymentPlan = () => {
+    const handleTogglePaymentPlan = async () => {
         const currentTabPlan = tabPlanPagos[activeTab] || null;
-        const isActivo = currentTabPlan?.activo;
-
-        Swal.fire({
-            title: isActivo ? `Editar Plan de Pagos (Propuesta ${activeTab})` : `Configurar Plan de Pagos (Propuesta ${activeTab})`,
-            html: `
-                <div class="space-y-4 text-left">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Cuota Inicial (Opcional)</label>
-                        <input type="number" id="swal-cuota-inicial" class="swal2-input w-full mx-0 mt-1 !text-lg" placeholder="Ej: 5000" value="${currentTabPlan?.cuotaInicial ?? ''}" min="0">
-                        <div class="text-xs text-gray-500 mt-1">El monto restante se dividirá en cuotas.</div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Duración en meses</label>
-                        <input type="number" id="swal-meses" class="swal2-input w-full mx-0 mt-1 !text-lg" value="${currentTabPlan?.meses || 6}" min="1" max="60">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Día de pago (del mes)</label>
-                        <input type="number" id="swal-dia" class="swal2-input w-full mx-0 mt-1 !text-lg" value="${currentTabPlan?.diaPago || 15}" min="1" max="31">
-                    </div>
-                    <div class="pt-2 text-xs text-gray-500 dark:text-gray-400">
-                        La cuota se calculará dividiendo el total de la Propuesta ${activeTab} (menos la cuota inicial) entre los meses.
-                    </div>
-                </div>
-            `,
-            focusConfirm: false,
-            showCancelButton: true,
-            showDenyButton: Boolean(isActivo),
-            confirmButtonText: 'Guardar Plan',
-            cancelButtonText: 'Cancelar',
-            denyButtonText: 'Eliminar Plan',
-            preConfirm: () => {
-                const cuotaInicial = (document.getElementById('swal-cuota-inicial') as HTMLInputElement).value;
-                const meses = (document.getElementById('swal-meses') as HTMLInputElement).value;
-                const dia = (document.getElementById('swal-dia') as HTMLInputElement).value;
-                if (!meses || Number(meses) < 1) {
-                    Swal.showValidationMessage('Ingrese una cantidad válida de meses');
-                    return false;
-                }
-                if (!dia || Number(dia) < 1 || Number(dia) > 31) {
-                    Swal.showValidationMessage('El día debe estar entre 1 y 31');
-                    return false;
-                }
-
-                const cuotaInicialNum = cuotaInicial !== '' ? Number(cuotaInicial) : 0;
-
-                return { meses: Number(meses), diaPago: Number(dia), cuotaInicial: cuotaInicialNum };
-            }
-        }).then(async (result) => {
-            if (result.isConfirmed && result.value) {
-                const newPlan = {
-                    activo: true,
-                    meses: result.value.meses,
-                    diaPago: result.value.diaPago,
-                    cuotaInicial: result.value.cuotaInicial,
-                    fechaInicio: currentTabPlan?.fechaInicio || fecha || new Date().toISOString()
-                };
-                const updatedTabPlanPagos = { ...tabPlanPagos, [activeTab]: newPlan };
-                setTabPlanPagos(updatedTabPlanPagos);
-                if (propuestaId) {
-                    try {
-                        await api.patch(`/propuestas/${propuestaId}`, { plan_pagos: updatedTabPlanPagos });
-                    } catch (error) {
-                        console.error(error);
-                        Swal.fire('Error', 'No se pudo guardar el plan en el servidor', 'error');
-                        return;
-                    }
-                }
-                Swal.fire({
-                    title: 'Guardado',
-                    text: `Plan de pagos configurado para Propuesta ${activeTab}`,
-                    icon: 'success',
-                    showConfirmButton: false,
-                    timer: 1500
-                });
-            } else if (result.isDenied) {
-                const updatedTabPlanPagos = { ...tabPlanPagos };
-                delete updatedTabPlanPagos[activeTab];
-                setTabPlanPagos(updatedTabPlanPagos);
-                if (propuestaId) {
-                    try {
-                        await api.patch(`/propuestas/${propuestaId}`, { plan_pagos: updatedTabPlanPagos });
-                    } catch (error) {
-                        Swal.fire('Error', 'No se pudo eliminar el plan en el servidor', 'error');
-                        return;
-                    }
-                }
-                Swal.fire({
-                    title: 'Eliminado',
-                    text: `El plan de pagos de la Propuesta ${activeTab} fue eliminado`,
-                    icon: 'success',
-                    showConfirmButton: false,
-                    timer: 1500
-                });
-            }
+        const result = await openPaymentPlanModal({
+            currentPlan: currentTabPlan,
+            titleSuffix: ` (Propuesta ${activeTab})`,
+            descriptionSubject: `de la Propuesta ${activeTab}`,
         });
+
+        if (result.action === 'save') {
+            const updatedTabPlanPagos = { ...tabPlanPagos, [activeTab]: result.plan };
+            setTabPlanPagos(updatedTabPlanPagos);
+            if (propuestaId) {
+                try {
+                    await api.patch(`/propuestas/${propuestaId}`, { plan_pagos: updatedTabPlanPagos });
+                } catch (error) {
+                    console.error(error);
+                    Swal.fire('Error', 'No se pudo guardar el plan en el servidor', 'error');
+                    return;
+                }
+            }
+            Swal.fire({
+                title: 'Guardado',
+                text: `Plan de pagos configurado para Propuesta ${activeTab}`,
+                icon: 'success',
+                showConfirmButton: false,
+                timer: 1500
+            });
+        } else if (result.action === 'delete') {
+            const updatedTabPlanPagos = { ...tabPlanPagos };
+            delete updatedTabPlanPagos[activeTab];
+            setTabPlanPagos(updatedTabPlanPagos);
+            if (propuestaId) {
+                try {
+                    await api.patch(`/propuestas/${propuestaId}`, { plan_pagos: updatedTabPlanPagos });
+                } catch (error) {
+                    Swal.fire('Error', 'No se pudo eliminar el plan en el servidor', 'error');
+                    return;
+                }
+            }
+            Swal.fire({
+                title: 'Eliminado',
+                text: `El plan de pagos de la Propuesta ${activeTab} fue eliminado`,
+                icon: 'success',
+                showConfirmButton: false,
+                timer: 1500
+            });
+        }
     };
 
     return (
