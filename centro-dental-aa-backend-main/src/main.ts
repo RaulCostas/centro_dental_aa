@@ -18,6 +18,8 @@ async function bootstrap() {
     await dataSource.query(`
       ALTER TABLE propuesta_detalle ADD COLUMN IF NOT EXISTS descuento DECIMAL(5,2) DEFAULT 0;
       ALTER TABLE propuestas ADD COLUMN IF NOT EXISTS plan_pagos JSONB;
+      ALTER TABLE propuestas ADD COLUMN IF NOT EXISTS monedas JSONB;
+      ALTER TABLE propuestas ADD COLUMN IF NOT EXISTS "tiposCambio" JSONB;
       ALTER TABLE pagos ADD COLUMN IF NOT EXISTS numero_transaccion TEXT;
       ALTER TABLE proformas ADD COLUMN IF NOT EXISTS aprobado BOOLEAN DEFAULT false;
       ALTER TABLE proformas ADD COLUMN IF NOT EXISTS fecha_aprobado DATE;

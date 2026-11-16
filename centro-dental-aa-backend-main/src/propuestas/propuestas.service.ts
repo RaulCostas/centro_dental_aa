@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { getLocalDateString } from '../common/utils/date-utils';
@@ -10,7 +10,7 @@ import { ProformasService } from '../proformas/proformas.service';
 import { CreateProformaDto } from '../proformas/dto/create-proforma.dto';
 
 @Injectable()
-export class PropuestasService {
+export class PropuestasService implements OnModuleInit {
     constructor(
         @InjectRepository(Propuesta)
         private readonly propuestaRepository: Repository<Propuesta>,
@@ -19,6 +19,18 @@ export class PropuestasService {
         private readonly dataSource: DataSource,
         private readonly proformasService: ProformasService,
     ) { }
+
+    async onModuleInit() {
+        try {
+            await this.dataSource.query(`
+                ALTER TABLE propuestas ADD COLUMN IF NOT EXISTS monedas JSONB;
+                ALTER TABLE propuestas ADD COLUMN IF NOT EXISTS "tiposCambio" JSONB;
+            `);
+            console.log('[PropuestasService] Auto-migración de columnas monedas y tiposCambio completada.');
+        } catch (error) {
+            console.error('[PropuestasService] Error al migrar columnas:', error);
+        }
+    }
 
     async convertToProforma(id: number, letra: string, usuarioId: number) {
         const propuesta = await this.findOne(id);
