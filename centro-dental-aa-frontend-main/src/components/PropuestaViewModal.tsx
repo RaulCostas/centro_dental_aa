@@ -189,11 +189,16 @@ const PropuestaViewModal: React.FC<Props> = ({
     };
 
     const isItemCompleted = (item: any) => {
-        return historiaClinica.some(h =>
-            h.arancelId === item.arancelId &&
-            h.piezas === item.piezas &&
-            (h.estadoTratamiento === 'terminado' || h.estadoTratamiento === 'realizado')
-        );
+        const tratName = item.arancel?.detalle || item.tratamiento;
+        const matchingHistory = historiaClinica.filter(h => {
+            if (h.estadoTratamiento !== 'terminado' && h.estadoTratamiento !== 'realizado') return false;
+            if (h.tratamiento && tratName) {
+                return h.tratamiento.trim().toLowerCase() === tratName.trim().toLowerCase();
+            }
+            return false;
+        });
+        const totalCompleted = matchingHistory.reduce((sum, h) => sum + (h.cantidad || 0), 0);
+        return totalCompleted >= (item.cantidad || 1);
     };
 
     const activePlan = propuesta?.plan_pagos?.[activeTab];
