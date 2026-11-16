@@ -514,33 +514,54 @@ const PropuestaViewModal: React.FC<Props> = ({
                                 );
                             })()}
 
-                            {/* Total Box */}
-                            <div className="flex flex-col items-end mt-4 gap-2">
-                                {currentDiscountPct > 0 && (
-                                    <>
-                                        <div className="bg-gray-50 dark:bg-gray-700/50 px-6 py-2 rounded-xl flex items-center justify-between gap-4 w-64 border border-gray-100 dark:border-gray-600">
-                                            <span className="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest text-[9px]">Subtotal:</span>
-                                            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                                                {formatNumber(subTotalConverted)} <span className="text-[10px]">{isUSD ? '$' : 'Bs.'}</span>
-                                            </span>
-                                        </div>
-                                        <div className="bg-gray-50 dark:bg-gray-700/50 px-6 py-2 rounded-xl flex items-center justify-between gap-4 w-64 border border-gray-100 dark:border-gray-600">
-                                            <span className="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest text-[9px]">
-                                                Descuento ({currentDiscountPct}%):
-                                            </span>
-                                            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                                                -{formatNumber(discountConverted)} <span className="text-[10px]">{isUSD ? '$' : 'Bs.'}</span>
-                                            </span>
-                                        </div>
-                                    </>
-                                )}
-                                <div className="bg-gray-100 dark:bg-gray-700 px-6 py-3 rounded-xl flex items-center justify-between gap-4 w-72 border border-gray-200 dark:border-gray-600">
-                                    <span className="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest text-[9px]">
-                                        Total Opción {activeTab}:
-                                    </span>
-                                    <span className="text-xl font-bold text-purple-600 dark:text-purple-400">
-                                        {formatNumber(totalConverted)} <span className="text-xs">{isUSD ? '$' : 'Bs.'}</span>
-                                    </span>
+                            {/* Note and Total Section */}
+                            <div className="flex flex-col md:flex-row justify-between items-start mt-4 gap-4">
+                                <div className="flex-1 w-full">
+                                    {(() => {
+                                        const activeNota = (propuesta.notas && propuesta.notas[activeTab] !== undefined)
+                                            ? propuesta.notas[activeTab]
+                                            : (activeTab === 'A' || !propuesta.notas ? propuesta.nota : '');
+                                        if (!activeNota) return null;
+                                        return (
+                                            <div className="p-3 bg-gray-50 dark:bg-gray-700/40 rounded-xl border border-gray-200 dark:border-gray-600">
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-1">
+                                                    Nota / Observación (Opción {activeTab}):
+                                                </span>
+                                                <p className="text-xs text-gray-700 dark:text-gray-200 whitespace-pre-wrap">
+                                                    {activeNota}
+                                                </p>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+
+                                <div className="flex flex-col items-end gap-2 w-full md:w-auto">
+                                    {currentDiscountPct > 0 && (
+                                        <>
+                                            <div className="bg-gray-50 dark:bg-gray-700/50 px-6 py-2 rounded-xl flex items-center justify-between gap-4 w-64 border border-gray-100 dark:border-gray-600">
+                                                <span className="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest text-[9px]">Subtotal:</span>
+                                                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                                                    {formatNumber(subTotalConverted)} <span className="text-[10px]">{isUSD ? '$' : 'Bs.'}</span>
+                                                </span>
+                                            </div>
+                                            <div className="bg-gray-50 dark:bg-gray-700/50 px-6 py-2 rounded-xl flex items-center justify-between gap-4 w-64 border border-gray-100 dark:border-gray-600">
+                                                <span className="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest text-[9px]">
+                                                    Descuento ({currentDiscountPct}%):
+                                                </span>
+                                                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                                                    -{formatNumber(discountConverted)} <span className="text-[10px]">{isUSD ? '$' : 'Bs.'}</span>
+                                                </span>
+                                            </div>
+                                        </>
+                                    )}
+                                    <div className="bg-gray-100 dark:bg-gray-700 px-6 py-3 rounded-xl flex items-center justify-between gap-4 w-72 border border-gray-200 dark:border-gray-600">
+                                        <span className="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest text-[9px]">
+                                            Total Opción {activeTab}:
+                                        </span>
+                                        <span className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                                            {formatNumber(totalConverted)} <span className="text-xs">{isUSD ? '$' : 'Bs.'}</span>
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

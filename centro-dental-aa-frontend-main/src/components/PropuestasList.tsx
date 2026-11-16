@@ -60,6 +60,7 @@ const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClos
     const filteredPropuestas = propuestas.filter(p =>
         p.numero.toString().includes(searchTerm) ||
         p.nota?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.notas && Object.values(p.notas).some(n => typeof n === 'string' && n.toLowerCase().includes(searchTerm.toLowerCase()))) ||
         formatDate(p.fecha).includes(searchTerm)
     );
 
@@ -490,12 +491,16 @@ const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClos
         finalY += 15;
 
         // 5.1 Propuesta Note
-        if (propuesta.nota) {
+        const noteForOption = (letra && propuesta.notas && propuesta.notas[letra] !== undefined)
+            ? propuesta.notas[letra]
+            : (letra === 'A' || !propuesta.notas ? propuesta.nota : '');
+
+        if (noteForOption) {
             doc.setFont('helvetica', 'bold');
             doc.text('NOTA:', 14, finalY);
 
             doc.setFont('helvetica', 'normal');
-            const splitNote = doc.splitTextToSize(propuesta.nota, 165);
+            const splitNote = doc.splitTextToSize(noteForOption, 165);
             doc.text(splitNote, 30, finalY);
 
             finalY += (splitNote.length * 5) + 5;

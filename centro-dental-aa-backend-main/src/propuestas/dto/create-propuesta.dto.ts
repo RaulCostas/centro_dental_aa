@@ -57,6 +57,9 @@ export class CreatePropuestaDto {
     nota: string;
 
     @IsOptional()
+    notas?: Record<string, string>;
+
+    @IsOptional()
     descuentos: Record<string, number>;
 
     @IsNotEmpty()

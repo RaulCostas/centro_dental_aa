@@ -32,6 +32,9 @@ export class Propuesta {
     @Column({ type: 'text', nullable: true })
     nota: string;
 
+    @Column({ type: 'jsonb', nullable: true })
+    notas: Record<string, string>;
+
     @Column({ type: 'json', nullable: true })
     descuentos: Record<string, number>;
 

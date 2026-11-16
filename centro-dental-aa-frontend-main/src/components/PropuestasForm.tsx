@@ -69,7 +69,7 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
     const [paciente, setPaciente] = useState<Paciente | null>(null);
     const [aranceles, setAranceles] = useState<Arancel[]>([]);
     const [detalles, setDetalles] = useState<DetalleItem[]>([]);
-    const [nota, setNota] = useState('');
+    const [tabNotas, setTabNotas] = useState<Record<string, string>>({});
     const [letraHeader, setLetraHeader] = useState(''); // Optional header label
     const [fecha, setFecha] = useState(() => {
         const today = new Date();
@@ -134,7 +134,13 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
         try {
             const response = await api.get(`/propuestas/${propuestaId}`);
             const data = response.data;
-            setNota(data.nota);
+            if (data.notas && typeof data.notas === 'object') {
+                setTabNotas(data.notas);
+            } else if (data.nota) {
+                setTabNotas({ 'A': data.nota });
+            } else {
+                setTabNotas({});
+            }
             setLetraHeader(data.letra || '');
             setFecha(data.fecha.split('T')[0]);
 
@@ -319,7 +325,8 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
             const payload = {
                 pacienteId: paciente.id,
                 usuarioId: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).id : 1,
-                nota,
+                nota: tabNotas[activeTab] || tabNotas['A'] || '',
+                notas: tabNotas,
                 letra: letraHeader,
                 fecha: new Date(fecha).toISOString(),
                 total: calculateGrandTotal(),
@@ -938,14 +945,21 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
             <div className="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl border border-gray-100 dark:border-gray-600">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Nota (General)</label>
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            Nota u Observación (Propuesta {activeTab})
+                        </label>
                         <textarea
-                            value={nota}
-                            onChange={(e) => setNota(e.target.value)}
+                            value={tabNotas[activeTab] || ''}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setTabNotas(prev => ({
+                                    ...prev,
+                                    [activeTab]: val
+                                }));
+                            }}
                             disabled={isReadOnly}
                             className="w-full h-32 px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800 dark:text-gray-200 resize-none transition-all"
-                            placeholder="Ingrese una nota o comentario general para la propuesta (opcional)..."
-
+                            placeholder={`Ingrese una nota o comentario para la propuesta ${activeTab} (opcional)...`}
                         />
                     </div>
 

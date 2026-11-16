@@ -25,8 +25,9 @@ export class PropuestasService implements OnModuleInit {
             await this.dataSource.query(`
                 ALTER TABLE propuestas ADD COLUMN IF NOT EXISTS monedas JSONB;
                 ALTER TABLE propuestas ADD COLUMN IF NOT EXISTS "tiposCambio" JSONB;
+                ALTER TABLE propuestas ADD COLUMN IF NOT EXISTS notas JSONB;
             `);
-            console.log('[PropuestasService] Auto-migración de columnas monedas y tiposCambio completada.');
+            console.log('[PropuestasService] Auto-migración de columnas monedas, tiposCambio y notas completada.');
         } catch (error) {
             console.error('[PropuestasService] Error al migrar columnas:', error);
         }
@@ -55,10 +56,12 @@ export class PropuestasService implements OnModuleInit {
         const flatDiscount = sub_total * (globalDiscountPct / 100);
         const total = sub_total - flatDiscount;
 
+        const notaLetra = propuesta.notas?.[letra] || propuesta.nota || '';
+
         const createProformaDto: CreateProformaDto = {
             pacienteId: propuesta.pacienteId,
             usuarioId: usuarioId,
-            nota: `Generado desde Propuesta #${propuesta.numero} (Opción ${letra}). ${propuesta.nota || ''}`,
+            nota: `Generado desde Propuesta #${propuesta.numero} (Opción ${letra}). ${notaLetra}`,
             fecha: getLocalDateString(),
             sub_total: sub_total,
             descuento: globalDiscountPct,
@@ -108,7 +111,11 @@ export class PropuestasService implements OnModuleInit {
             propuesta.usuarioId = createPropuestaDto.usuarioId;
             propuesta.numero = nextNumero;
 
-            propuesta.nota = createPropuestaDto.nota || '';
+            propuesta.notas = createPropuestaDto.notas || {};
+            if (createPropuestaDto.nota && !propuesta.notas?.['A']) {
+                propuesta.notas = { ...propuesta.notas, 'A': createPropuestaDto.nota };
+            }
+            propuesta.nota = createPropuestaDto.notas?.['A'] || createPropuestaDto.nota || '';
             propuesta.fecha = createPropuestaDto.fecha
                 ? createPropuestaDto.fecha.split('T')[0]
                 : getLocalDateString();
@@ -189,6 +196,12 @@ export class PropuestasService implements OnModuleInit {
             if (!propuesta) throw new NotFoundException(`Propuesta #${id} not found`);
 
             // Update header fields
+            if (updatePropuestaDto.notas !== undefined) {
+                propuesta.notas = updatePropuestaDto.notas;
+                if (updatePropuestaDto.notas?.['A'] && !updatePropuestaDto.nota) {
+                    propuesta.nota = updatePropuestaDto.notas['A'];
+                }
+            }
             if (updatePropuestaDto.nota !== undefined) propuesta.nota = updatePropuestaDto.nota;
             if (updatePropuestaDto.fecha) propuesta.fecha = updatePropuestaDto.fecha.split('T')[0];
             if (updatePropuestaDto.usuarioId) propuesta.usuarioId = updatePropuestaDto.usuarioId;

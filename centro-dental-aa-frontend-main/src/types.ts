@@ -639,6 +639,7 @@ export interface Propuesta {
     fecha: string;
     total: number;
     nota: string;
+    notas?: Record<string, string>;
     usuarioId: number;
     usuario?: User;
     detalles: PropuestaDetalle[];
@@ -865,6 +866,7 @@ export interface Propuesta {
     fecha: string;
     total: number;
     nota: string;
+    notas?: Record<string, string>;
     usuarioId: number;
     usuario?: User;
     detalles: PropuestaDetalle[];
