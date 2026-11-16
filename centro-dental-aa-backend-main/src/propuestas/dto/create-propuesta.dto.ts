@@ -66,6 +66,12 @@ export class CreatePropuestaDto {
     @IsOptional()
     plan_pagos?: any;
 
+    @IsOptional()
+    monedas?: Record<string, string>;
+
+    @IsOptional()
+    tiposCambio?: Record<string, number>;
+
     @IsNotEmpty()
     @ValidateNested({ each: true })
     @Type(() => CreatePropuestaDetalleDto)

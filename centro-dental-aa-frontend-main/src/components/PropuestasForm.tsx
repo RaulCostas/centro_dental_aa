@@ -7,7 +7,7 @@ import ManualModal, { type ManualSection } from './ManualModal';
 import ArancelForm from './ArancelForm';
 import { formatDate } from '../utils/dateUtils';
 import { formatFullName, formatNumber, formatCurrency } from '../utils/formatters';
-import { Calendar, Edit } from 'lucide-react';
+import { Calendar, Edit, DollarSign } from 'lucide-react';
 import { openPaymentPlanModal } from '../utils/paymentPlanModal';
 
 interface DetalleItem {
@@ -81,6 +81,8 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
     // const [numero, setNumero] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState('A'); // Default tab
     const [tabPlanPagos, setTabPlanPagos] = useState<Record<string, any>>({});
+    const [tabMonedas, setTabMonedas] = useState<Record<string, string>>({});
+    const [tabTiposCambio, setTabTiposCambio] = useState<Record<string, number>>({});
 
     // Form state for new item
     const [selectedArancelId, setSelectedArancelId] = useState<number>(0);
@@ -142,6 +144,12 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
             }
             if (data.plan_pagos) {
                 setTabPlanPagos(data.plan_pagos);
+            }
+            if (data.monedas) {
+                setTabMonedas(data.monedas);
+            }
+            if (data.tiposCambio) {
+                setTabTiposCambio(data.tiposCambio);
             }
 
             // setNumero(data.numero);
@@ -317,6 +325,8 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                 total: calculateGrandTotal(),
                 descuentos: tabDiscounts,
                 plan_pagos: tabPlanPagos,
+                monedas: tabMonedas,
+                tiposCambio: tabTiposCambio,
                 detalles: detalles.map(d => ({
                     id: d.id,
                     letra: d.letra,
@@ -421,6 +431,69 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
         }
     };
 
+    const activeIsUSD = tabMonedas[activeTab] === 'USD';
+    const activeTC = activeIsUSD ? Number(tabTiposCambio[activeTab] || 6.96) : 1;
+    const currencyCode: 'USD' | 'Bs' = activeIsUSD ? 'USD' : 'Bs';
+
+    const handleToggleCurrency = async () => {
+        if (activeIsUSD) {
+            // Revert to Bs
+            const updatedMonedas = { ...tabMonedas, [activeTab]: 'Bs' };
+            const updatedTiposCambio = { ...tabTiposCambio, [activeTab]: 1 };
+            setTabMonedas(updatedMonedas);
+            setTabTiposCambio(updatedTiposCambio);
+            if (propuestaId) {
+                try {
+                    await api.patch(`/propuestas/${propuestaId}`, {
+                        monedas: updatedMonedas,
+                        tiposCambio: updatedTiposCambio,
+                    });
+                } catch (error) {
+                    console.error(error);
+                    Swal.fire('Error', 'No se pudo cambiar la moneda en el servidor', 'error');
+                }
+            }
+        } else {
+            // Switch to USD
+            Swal.fire({
+                title: `Cambiar Propuesta ${activeTab} a Dólares (USD)`,
+                text: 'Ingrese el tipo de cambio actual (Ej. 6.96):',
+                input: 'number',
+                inputAttributes: {
+                    min: '0.01',
+                    step: '0.01',
+                },
+                inputValue: String(tabTiposCambio[activeTab] || '6.96'),
+                showCancelButton: true,
+                confirmButtonText: 'Cambiar a USD',
+                cancelButtonText: 'Cancelar',
+                background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#fff',
+                color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#000',
+            }).then(async (result) => {
+                if (result.isConfirmed && result.value) {
+                    const tc = parseFloat(result.value);
+                    if (tc > 0) {
+                        const updatedMonedas = { ...tabMonedas, [activeTab]: 'USD' };
+                        const updatedTiposCambio = { ...tabTiposCambio, [activeTab]: tc };
+                        setTabMonedas(updatedMonedas);
+                        setTabTiposCambio(updatedTiposCambio);
+                        if (propuestaId) {
+                            try {
+                                await api.patch(`/propuestas/${propuestaId}`, {
+                                    monedas: updatedMonedas,
+                                    tiposCambio: updatedTiposCambio,
+                                });
+                            } catch (error) {
+                                console.error(error);
+                                Swal.fire('Error', 'No se pudo cambiar la moneda en el servidor', 'error');
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    };
+
     return (
         <div className="content-card max-w-[1400px] mx-auto text-gray-800 dark:text-white bg-white dark:bg-gray-800">
             <div className="flex items-center justify-between mb-6">
@@ -492,6 +565,11 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         Propuesta {tab}
+                        {tabMonedas[tab] === 'USD' && (
+                            <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300" title={`Propuesta ${tab} en USD (TC: ${tabTiposCambio[tab] || 6.96})`}>
+                                $ USD
+                            </span>
+                        )}
                         {tabPlanPagos[tab]?.activo && (
                             <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300" title={`Plan de pagos activo en Propuesta ${tab}`}>
                                 Plan
@@ -663,13 +741,31 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
 
             {/* Items Table for Active Tab */}
             <div className="mb-8 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-                <div className="bg-gray-100 dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="bg-gray-100 dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                     <h4 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M5 4a3 3 0 00-3 3v6a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3H5zm-1 9v-1h5v2H5a1 1 0 01-1-1zm7 1h4a1 1 0 001-1v-1h-5v2zm0-4h5V8h-5v2zM9 8H4v2h5V8z" clipRule="evenodd" />
                         </svg>
                         Tratamientos de Propuesta {activeTab}
+                        {activeIsUSD && (
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">
+                                USD (TC: {activeTC})
+                            </span>
+                        )}
                     </h4>
+                    <button
+                        type="button"
+                        onClick={handleToggleCurrency}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-xs transition-all transform hover:-translate-y-0.5 active:scale-95 shadow-sm border ${
+                            activeIsUSD
+                                ? 'bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800'
+                                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
+                        }`}
+                        title={activeIsUSD ? 'Volver a Bolivianos' : 'Cambiar a Dólares'}
+                    >
+                        <DollarSign size={14} />
+                        {activeIsUSD ? 'Volver a Bs.' : 'Cambiar a USD'}
+                    </button>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -679,10 +775,10 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nº</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tratamiento</th>
                                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Piezas</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">P.U.</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">P.U. ({activeIsUSD ? '$' : 'Bs.'})</th>
                                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cant.</th>
                                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Desc.%</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">SubTotal</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">SubTotal ({activeIsUSD ? '$' : 'Bs.'})</th>
                                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Posible</th>
                                 {!isReadOnly && <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acción</th>}
                             </tr>
@@ -704,10 +800,10 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-center">{index + 1}</td>
                                         <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{item.tratamiento}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-center">{item.piezas}</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-right">{formatNumber(item.precioUnitario)}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-right">{formatNumber(item.precioUnitario / activeTC)}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-center">{item.cantidad}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-center">{item.descuento || 0}%</td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-right font-medium">{formatNumber(item.total)}</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-right font-medium">{formatNumber(item.total / activeTC)}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
                                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.posible ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}`}>
                                                 {item.posible ? 'SÍ' : 'NO'}
@@ -803,13 +899,13 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                             </div>
                             <div className="flex flex-wrap gap-3 text-xs font-semibold">
                                 <span className="px-3 py-1 rounded-lg bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-700 text-gray-700 dark:text-gray-200">
-                                    Pago Inicial: <strong className="text-indigo-600 dark:text-indigo-400">{formatCurrency(cuotaInicial, 'Bs')}</strong>
+                                    Pago Inicial: <strong className="text-indigo-600 dark:text-indigo-400">{formatCurrency(cuotaInicial / activeTC, currencyCode)}</strong>
                                 </span>
                                 <span className="px-3 py-1 rounded-lg bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-700 text-gray-700 dark:text-gray-200">
                                     Plazo: <strong className="text-indigo-600 dark:text-indigo-400">{meses} {meses === 1 ? 'mes' : 'meses'}</strong> (Día {dia})
                                 </span>
                                 <span className="px-3 py-1 rounded-lg bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-700 text-gray-700 dark:text-gray-200">
-                                    Cuota Mensual: <strong className="text-indigo-600 dark:text-indigo-400">{formatCurrency(cuotaMensual, 'Bs')}</strong>
+                                    Cuota Mensual: <strong className="text-indigo-600 dark:text-indigo-400">{formatCurrency(cuotaMensual / activeTC, currencyCode)}</strong>
                                 </span>
                             </div>
                         </div>
@@ -827,7 +923,7 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                                     {cuotasRows.map((row, idx) => (
                                         <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700/40">
                                             <td className="px-4 py-2 text-center text-sm font-medium text-gray-800 dark:text-gray-200">{row.detalle}</td>
-                                            <td className="px-4 py-2 text-center text-sm font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(row.monto, 'Bs')}</td>
+                                            <td className="px-4 py-2 text-center text-sm font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(row.monto / activeTC, currencyCode)}</td>
                                             <td className="px-4 py-2 text-center text-sm text-gray-600 dark:text-gray-300">{row.vencimiento}</td>
                                         </tr>
                                     ))}
@@ -857,7 +953,7 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                         <div className="space-y-4">
                             <div className="flex justify-between items-center text-sm font-medium text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-600 pb-2">
                                 <span className="uppercase tracking-wide">SubTotal Propuesta {activeTab}</span>
-                                <span className="text-gray-800 dark:text-white font-semibold text-lg">{formatCurrency(calculateTabSubTotal(), 'Bs')}</span>
+                                <span className="text-gray-800 dark:text-white font-semibold text-lg">{formatCurrency(calculateTabSubTotal() / activeTC, currencyCode)}</span>
                             </div>
 
                             <div className="flex justify-between items-center text-sm font-medium text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-600 pb-2">
@@ -886,13 +982,26 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                             <div className="flex justify-between items-center pt-2">
                                 <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">TOTAL A COBRAR</span>
                                 <div className="text-4xl font-bold text-purple-600 dark:text-purple-400">
-                                    {formatCurrency(calculateTabTotal(), 'Bs')}
+                                    {formatCurrency(calculateTabTotal() / activeTC, currencyCode)}
                                 </div>
                             </div>
                         </div>
 
                         {/* Footer Buttons */}
                         <div className="flex flex-wrap justify-start gap-4 mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
+                            <button
+                                type="button"
+                                onClick={handleToggleCurrency}
+                                className={`font-bold py-2 px-5 rounded-xl shadow-md transition-all transform hover:-translate-y-0.5 flex items-center gap-2 border ${
+                                    activeIsUSD
+                                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-transparent'
+                                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600'
+                                }`}
+                                title={`Cambiar moneda de la Propuesta ${activeTab}`}
+                            >
+                                <DollarSign size={18} />
+                                {activeIsUSD ? `Volver a Bs. (TC: ${activeTC})` : 'Cambiar a USD'}
+                            </button>
                             {!tabPlanPagos[activeTab]?.activo && (
                                 <button
                                     type="button"

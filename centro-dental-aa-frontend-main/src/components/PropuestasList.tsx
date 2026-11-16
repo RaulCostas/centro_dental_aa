@@ -10,7 +10,8 @@ import { formatDateSpanish, numberToWords, formatFullName, formatNumber, formatC
 import { formatDate } from '../utils/dateUtils';
 import ManualModal, { type ManualSection } from './ManualModal';
 import Pagination from './Pagination';
-import { Printer, MessageCircle, ClipboardList } from 'lucide-react';
+import { Printer, MessageCircle, ClipboardList, DollarSign } from 'lucide-react';
+import PropuestaViewModal from './PropuestaViewModal';
 
 
 
@@ -29,6 +30,9 @@ const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClos
     const [propuestas, setPropuestas] = useState<Propuesta[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [showManual, setShowManual] = useState(false);
+    const [selectedPropuestaId, setSelectedPropuestaId] = useState<number | null>(null);
+    const [selectedLetraModal, setSelectedLetraModal] = useState<string>('A');
+    const [showViewModal, setShowViewModal] = useState(false);
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -96,6 +100,57 @@ const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClos
             navigate(`/pacientes?tipo=${tipo}`);
         } else {
             navigate('/pacientes');
+        }
+    };
+
+    const handleToggleCurrency = async (propuesta: Propuesta, letra: string) => {
+        const isUSD = propuesta.monedas?.[letra] === 'USD';
+
+        if (isUSD) {
+            try {
+                const updatedMonedas = { ...(propuesta.monedas || {}), [letra]: 'Bs' };
+                const updatedTiposCambio = { ...(propuesta.tiposCambio || {}), [letra]: 1 };
+                await api.patch(`/propuestas/${propuesta.id}`, {
+                    monedas: updatedMonedas,
+                    tiposCambio: updatedTiposCambio
+                });
+                if (id) fetchPropuestas(Number(id));
+            } catch (error) {
+                console.error(error);
+                Swal.fire('Error', 'No se pudo cambiar la moneda', 'error');
+            }
+        } else {
+            Swal.fire({
+                title: `Cambiar Opción ${letra} a Dólares (USD)`,
+                text: 'Ingrese el tipo de cambio actual (Ej. 6.96):',
+                input: 'number',
+                inputValue: '6.96',
+                inputAttributes: {
+                    min: '0.01',
+                    step: '0.01'
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Cambiar a USD',
+                cancelButtonText: 'Cancelar'
+            }).then(async (result) => {
+                if (result.isConfirmed && result.value) {
+                    const tipoCambio = parseFloat(result.value);
+                    if (tipoCambio > 0) {
+                        try {
+                            const updatedMonedas = { ...(propuesta.monedas || {}), [letra]: 'USD' };
+                            const updatedTiposCambio = { ...(propuesta.tiposCambio || {}), [letra]: tipoCambio };
+                            await api.patch(`/propuestas/${propuesta.id}`, {
+                                monedas: updatedMonedas,
+                                tiposCambio: updatedTiposCambio
+                            });
+                            if (id) fetchPropuestas(Number(id));
+                        } catch (error) {
+                            console.error(error);
+                            Swal.fire('Error', 'No se pudo cambiar la moneda', 'error');
+                        }
+                    }
+                }
+            });
         }
     };
 
@@ -317,17 +372,21 @@ const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClos
 
         // 4. Table - Filter by letra if provided
         const filteredDetalles = letra ? propuesta.detalles.filter(d => d.letra === letra) : propuesta.detalles;
+        const isUSD = Boolean(letra && propuesta.monedas?.[letra] === 'USD');
+        const tc = (isUSD && letra && propuesta.tiposCambio?.[letra]) ? Number(propuesta.tiposCambio[letra]) : 1;
 
         let tableColumn = ["Pieza(s)", "Descripción", "Cant.", "P.U.", "Total"];
         const tableRows: any[] = [];
 
         filteredDetalles.forEach(item => {
+            const pu = Number(item.precioUnitario) / tc;
+            const itemTot = Number(item.total) / tc;
             const row = [
                 item.piezas,
                 item.arancel?.detalle || '',
                 item.cantidad,
-                formatNumber(item.precioUnitario),
-                formatNumber(item.total)
+                formatNumber(pu),
+                formatNumber(itemTot)
             ];
             tableRows.push(row);
         });
@@ -394,14 +453,17 @@ const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClos
 
         doc.setFont('helvetica', 'bold');
 
-        const subtotal = filteredDetalles.reduce((acc, curr) => acc + Number(curr.total), 0);
+        const subtotal = (filteredDetalles.reduce((acc, curr) => acc + Number(curr.total), 0)) / tc;
         const discountPct = (letra && propuesta.descuentos && propuesta.descuentos[letra]) ? Number(propuesta.descuentos[letra]) : 0;
         const discountAmount = subtotal * (discountPct / 100);
         const totalAmount = subtotal - discountAmount;
 
+        const currencyLabel = isUSD ? 'USD' : 'Bs.';
+        const totalBoxLabel = isUSD ? 'TOTAL $ USD' : 'TOTAL Bs.';
+
         // Draw Subtotal and Discount if exists
         if (discountPct > 0) {
-            doc.text('SUBTOTAL Bs.', penultColX + penultColWidth - 2, finalY, { align: 'right' });
+            doc.text(`SUBTOTAL ${currencyLabel}`, penultColX + penultColWidth - 2, finalY, { align: 'right' });
             doc.text(formatNumber(subtotal), lastColX + lastColWidth - 2, finalY, { align: 'right' });
             finalY += 6;
 
@@ -413,7 +475,7 @@ const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClos
         // Draw Total Box
         doc.rect(penultColX, finalY - 4, penultColWidth, 7);
         doc.rect(lastColX, finalY - 4, lastColWidth, 7);
-        doc.text('TOTAL Bs.', penultColX + penultColWidth - 2, finalY + 1, { align: 'right' });
+        doc.text(totalBoxLabel, penultColX + penultColWidth - 2, finalY + 1, { align: 'right' });
         doc.text(formatNumber(totalAmount), lastColX + lastColWidth - 2, finalY + 1, { align: 'right' });
 
         finalY += 10;
@@ -422,7 +484,8 @@ const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClos
         doc.setFont('helvetica', 'normal');
         const decimalPart = formatNumber(totalAmount).split(',')[1] || '00';
         const words = numberToWords(totalAmount);
-        doc.text(`SON: ${words} ${decimalPart}/100 BOLIVIANOS`, 14, finalY);
+        const currencyWords = isUSD ? 'DÓLARES AMERICANOS' : 'BOLIVIANOS';
+        doc.text(`SON: ${words} ${decimalPart}/100 ${currencyWords}`, 14, finalY);
 
         finalY += 15;
 
@@ -452,7 +515,7 @@ const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClos
         if (planPagos?.activo) {
             const meses = planPagos.meses;
             const dia = planPagos.diaPago;
-            const cuotaInicial = planPagos.cuotaInicial || 0;
+            const cuotaInicial = (planPagos.cuotaInicial || 0) / tc;
             const montoParaCuotas = Math.max(0, totalAmount - cuotaInicial);
             
             const cuota = formatNumber(montoParaCuotas / meses);
@@ -465,7 +528,7 @@ const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClos
             if (cuotaInicial > 0) {
                 tableBody.push([
                     'Cuota Inicial', 
-                    `${formatNumber(cuotaInicial)} Bs.`, 
+                    `${formatNumber(cuotaInicial)} ${currencyLabel}`, 
                     fechaActual.toLocaleDateString('en-GB')
                 ]);
             }
@@ -477,7 +540,7 @@ const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClos
                 }
                 tableBody.push([
                     `Cuota ${i}`, 
-                    `${cuota} Bs.`, 
+                    `${cuota} ${currencyLabel}`, 
                     nextMonth.toLocaleDateString('en-GB')
                 ]);
             }
@@ -703,12 +766,30 @@ const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClos
                                     <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{propuesta.usuario?.name || 'Sistema'}</td>
                                     {['A', 'B', 'C', 'D', 'E', 'F'].map(letra => {
                                         const total = calculateTotalByLetra(letra);
+                                        const isUSD = propuesta.monedas?.[letra] === 'USD';
+                                        const tc = (isUSD && propuesta.tiposCambio?.[letra]) ? Number(propuesta.tiposCambio[letra]) : 1;
+                                        const displayTotal = total / tc;
+
                                         return (
                                             <td key={letra} className="px-5 py-4 whitespace-nowrap text-sm text-center">
                                                 {total > 0 ? (
                                                     <div className="flex flex-col items-center gap-2">
-                                                        <span className="font-bold text-gray-800 dark:text-gray-200">{formatNumber(total)}</span>
-                                                        <div className="flex gap-2">
+                                                        <div className="flex items-center justify-center gap-1 font-bold text-gray-800 dark:text-gray-200">
+                                                            {isUSD ? <DollarSign size={14} className="text-emerald-500" /> : <span className="text-xs text-gray-500">Bs.</span>}
+                                                            <span>{formatNumber(displayTotal)}</span>
+                                                        </div>
+                                                        <div className="flex gap-1.5 flex-wrap justify-center">
+                                                            <button
+                                                                onClick={() => handleToggleCurrency(propuesta, letra)}
+                                                                className={`p-2 rounded-lg shadow-md transition-all transform hover:-translate-y-0.5 border ${
+                                                                    isUSD
+                                                                        ? 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800'
+                                                                        : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
+                                                                }`}
+                                                                title={isUSD ? `Opción ${letra}: Volver a Bolivianos` : `Opción ${letra}: Convertir a Dólares`}
+                                                            >
+                                                                <DollarSign size={20} />
+                                                            </button>
                                                             <button
                                                                 onClick={() => generatePDF(propuesta, 'print', letra)}
                                                                 className="p-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg shadow-md transition-all transform hover:-translate-y-0.5"
@@ -745,9 +826,14 @@ const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClos
                                     <td className="px-5 py-4 whitespace-nowrap text-center no-print">
                                         <div className="flex gap-2 justify-center">
                                             <button
-                                                onClick={() => navigate(`/pacientes/${id}/propuestas/view/${propuesta.id}${returnTo ? `?returnTo=${returnTo}` : ''}`)}
+                                                onClick={() => {
+                                                    const firstLetraWithItems = ['A', 'B', 'C', 'D', 'E', 'F'].find(l => propuesta.detalles?.some(d => d.letra === l)) || 'A';
+                                                    setSelectedPropuestaId(propuesta.id);
+                                                    setSelectedLetraModal(firstLetraWithItems);
+                                                    setShowViewModal(true);
+                                                }}
                                                 className="p-2 bg-orange-400 text-white rounded-lg hover:bg-orange-500 shadow-md transition-all transform hover:-translate-y-0.5"
-                                                title="Ver"
+                                                title="Ver Detalle"
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -809,6 +895,17 @@ const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClos
                 onClose={() => setShowManual(false)}
                 title="Manual de Usuario - Propuestas"
                 sections={manualSections}
+            />
+
+            <PropuestaViewModal
+                isOpen={showViewModal}
+                onClose={() => setShowViewModal(false)}
+                id={id || ''}
+                propuestaId={selectedPropuestaId}
+                initialLetra={selectedLetraModal}
+                onUpdate={() => id && fetchPropuestas(Number(id))}
+                onPrint={(p, l) => generatePDF(p, 'print', l)}
+                onConvertToBudget={(pId, l) => handleConvertToBudget(pId, l)}
             />
         </div>
     );

@@ -45,6 +45,12 @@ export class Propuesta {
     @Column({ type: 'jsonb', nullable: true })
     plan_pagos: any;
 
+    @Column({ type: 'jsonb', nullable: true })
+    monedas: Record<string, string>;
+
+    @Column({ type: 'jsonb', nullable: true })
+    tiposCambio: Record<string, number>;
+
     @OneToMany(() => PropuestaDetalle, (detalle) => detalle.propuesta, { cascade: true })
     detalles: PropuestaDetalle[];
 }

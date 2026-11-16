@@ -69,7 +69,9 @@ export class PropuestasService {
                     posible: Boolean(d.posible)
                 };
             }),
-            plan_pagos: propuesta.plan_pagos?.[letra] || null
+            plan_pagos: propuesta.plan_pagos?.[letra] || null,
+            moneda: propuesta.monedas?.[letra] || 'Bs',
+            tipoCambio: propuesta.tiposCambio?.[letra] || 1
         };
 
         return this.proformasService.create(createProformaDto);
@@ -100,6 +102,8 @@ export class PropuestasService {
                 : getLocalDateString();
             propuesta.descuentos = createPropuestaDto.descuentos || {};
             propuesta.plan_pagos = createPropuestaDto.plan_pagos || null;
+            propuesta.monedas = createPropuestaDto.monedas || {};
+            propuesta.tiposCambio = createPropuestaDto.tiposCambio || {};
 
             // Calculate total from details just in case
             propuesta.total = createPropuestaDto.detalles.reduce((sum, item) => sum + Number(item.total), 0);
@@ -178,6 +182,8 @@ export class PropuestasService {
             if (updatePropuestaDto.usuarioId) propuesta.usuarioId = updatePropuestaDto.usuarioId;
             if (updatePropuestaDto.descuentos !== undefined) propuesta.descuentos = updatePropuestaDto.descuentos;
             if (updatePropuestaDto.plan_pagos !== undefined) propuesta.plan_pagos = updatePropuestaDto.plan_pagos;
+            if (updatePropuestaDto.monedas !== undefined) propuesta.monedas = updatePropuestaDto.monedas;
+            if (updatePropuestaDto.tiposCambio !== undefined) propuesta.tiposCambio = updatePropuestaDto.tiposCambio;
 
 
             // Recalculate total if details are provided

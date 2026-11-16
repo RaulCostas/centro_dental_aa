@@ -644,6 +644,8 @@ export interface Propuesta {
     detalles: PropuestaDetalle[];
     descuentos?: Record<string, number>;
     plan_pagos?: Record<string, any>;
+    monedas?: Record<string, string>;
+    tiposCambio?: Record<string, number>;
 }
 
 export interface Calificacion {
@@ -868,6 +870,8 @@ export interface Propuesta {
     detalles: PropuestaDetalle[];
     descuentos?: Record<string, number>;
     plan_pagos?: Record<string, any>;
+    monedas?: Record<string, string>;
+    tiposCambio?: Record<string, number>;
 }
 
 export interface Calificacion {
