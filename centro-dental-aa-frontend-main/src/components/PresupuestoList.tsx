@@ -531,7 +531,14 @@ const PresupuestoList: React.FC = () => {
         let totalSubTotal = 0;
         let hasPosible = false;
 
-        proforma.detalles.forEach(item => {
+        const sortedDetalles = [...(proforma.detalles || [])].sort((a: any, b: any) => {
+            if (a.orden !== undefined && b.orden !== undefined && a.orden !== b.orden) {
+                return a.orden - b.orden;
+            }
+            return (a.id || 0) - (b.id || 0);
+        });
+
+        sortedDetalles.forEach(item => {
             const isPosible = item.posible === true;
             if (isPosible) hasPosible = true;
             const itemDiscount = getItemDiscount(item);

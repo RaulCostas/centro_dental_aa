@@ -35,6 +35,7 @@ export class ProformasService implements OnModuleInit {
   async onModuleInit() {
     try {
       await this.dataSource.query(`
+        ALTER TABLE proforma_detalle ADD COLUMN IF NOT EXISTS orden INT DEFAULT 0;
         UPDATE proformas_imagenes pi
         SET "pacienteId" = p."pacienteId"
         FROM proformas p
@@ -44,6 +45,16 @@ export class ProformasService implements OnModuleInit {
     } catch (error) {
       console.warn('Error backfilling pacienteId in proformas_imagenes:', error);
     }
+  }
+
+  private sortDetalles(detalles?: ProformaDetalle[]): ProformaDetalle[] {
+    if (!detalles || !Array.isArray(detalles)) return [];
+    return detalles.sort((a, b) => {
+      if (a.orden !== undefined && b.orden !== undefined && a.orden !== b.orden) {
+        return a.orden - b.orden;
+      }
+      return a.id - b.id;
+    });
   }
 
   async create(createProformaDto: CreateProformaDto) {
@@ -95,7 +106,7 @@ export class ProformasService implements OnModuleInit {
       const savedProforma = await queryRunner.manager.save(proforma);
 
       // 3. Create Details
-      const detalles = createProformaDto.detalles.map(item => {
+      const detalles = createProformaDto.detalles.map((item, index) => {
         const detalle = new ProformaDetalle();
         detalle.proforma = savedProforma;
         detalle.arancelId = item.arancelId;
@@ -105,6 +116,7 @@ export class ProformasService implements OnModuleInit {
         detalle.descuento = item.descuento || 0;
         detalle.total = item.total;
         detalle.posible = item.posible;
+        detalle.orden = item.orden !== undefined ? item.orden : index;
         return detalle;
       });
 
@@ -214,7 +226,11 @@ export class ProformasService implements OnModuleInit {
       skip: (page - 1) * limit
     };
 
-    return this.proformaRepository.find(options);
+    const proformas = await this.proformaRepository.find(options);
+    proformas.forEach(p => {
+      if (p.detalles) this.sortDetalles(p.detalles);
+    });
+    return proformas;
   }
 
   async findAllByPaciente(pacienteId?: number) {
@@ -224,6 +240,10 @@ export class ProformasService implements OnModuleInit {
       where,
       relations: ['usuario', 'usuarioAprobado', 'detalles', 'detalles.arancel', 'imagenes'],
       order: { numero: 'ASC' }
+    });
+
+    proformas.forEach(p => {
+      if (p.detalles) this.sortDetalles(p.detalles);
     });
 
     // We need to include the estadoPresupuesto from HistoriaClinica
@@ -249,6 +269,7 @@ export class ProformasService implements OnModuleInit {
       relations: ['paciente', 'usuario', 'usuarioAprobado', 'detalles', 'detalles.arancel'],
     });
     if (!proforma) throw new NotFoundException(`Proforma #${id} not found`);
+    if (proforma.detalles) this.sortDetalles(proforma.detalles);
     return proforma;
   }
 
@@ -319,6 +340,7 @@ export class ProformasService implements OnModuleInit {
         }
 
         const savedDetalles: ProformaDetalle[] = [];
+        let index = 0;
 
         for (const item of incomingDetails) {
           let detalle: ProformaDetalle | null = null;
@@ -342,6 +364,8 @@ export class ProformasService implements OnModuleInit {
           detalle.descuento = item.descuento || 0;
           detalle.total = item.total;
           detalle.posible = item.posible;
+          detalle.orden = item.orden !== undefined ? item.orden : index;
+          index++;
 
           const savedDetalle = await queryRunner.manager.save(ProformaDetalle, detalle);
           savedDetalles.push(savedDetalle);

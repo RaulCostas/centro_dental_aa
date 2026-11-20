@@ -28,6 +28,10 @@ class CreateProformaDetalleDto {
 
     @IsBoolean()
     posible: boolean;
+
+    @IsOptional()
+    @IsNumber()
+    orden?: number;
 }
 
 export class CreateProformaDto {

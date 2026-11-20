@@ -26,18 +26,29 @@ export class PropuestasService implements OnModuleInit {
                 ALTER TABLE propuestas ADD COLUMN IF NOT EXISTS monedas JSONB;
                 ALTER TABLE propuestas ADD COLUMN IF NOT EXISTS "tiposCambio" JSONB;
                 ALTER TABLE propuestas ADD COLUMN IF NOT EXISTS notas JSONB;
+                ALTER TABLE propuesta_detalle ADD COLUMN IF NOT EXISTS orden INT DEFAULT 0;
             `);
-            console.log('[PropuestasService] Auto-migración de columnas monedas, tiposCambio y notas completada.');
+            console.log('[PropuestasService] Auto-migración de columnas monedas, tiposCambio, notas y orden completada.');
         } catch (error) {
             console.error('[PropuestasService] Error al migrar columnas:', error);
         }
     }
 
+    private sortDetalles(detalles?: PropuestaDetalle[]): PropuestaDetalle[] {
+        if (!detalles || !Array.isArray(detalles)) return [];
+        return detalles.sort((a, b) => {
+            if (a.orden !== undefined && b.orden !== undefined && a.orden !== b.orden) {
+                return a.orden - b.orden;
+            }
+            return a.id - b.id;
+        });
+    }
+
     async convertToProforma(id: number, letra: string, usuarioId: number) {
         const propuesta = await this.findOne(id);
 
-        // Filter details by the selected letter (tab)
-        const activeDetails = propuesta.detalles.filter(d => d.letra === letra);
+        // Filter details by the selected letter (tab) and preserve order
+        const activeDetails = this.sortDetalles(propuesta.detalles.filter(d => d.letra === letra));
 
         if (activeDetails.length === 0) {
             throw new NotFoundException(`No hay items en la Propuesta ${letra}`);
@@ -66,7 +77,7 @@ export class PropuestasService implements OnModuleInit {
             sub_total: sub_total,
             descuento: globalDiscountPct,
             total: total,
-            detalles: activeDetails.map(d => {
+            detalles: activeDetails.map((d, index) => {
                 const itemTotal = Number(d.total) || (Number(d.precioUnitario) * Number(d.cantidad));
                 const gross = Number(d.precioUnitario) * Number(d.cantidad);
                 const inferredDiscount = Number(d.descuento) > 0
@@ -81,7 +92,8 @@ export class PropuestasService implements OnModuleInit {
                     subTotal: itemTotal, // Static mapping for ProformaDetalle
                     descuento: inferredDiscount,
                     total: itemTotal, // Before global discount, individual total is just subtotal
-                    posible: Boolean(d.posible)
+                    posible: Boolean(d.posible),
+                    orden: index
                 };
             }),
             plan_pagos: propuesta.plan_pagos?.[letra] || null,
@@ -130,7 +142,7 @@ export class PropuestasService implements OnModuleInit {
             const savedPropuesta = await queryRunner.manager.save(propuesta);
 
             // 3. Create Details
-            const detalles = createPropuestaDto.detalles.map(item => {
+            const detalles = createPropuestaDto.detalles.map((item, index) => {
                 const detalle = new PropuestaDetalle();
                 detalle.propuesta = savedPropuesta;
                 detalle.letra = item.letra || null;
@@ -141,6 +153,7 @@ export class PropuestasService implements OnModuleInit {
                 detalle.descuento = item.descuento || 0;
                 detalle.total = item.total;
                 detalle.posible = item.posible || false;
+                detalle.orden = item.orden !== undefined ? item.orden : index;
                 return detalle;
             });
 
@@ -159,18 +172,26 @@ export class PropuestasService implements OnModuleInit {
     }
 
     async findAll() {
-        return this.propuestaRepository.find({
+        const propuestas = await this.propuestaRepository.find({
             relations: ['paciente', 'usuario', 'detalles', 'detalles.arancel'],
             order: { fecha: 'DESC' }
         });
+        propuestas.forEach(p => {
+            if (p.detalles) this.sortDetalles(p.detalles);
+        });
+        return propuestas;
     }
 
     async findAllByPaciente(pacienteId: number) {
-        return this.propuestaRepository.find({
+        const propuestas = await this.propuestaRepository.find({
             where: { pacienteId },
             relations: ['usuario', 'detalles', 'detalles.arancel'],
             order: { numero: 'ASC' }
         });
+        propuestas.forEach(p => {
+            if (p.detalles) this.sortDetalles(p.detalles);
+        });
+        return propuestas;
     }
 
     async findOne(id: number) {
@@ -179,6 +200,7 @@ export class PropuestasService implements OnModuleInit {
             relations: ['paciente', 'usuario', 'detalles', 'detalles.arancel'],
         });
         if (!propuesta) throw new NotFoundException(`Propuesta #${id} not found`);
+        if (propuesta.detalles) this.sortDetalles(propuesta.detalles);
         return propuesta;
     }
 
@@ -241,6 +263,7 @@ export class PropuestasService implements OnModuleInit {
                 }
 
                 const savedDetalles: PropuestaDetalle[] = [];
+                let index = 0;
 
                 for (const item of incomingDetails) {
                     let detalle: PropuestaDetalle | null = null;
@@ -263,13 +286,15 @@ export class PropuestasService implements OnModuleInit {
                     detalle.descuento = item.descuento || 0;
                     detalle.total = item.total;
                     detalle.posible = item.posible || false;
+                    detalle.orden = (item as any).orden !== undefined ? (item as any).orden : index;
+                    index++;
 
                     const savedDetalle = await queryRunner.manager.save(PropuestaDetalle, detalle);
                     savedDetalles.push(savedDetalle);
                 }
 
                 propuesta.total = savedDetalles.reduce((sum, item) => sum + Number(item.total), 0);
-                propuesta.detalles = savedDetalles;
+                propuesta.detalles = this.sortDetalles(savedDetalles);
             }
 
             await queryRunner.manager.save(propuesta);

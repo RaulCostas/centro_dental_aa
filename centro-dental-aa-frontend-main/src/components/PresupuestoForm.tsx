@@ -25,6 +25,7 @@ interface DetalleItem {
     descuento: number;
     total: number;
     posible: boolean;
+    orden?: number;
 }
 
 const SURFACE_CONDITIONS = [
@@ -189,7 +190,8 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
                     cantidad: number | string;
                     descuento?: number | string;
                     total: number | string;
-                    posible: boolean
+                    posible: boolean;
+                    orden?: number;
                 }) => ({
                     id: d.id,
                     arancelId: d.arancel.id,
@@ -200,8 +202,15 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
                     cantidad: Number(d.cantidad),
                     descuento: Number(d.descuento || 0),
                     total: Number(d.total),
-                    posible: d.posible
+                    posible: d.posible,
+                    orden: d.orden
                 }));
+                mappedDetalles.sort((a: any, b: any) => {
+                    if (a.orden !== undefined && b.orden !== undefined && a.orden !== b.orden) {
+                        return a.orden - b.orden;
+                    }
+                    return (a.id || 0) - (b.id || 0);
+                });
                 setDetalles(mappedDetalles);
             }
         } catch (error) {
@@ -642,7 +651,7 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
                 fecha_aprobado: aprobado ? new Date().toISOString() : null,
                 odontograma_mapa: odontogramaPreexistente,
                 plan_pagos: planPagos,
-                detalles: detalles.map(d => ({
+                detalles: detalles.map((d, index) => ({
                     id: d.id,
                     arancelId: d.arancelId,
                     precioUnitario: d.precioUnitario,
@@ -650,7 +659,8 @@ const PresupuestoForm: React.FC<PresupuestoFormProps> = ({
                     cantidad: d.cantidad,
                     descuento: d.descuento,
                     total: d.total,
-                    posible: d.posible
+                    posible: d.posible,
+                    orden: index
                 }))
             };
 

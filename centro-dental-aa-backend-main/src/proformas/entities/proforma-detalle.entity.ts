@@ -38,4 +38,7 @@ export class ProformaDetalle {
 
     @Column({ type: 'boolean',  default: false })
     posible: boolean;
+
+    @Column({ type: 'int', default: 0 })
+    orden: number;
 }

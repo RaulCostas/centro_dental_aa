@@ -371,8 +371,14 @@ const PropuestasList: React.FC<PropuestasListProps> = ({ isModal = false, onClos
         const propNumber = letra ? `Prop. # ${propuesta.numero.toString().padStart(2, '0')} - Opción ${letra}` : `Prop. # ${propuesta.numero.toString().padStart(2, '0')}`;
         doc.text(propNumber, 200, 65, { align: 'right' });
 
-        // 4. Table - Filter by letra if provided
-        const filteredDetalles = letra ? propuesta.detalles.filter(d => d.letra === letra) : propuesta.detalles;
+        // 4. Table - Filter by letra if provided and sort by order of recording
+        const rawDetalles = letra ? propuesta.detalles.filter(d => d.letra === letra) : propuesta.detalles;
+        const filteredDetalles = [...(rawDetalles || [])].sort((a: any, b: any) => {
+            if (a.orden !== undefined && b.orden !== undefined && a.orden !== b.orden) {
+                return a.orden - b.orden;
+            }
+            return (a.id || 0) - (b.id || 0);
+        });
         const isUSD = Boolean(letra && propuesta.monedas?.[letra] === 'USD');
         const tc = (isUSD && letra && propuesta.tiposCambio?.[letra]) ? Number(propuesta.tiposCambio[letra]) : 1;
 

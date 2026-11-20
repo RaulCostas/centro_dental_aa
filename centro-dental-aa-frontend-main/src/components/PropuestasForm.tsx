@@ -22,6 +22,7 @@ interface DetalleItem {
     descuento: number;
     total: number;
     posible: boolean;
+    orden?: number;
 }
 
 interface PropuestasFormProps {
@@ -178,8 +179,15 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                         cantidad: Number(d.cantidad),
                         descuento: discountPct,
                         total: Number(d.total),
-                        posible: d.posible
+                        posible: d.posible,
+                        orden: d.orden
                     };
+                });
+                mappedDetalles.sort((a: any, b: any) => {
+                    if (a.orden !== undefined && b.orden !== undefined && a.orden !== b.orden) {
+                        return a.orden - b.orden;
+                    }
+                    return (a.id || 0) - (b.id || 0);
                 });
                 setDetalles(mappedDetalles);
             }
@@ -334,7 +342,7 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                 plan_pagos: tabPlanPagos,
                 monedas: tabMonedas,
                 tiposCambio: tabTiposCambio,
-                detalles: detalles.map(d => ({
+                detalles: detalles.map((d, index) => ({
                     id: d.id,
                     letra: d.letra,
                     arancelId: d.arancelId,
@@ -343,7 +351,8 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                     cantidad: d.cantidad,
                     descuento: d.descuento,
                     total: d.total,
-                    posible: d.posible
+                    posible: d.posible,
+                    orden: index
                 }))
             };
 
@@ -791,20 +800,23 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            {detalles.map((item, index) => {
-                                // Only render items for the active tab
-                                if (item.letra !== activeTab) return null;
+                            {(() => {
+                                let tabRowIndex = 0;
+                                return detalles.map((item, index) => {
+                                    // Only render items for the active tab
+                                    if (item.letra !== activeTab) return null;
+                                    tabRowIndex++;
 
-                                return (
-                                    <tr key={index} className={`
-                                        ${editingIndex === index
-                                            ? 'bg-blue-50 dark:bg-blue-900/30'
-                                            : item.posible
-                                                ? 'bg-yellow-50 dark:bg-yellow-900/10'
-                                                : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                                        } transition-all
-                                    `}>
-                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-center">{index + 1}</td>
+                                    return (
+                                        <tr key={index} className={`
+                                            ${editingIndex === index
+                                                ? 'bg-blue-50 dark:bg-blue-900/30'
+                                                : item.posible
+                                                    ? 'bg-yellow-50 dark:bg-yellow-900/10'
+                                                    : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                            } transition-all
+                                        `}>
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-center">{tabRowIndex}</td>
                                         <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{item.tratamiento}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-center">{item.piezas}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-right">{formatNumber(item.precioUnitario / activeTC)}</td>
@@ -842,7 +854,8 @@ const PropuestasForm: React.FC<PropuestasFormProps> = ({
                                         )}
                                     </tr>
                                 );
-                            })}
+                            });
+                        })()}
                         </tbody>
                     </table>
                     {detalles.filter(d => d.letra === activeTab).length === 0 && (

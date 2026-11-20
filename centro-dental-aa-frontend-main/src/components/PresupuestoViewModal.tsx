@@ -253,7 +253,12 @@ const PresupuestoViewModal: React.FC<Props> = ({ isOpen, onClose, id, proformaId
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                                            {proforma.detalles?.map((item: any, index: number) => {
+                                            {[...(proforma.detalles || [])].sort((a: any, b: any) => {
+                                                if (a.orden !== undefined && b.orden !== undefined && a.orden !== b.orden) {
+                                                    return a.orden - b.orden;
+                                                }
+                                                return (a.id || 0) - (b.id || 0);
+                                            }).map((item: any, index: number) => {
                                                 const completed = isItemCompleted(item);
 
                                                 // Robustly split pieces by slash, comma, space, or hyphen

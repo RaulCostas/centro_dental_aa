@@ -71,7 +71,14 @@ const PropuestaViewModal: React.FC<Props> = ({
 
     if (!isOpen) return null;
 
-    const currentDetalles = propuesta?.detalles?.filter((d: any) => d.letra === activeTab) || [];
+    const currentDetalles = (propuesta?.detalles ? [...propuesta.detalles] : [])
+        .filter((d: any) => d.letra === activeTab)
+        .sort((a: any, b: any) => {
+            if (a.orden !== undefined && b.orden !== undefined && a.orden !== b.orden) {
+                return a.orden - b.orden;
+            }
+            return (a.id || 0) - (b.id || 0);
+        });
     const isUSD = propuesta?.monedas?.[activeTab] === 'USD';
     const tc = isUSD ? Number(propuesta?.tiposCambio?.[activeTab] || 6.96) : 1;
     const currentDiscountPct = propuesta?.descuentos?.[activeTab] ? Number(propuesta.descuentos[activeTab]) : 0;

@@ -3,6 +3,10 @@ import { Type } from 'class-transformer';
 
 class CreatePropuestaDetalleDto {
     @IsOptional()
+    @IsNumber()
+    id?: number;
+
+    @IsOptional()
     @IsString()
     letra: string;
 
@@ -33,6 +37,10 @@ class CreatePropuestaDetalleDto {
     @IsOptional()
     @IsBoolean()
     posible: boolean;
+
+    @IsOptional()
+    @IsNumber()
+    orden?: number;
 }
 
 export class CreatePropuestaDto {

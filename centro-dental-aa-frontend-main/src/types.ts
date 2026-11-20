@@ -340,6 +340,7 @@ export interface ProformaDetalle {
     cantidad: number;
     total: number;
     posible: boolean;
+    orden?: number;
 }
 
 export interface Proforma {
@@ -628,6 +629,7 @@ export interface PropuestaDetalle {
     descuento: number;
     total: number;
     posible: boolean;
+    orden?: number;
 }
 
 export interface Propuesta {
@@ -855,6 +857,7 @@ export interface PropuestaDetalle {
     descuento: number;
     total: number;
     posible: boolean;
+    orden?: number;
 }
 
 export interface Propuesta {
